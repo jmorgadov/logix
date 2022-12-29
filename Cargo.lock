@@ -3,5 +3,5 @@
 version = 3
 
 [[package]]
-name = "cisim"
+name = "logicraft"
 version = "0.1.0"
