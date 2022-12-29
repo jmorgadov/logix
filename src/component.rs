@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 pub struct Component {
-    pub id: String,
+    pub id: u32,
     pub upd_fn: fn(&mut Component),
     pub ins: Vec<bool>,
     pub outs: Vec<bool>,
@@ -23,7 +23,7 @@ impl Component {
 
 #[derive(Default)]
 pub struct ComponentBuilder {
-    id: Option<String>,
+    id: Option<u32>,
     upd_fn: Option<fn(&mut Component)>,
     ins: Option<Vec<bool>>,
     outs: Option<Vec<bool>>,
@@ -35,7 +35,7 @@ impl ComponentBuilder {
         Default::default()
     }
 
-    pub fn id(mut self, id: String) -> ComponentBuilder {
+    pub fn id(mut self, id: u32) -> ComponentBuilder {
         self.id = Some(id);
         self
     }
@@ -106,14 +106,14 @@ impl CompStatus {
 
 #[derive(PartialEq, Eq, Clone)]
 pub struct PinAddr {
-    id: String,
+    id: u32,
     addr: usize,
 }
 
 impl PinAddr {
-    pub fn new(id: &str, idx: usize) -> PinAddr {
+    pub fn new(id: u32, idx: usize) -> PinAddr {
         PinAddr {
-            id: id.to_string(),
+            id,
             addr: idx,
         }
     }
@@ -142,14 +142,14 @@ pub struct SubComps {
 }
 
 pub struct ComponentComposer {
-    id: String,
+    id: u32,
     comp: SubComps,
 }
 
 impl ComponentComposer {
-    pub fn new(id: &str) -> Self {
+    pub fn new(id: u32) -> Self {
         ComponentComposer {
-            id: id.to_string(),
+            id,
             comp: Default::default(),
         }
     }
@@ -168,9 +168,9 @@ impl ComponentComposer {
         self
     }
 
-    pub fn remove_comp_by_id(mut self, comp_id: &String) -> ComponentComposer {
+    pub fn remove_comp_by_id(mut self, comp_id: u32) -> ComponentComposer {
         for i in 0..self.comp.components.len() {
-            if self.comp.components[i].id == *comp_id {
+            if self.comp.components[i].id == comp_id {
                 self.comp.components.remove(i);
                 break;
             }
@@ -240,7 +240,7 @@ impl ComponentComposer {
                 if !*used {
                     self.comp
                         .in_addrs
-                        .push(PinAddr::new(&self.comp.components[i].id, j));
+                        .push(PinAddr::new(self.comp.components[i].id, j));
                 }
             }
         }
@@ -250,7 +250,7 @@ impl ComponentComposer {
                 if !*used {
                     self.comp
                         .out_addrs
-                        .push(PinAddr::new(&self.comp.components[i].id, j));
+                        .push(PinAddr::new(self.comp.components[i].id, j));
                 }
             }
         }

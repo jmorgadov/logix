@@ -5,13 +5,13 @@ use component::{ComponentComposer, PinAddr};
 use logic_gate::LogicGate;
 
 fn main() {
-    let and = LogicGate::or("and", 2);
-    let not = LogicGate::not("not");
+    let and = LogicGate::or(0, 2);
+    let not = LogicGate::not(1);
 
-    let mut comp = ComponentComposer::new("comp")
+    let mut comp = ComponentComposer::new(2)
         .add_comp(and)
         .add_comp(not)
-        .connect(PinAddr::new("and", 0), PinAddr::new("not", 0))
+        .connect(PinAddr::new(0, 0), PinAddr::new(1, 0))
         .compose();
 
     comp.set_ins(vec![false, false]).update();
