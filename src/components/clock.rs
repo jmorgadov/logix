@@ -9,15 +9,13 @@ pub struct Clock {
 }
 
 impl Clock {
-    pub fn new(id: u32, interval: u128) -> Self {
+    pub fn new(id: u32, frecuency: f64) -> Self {
+        let nano_sec_dur: u128 = (1e9 / frecuency) as u128;
         Clock {
-            base: ComponentBuilder::new()
-                .id(id)
-                .input_count(0)
-                .build(),
+            base: ComponentBuilder::new().id(id).input_count(0).build(),
             val: false,
-            interval,
-            full: interval * 2,
+            interval: nano_sec_dur,
+            full: nano_sec_dur * 2,
             dirty: false,
         }
     }

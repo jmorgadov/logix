@@ -161,6 +161,13 @@ impl PinAddr {
     }
 }
 
+#[macro_export]
+macro_rules! pin {
+    ($a:expr,$b:expr) => {
+        PinAddr::new($a, $b)
+    };
+}
+
 #[derive(PartialEq, Eq)]
 pub struct Conn {
     from: PinAddr,

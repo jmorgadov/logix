@@ -11,7 +11,7 @@ use std::time::Instant;
 
 fn main() {
     let mut id = IDFactory::new();
-    let clock = Clock::new(id.from("clock"), 1000);
+    let clock = Clock::new(id.from("clock"), 1.0);
     let and = LogicGate::and(id.from("and"), 2);
     let not = LogicGate::not(id.from("not"));
 
@@ -19,20 +19,14 @@ fn main() {
         .add_comp(Box::new(clock))
         .add_comp(Box::new(and))
         .add_comp(Box::new(not))
-        .connect(
-            PinAddr::new(id.get("clock"), 0),
-            PinAddr::new(id.get("and"), 0),
-        )
-        .connect(
-            PinAddr::new(id.get("and"), 0),
-            PinAddr::new(id.get("not"), 0),
-        )
+        .connect(pin!(id.get("clock"), 0), pin!(id.get("and"), 0))
+        .connect(pin!(id.get("and"), 0), pin!(id.get("not"), 0))
         .compose();
 
     comp.set_ins(vec![true]);
     let start = Instant::now();
     loop {
-        let time = start.elapsed().as_millis();
+        let time = start.elapsed().as_nanos();
         comp.update(time);
         if comp.is_dirty() {
             comp.check_values();
