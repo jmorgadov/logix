@@ -1,20 +1,67 @@
 use std::collections::HashMap;
 
-pub struct Component {
+pub trait Component {
+    fn id(&self) -> u32;
+    fn ins(&self) -> &Vec<bool>;
+    fn outs(&self) -> &Vec<bool>;
+    fn set_in(&mut self, idx: usize, val: bool);
+    fn set_out(&mut self, idx: usize, val: bool);
+    fn is_dirty(&self) -> bool;
+    fn check_values(&mut self);
+    fn update(&mut self, _time: u128) {}
+}
+
+pub struct BaseComponent {
     pub id: u32,
-    pub upd_fn: fn(&mut Component),
+    pub upd_fn: fn(&mut BaseComponent),
     pub ins: Vec<bool>,
     pub outs: Vec<bool>,
     pub sub_comp: Option<SubComps>,
 }
 
-impl Component {
-    pub fn update(&mut self) -> &mut Component {
-        (self.upd_fn)(self);
-        self
+impl Component for BaseComponent {
+    fn id(&self) -> u32 {
+        self.id
     }
 
-    pub fn set_ins(&mut self, ins: Vec<bool>) -> &mut Component {
+    fn ins(&self) -> &Vec<bool> {
+        &self.ins
+    }
+
+    fn outs(&self) -> &Vec<bool> {
+        &self.outs
+    }
+
+    fn is_dirty(&self) -> bool {
+        match &self.sub_comp {
+            Some(sub_com) => sub_com.components.iter().any(|comp| comp.is_dirty()),
+            None => false,
+        }
+    }
+
+    fn check_values(&mut self) {
+        (self.upd_fn)(self)
+    }
+
+    fn set_in(&mut self, idx: usize, val: bool) {
+        self.ins[idx] = val
+    }
+
+    fn set_out(&mut self, idx: usize, val: bool) {
+        self.outs[idx] = val
+    }
+
+    fn update(&mut self, time: u128) {
+        if let Some(sub_com) = &mut self.sub_comp {
+            for comp in &mut sub_com.components {
+                comp.update(time);
+            }
+        }
+    }
+}
+
+impl BaseComponent {
+    pub fn set_ins(&mut self, ins: Vec<bool>) -> &mut BaseComponent {
         assert!(self.ins.len() == ins.len(), "Inputs lengths don't match");
         self.ins = ins;
         self
@@ -24,7 +71,7 @@ impl Component {
 #[derive(Default)]
 pub struct ComponentBuilder {
     id: Option<u32>,
-    upd_fn: Option<fn(&mut Component)>,
+    upd_fn: Option<fn(&mut BaseComponent)>,
     ins: Option<Vec<bool>>,
     outs: Option<Vec<bool>>,
     sub_comps: Option<SubComps>,
@@ -40,7 +87,7 @@ impl ComponentBuilder {
         self
     }
 
-    pub fn upd_fn(mut self, upd_fn: fn(&mut Component)) -> ComponentBuilder {
+    pub fn upd_fn(mut self, upd_fn: fn(&mut BaseComponent)) -> ComponentBuilder {
         self.upd_fn = Some(upd_fn);
         self
     }
@@ -70,12 +117,10 @@ impl ComponentBuilder {
         self
     }
 
-    pub fn build(self) -> Component {
-        Component {
+    pub fn build(self) -> BaseComponent {
+        BaseComponent {
             id: self.id.expect("Can not build component without id"),
-            upd_fn: self
-                .upd_fn
-                .expect("Can not build component without update function"),
+            upd_fn: self.upd_fn.unwrap_or(|_comp| {}),
             ins: self.ins.unwrap_or_else(|| vec![false]),
             outs: self.outs.unwrap_or_else(|| vec![false]),
             sub_comp: self.sub_comps,
@@ -112,10 +157,7 @@ pub struct PinAddr {
 
 impl PinAddr {
     pub fn new(id: u32, idx: usize) -> PinAddr {
-        PinAddr {
-            id,
-            addr: idx,
-        }
+        PinAddr { id, addr: idx }
     }
 }
 
@@ -133,8 +175,8 @@ impl Conn {
 
 #[derive(Default)]
 pub struct SubComps {
-    pub components: Vec<Component>,
-    pub idx_map: HashMap<String, usize>,
+    pub components: Vec<Box<dyn Component>>,
+    pub idx_map: HashMap<u32, usize>,
     pub dep_map: Vec<Vec<usize>>,
     pub connections: Vec<Conn>,
     pub in_addrs: Vec<PinAddr>,
@@ -158,7 +200,7 @@ impl ComponentComposer {
         self.comp.components.len()
     }
 
-    pub fn add_comp(mut self, comp: Component) -> ComponentComposer {
+    pub fn add_comp(mut self, comp: Box<dyn Component>) -> ComponentComposer {
         self.comp.components.push(comp);
         self
     }
@@ -170,7 +212,7 @@ impl ComponentComposer {
 
     pub fn remove_comp_by_id(mut self, comp_id: u32) -> ComponentComposer {
         for i in 0..self.comp.components.len() {
-            if self.comp.components[i].id == comp_id {
+            if self.comp.components[i].id() == comp_id {
                 self.comp.components.remove(i);
                 break;
             }
@@ -196,18 +238,18 @@ impl ComponentComposer {
         self
     }
 
-    pub fn compose(mut self) -> Component {
+    pub fn compose(mut self) -> BaseComponent {
         // Build index map and dependencies
         self.comp.dep_map = Default::default();
         self.comp.idx_map = Default::default();
         for (i, comp) in self.comp.components.as_slice().iter().enumerate() {
-            self.comp.idx_map.insert(comp.id.to_string(), i);
+            self.comp.idx_map.insert(comp.id(), i);
             self.comp.dep_map.push(vec![]);
         }
 
         for conn in &self.comp.connections {
-            let from_idx = self.comp.idx_map[&conn.from.id.to_string()];
-            let to_idx = self.comp.idx_map[&conn.to.id.to_string()];
+            let from_idx = self.comp.idx_map[&conn.from.id];
+            let to_idx = self.comp.idx_map[&conn.to.id];
             self.comp.dep_map[to_idx].push(from_idx);
             // self.comp.idx_map.insert(comp.id.to_string(), i);
         }
@@ -218,20 +260,20 @@ impl ComponentComposer {
             .components
             .as_slice()
             .iter()
-            .map(|comp| comp.ins.to_vec())
+            .map(|comp| comp.ins().to_vec())
             .collect();
         let mut used_outputs: Vec<Vec<bool>> = self
             .comp
             .components
             .as_slice()
             .iter()
-            .map(|comp| comp.outs.to_vec())
+            .map(|comp| comp.outs().to_vec())
             .collect();
 
         for conn in self.comp.connections.as_slice() {
-            let from_idx = self.comp.idx_map[&conn.from.id.to_string()];
+            let from_idx = self.comp.idx_map[&conn.from.id];
             used_outputs[from_idx][conn.from.addr] = true;
-            let to_idx = self.comp.idx_map[&conn.to.id.to_string()];
+            let to_idx = self.comp.idx_map[&conn.to.id];
             used_inputs[to_idx][conn.to.addr] = true;
         }
 
@@ -240,7 +282,7 @@ impl ComponentComposer {
                 if !*used {
                     self.comp
                         .in_addrs
-                        .push(PinAddr::new(self.comp.components[i].id, j));
+                        .push(PinAddr::new(self.comp.components[i].id(), j));
                 }
             }
         }
@@ -250,7 +292,7 @@ impl ComponentComposer {
                 if !*used {
                     self.comp
                         .out_addrs
-                        .push(PinAddr::new(self.comp.components[i].id, j));
+                        .push(PinAddr::new(self.comp.components[i].id(), j));
                 }
             }
         }
@@ -263,8 +305,8 @@ impl ComponentComposer {
 
                 // Set the inputs
                 for (i, in_addr) in sub_comp.in_addrs.iter().enumerate() {
-                    let idx = sub_comp.idx_map[&in_addr.id.to_string()];
-                    components[idx].ins[in_addr.addr] = comp.ins[i];
+                    let idx = sub_comp.idx_map[&in_addr.id];
+                    components[idx].set_in(in_addr.addr, comp.ins[i]);
                 }
 
                 // Update
@@ -289,8 +331,8 @@ impl ComponentComposer {
                     let mut j = 0;
                     while j < new_inputs.len() {
                         let (pin_addr, val) = &new_inputs[j];
-                        if pin_addr.id == sub.id {
-                            sub.ins[pin_addr.addr] = *val;
+                        if pin_addr.id == sub.id() {
+                            sub.set_in(pin_addr.addr, *val);
                             new_inputs.remove(j);
                             continue;
                         }
@@ -312,11 +354,11 @@ impl ComponentComposer {
 
                     if ready_to_upd {
                         visits[idx] = CompStatus::Updated;
-                        sub.update();
+                        sub.check_values();
 
                         for conn in &sub_comp.connections {
-                            if conn.from.id == sub.id {
-                                let val = sub.outs[conn.from.addr];
+                            if conn.from.id == sub.id() {
+                                let val = sub.outs()[conn.from.addr];
                                 new_inputs.push((conn.to.clone(), val));
                             }
                         }
@@ -327,8 +369,8 @@ impl ComponentComposer {
 
                 // Set outputs
                 for (i, out_addr) in sub_comp.out_addrs.iter().enumerate() {
-                    let idx = sub_comp.idx_map[&out_addr.id.to_string()];
-                    comp.outs[i] = sub_comp.components[idx].outs[out_addr.addr];
+                    let idx = sub_comp.idx_map[&out_addr.id];
+                    comp.outs[i] = sub_comp.components[idx].outs()[out_addr.addr];
                 }
             })
             .input_count(self.comp.in_addrs.len())

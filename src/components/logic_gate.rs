@@ -1,9 +1,9 @@
-use crate::component::{Component, ComponentBuilder};
+use super::component::{BaseComponent, ComponentBuilder};
 
 pub struct LogicGate;
 
 impl LogicGate {
-    pub fn not(id: u32) -> Component {
+    pub fn not(id: u32) -> BaseComponent {
         ComponentBuilder::new()
             .id(id)
             .upd_fn(|comp| {
@@ -12,7 +12,7 @@ impl LogicGate {
             .build()
     }
 
-    pub fn and(id: u32, in_count: usize) -> Component {
+    pub fn and(id: u32, in_count: usize) -> BaseComponent {
         ComponentBuilder::new()
             .id(id)
             .upd_fn(|comp| {
@@ -23,7 +23,7 @@ impl LogicGate {
             .build()
     }
 
-    pub fn or(id: u32, in_count: usize) -> Component {
+    pub fn or(id: u32, in_count: usize) -> BaseComponent {
         ComponentBuilder::new()
             .id(id)
             .upd_fn(|comp| {
@@ -34,7 +34,7 @@ impl LogicGate {
             .build()
     }
 
-    pub fn nand(id: u32, in_count: usize) -> Component {
+    pub fn nand(id: u32, in_count: usize) -> BaseComponent {
         ComponentBuilder::new()
             .id(id)
             .upd_fn(|comp| {
@@ -45,7 +45,7 @@ impl LogicGate {
             .build()
     }
 
-    pub fn nor(id: u32, in_count: usize) -> Component {
+    pub fn nor(id: u32, in_count: usize) -> BaseComponent {
         ComponentBuilder::new()
             .id(id)
             .upd_fn(|comp| {
@@ -56,7 +56,7 @@ impl LogicGate {
             .build()
     }
 
-    pub fn xor(id: u32, in_count: usize) -> Component {
+    pub fn xor(id: u32, in_count: usize) -> BaseComponent {
         ComponentBuilder::new()
             .id(id)
             .upd_fn(|comp| {
@@ -77,14 +77,15 @@ impl LogicGate {
 #[cfg(test)]
 mod tests {
     use super::LogicGate;
-    use crate::component::Component;
+    use crate::components::component::{BaseComponent, Component};
 
-    fn test_gate(comp: &mut Component, table: Vec<Vec<bool>>) {
+    fn test_gate(comp: &mut BaseComponent, table: Vec<Vec<bool>>) {
         for row in table {
             let last_idx = row.len() - 1;
             let ins = row[0..last_idx].to_vec();
             let out = row[last_idx];
-            comp.set_ins(ins).update();
+            comp.set_ins(ins);
+            comp.check_values();
             assert!(comp.outs[0] == out, "Table: {:?}", row)
         }
     }
