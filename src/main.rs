@@ -1,23 +1,32 @@
 mod components;
+mod id_factory;
 
 use components::{
     clock::Clock,
     component::{Component, ComponentComposer, PinAddr},
     logic_gate::LogicGate,
 };
+use id_factory::IDFactory;
 use std::time::Instant;
 
 fn main() {
-    let clock = Clock::new(10, 1000);
-    let and = LogicGate::and(0, 2);
-    let not = LogicGate::not(1);
+    let mut id = IDFactory::new();
+    let clock = Clock::new(id.from("clock"), 1000);
+    let and = LogicGate::and(id.from("and"), 2);
+    let not = LogicGate::not(id.from("not"));
 
-    let mut comp = ComponentComposer::new(2)
+    let mut comp = ComponentComposer::new(id.from("comp"))
         .add_comp(Box::new(clock))
         .add_comp(Box::new(and))
         .add_comp(Box::new(not))
-        .connect(PinAddr::new(10, 0), PinAddr::new(0, 0))
-        .connect(PinAddr::new(0, 0), PinAddr::new(1, 0))
+        .connect(
+            PinAddr::new(id.get("clock"), 0),
+            PinAddr::new(id.get("and"), 0),
+        )
+        .connect(
+            PinAddr::new(id.get("and"), 0),
+            PinAddr::new(id.get("not"), 0),
+        )
         .compose();
 
     comp.set_ins(vec![true]);
