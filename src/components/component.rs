@@ -258,7 +258,6 @@ impl ComponentComposer {
             let from_idx = self.comp.idx_map[&conn.from.id];
             let to_idx = self.comp.idx_map[&conn.to.id];
             self.comp.dep_map[to_idx].push(from_idx);
-            // self.comp.idx_map.insert(comp.id.to_string(), i);
         }
 
         // Extract empty I/O pin addresses
@@ -349,9 +348,6 @@ impl ComponentComposer {
                     let deps = &sub_comp.dep_map[idx];
                     let mut ready_to_upd = true;
                     for dep in deps {
-                        if visits[*dep].in_update() {
-                            panic!("Cycle encountered")
-                        }
                         if visits[*dep].not_updated() {
                             ready_to_upd = false;
                             visits[*dep] = CompStatus::InUpdate;
