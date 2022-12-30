@@ -12,7 +12,11 @@ impl Clock {
     pub fn new(id: u32, frecuency: f64) -> Self {
         let nano_sec_dur: u128 = (1e9 / frecuency) as u128;
         Clock {
-            base: ComponentBuilder::new().id(id).input_count(0).build(),
+            base: ComponentBuilder::new()
+                .name("Clock")
+                .id(id)
+                .input_count(0)
+                .build(),
             val: false,
             interval: nano_sec_dur,
             full: nano_sec_dur * 2,
@@ -24,6 +28,10 @@ impl Clock {
 impl Component for Clock {
     fn id(&self) -> u32 {
         self.base.id()
+    }
+
+    fn name(&self) -> String {
+        self.base.name()
     }
 
     fn ins(&self) -> &Vec<bool> {

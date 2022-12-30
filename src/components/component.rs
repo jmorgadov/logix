@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 pub trait Component {
     fn id(&self) -> u32;
+    fn name(&self) -> String;
     fn ins(&self) -> &Vec<bool>;
     fn outs(&self) -> &Vec<bool>;
     fn set_in(&mut self, idx: usize, val: bool);
@@ -13,6 +14,7 @@ pub trait Component {
 
 pub struct BaseComponent {
     pub id: u32,
+    pub name: String,
     pub upd_fn: fn(&mut BaseComponent),
     pub ins: Vec<bool>,
     pub outs: Vec<bool>,
@@ -22,6 +24,10 @@ pub struct BaseComponent {
 impl Component for BaseComponent {
     fn id(&self) -> u32 {
         self.id
+    }
+
+    fn name(&self) -> String {
+        self.name.to_string()
     }
 
     fn ins(&self) -> &Vec<bool> {
@@ -44,10 +50,24 @@ impl Component for BaseComponent {
     }
 
     fn set_in(&mut self, idx: usize, val: bool) {
+        assert!(
+            idx < self.ins.len(),
+            "Invalid index {} for component {} with {} inputs.",
+            idx,
+            self.name,
+            self.ins.len()
+        );
         self.ins[idx] = val
     }
 
     fn set_out(&mut self, idx: usize, val: bool) {
+        assert!(
+            idx < self.ins.len(),
+            "Invalid index {} for component {} with {} outputs.",
+            idx,
+            self.name,
+            self.ins.len()
+        );
         self.outs[idx] = val
     }
 
@@ -71,19 +91,32 @@ impl BaseComponent {
 #[derive(Default)]
 pub struct ComponentBuilder {
     id: Option<u32>,
+    name: Option<String>,
     upd_fn: Option<fn(&mut BaseComponent)>,
-    ins: Option<Vec<bool>>,
-    outs: Option<Vec<bool>>,
+    ins: Vec<bool>,
+    outs: Vec<bool>,
     sub_comps: Option<SubComps>,
 }
 
 impl ComponentBuilder {
     pub fn new() -> Self {
-        Default::default()
+        ComponentBuilder {
+            id: None,
+            name: None,
+            upd_fn: None,
+            ins: vec![false],
+            outs: vec![false],
+            sub_comps: None,
+        }
     }
 
     pub fn id(mut self, id: u32) -> ComponentBuilder {
         self.id = Some(id);
+        self
+    }
+
+    pub fn name(mut self, name: &str) -> ComponentBuilder {
+        self.name = Some(name.to_string());
         self
     }
 
@@ -93,22 +126,22 @@ impl ComponentBuilder {
     }
 
     pub fn inputs(mut self, inputs: Vec<bool>) -> ComponentBuilder {
-        self.ins = Some(inputs);
+        self.ins = inputs;
         self
     }
 
     pub fn outputs(mut self, outputs: Vec<bool>) -> ComponentBuilder {
-        self.outs = Some(outputs);
+        self.outs = outputs;
         self
     }
 
     pub fn input_count(mut self, count: usize) -> ComponentBuilder {
-        self.ins = Some((0..count).map(|_| false).collect());
+        self.ins = (0..count).map(|_| false).collect();
         self
     }
 
     pub fn output_count(mut self, count: usize) -> ComponentBuilder {
-        self.outs = Some((0..count).map(|_| false).collect());
+        self.outs = (0..count).map(|_| false).collect();
         self
     }
 
@@ -117,12 +150,25 @@ impl ComponentBuilder {
         self
     }
 
+    pub fn default_in(mut self, idx: usize, val: bool) -> ComponentBuilder {
+        assert!(idx < self.ins.len(), "Index out of range");
+        self.ins[idx] = val;
+        self
+    }
+
+    pub fn default_out(mut self, idx: usize, val: bool) -> ComponentBuilder {
+        assert!(idx < self.outs.len(), "Index out of range");
+        self.outs[idx] = val;
+        self
+    }
+
     pub fn build(self) -> BaseComponent {
         BaseComponent {
             id: self.id.expect("Can not build component without id"),
+            name: self.name.expect("Can not build component without name"),
             upd_fn: self.upd_fn.unwrap_or(|_comp| {}),
-            ins: self.ins.unwrap_or_else(|| vec![false]),
-            outs: self.outs.unwrap_or_else(|| vec![false]),
+            ins: self.ins,
+            outs: self.outs,
             sub_comp: self.sub_comps,
         }
     }
@@ -149,7 +195,7 @@ impl CompStatus {
     }
 }
 
-#[derive(PartialEq, Eq, Clone)]
+#[derive(PartialEq, Eq, Clone, Debug)]
 pub struct PinAddr {
     id: u32,
     addr: usize,
@@ -190,21 +236,30 @@ pub struct SubComps {
     pub out_addrs: Vec<PinAddr>,
 }
 
+#[derive(Default)]
 pub struct ComponentComposer {
-    id: u32,
+    id: Option<u32>,
+    name: Option<String>,
     comp: SubComps,
 }
 
 impl ComponentComposer {
-    pub fn new(id: u32) -> Self {
-        ComponentComposer {
-            id,
-            comp: Default::default(),
-        }
+    pub fn new() -> Self {
+        Default::default()
     }
 
     pub fn len(&self) -> usize {
         self.comp.components.len()
+    }
+
+    pub fn id(mut self, id: u32) -> ComponentComposer {
+        self.id = Some(id);
+        self
+    }
+
+    pub fn name(mut self, name: &str) -> ComponentComposer {
+        self.name = Some(name.to_string());
+        self
     }
 
     pub fn add_comp(mut self, comp: Box<dyn Component>) -> ComponentComposer {
@@ -228,6 +283,14 @@ impl ComponentComposer {
     }
 
     pub fn connect(mut self, from: PinAddr, to: PinAddr) -> ComponentComposer {
+        for comp in &self.comp.components {
+            if from.id == comp.id() && comp.name() == "PinOutput" {
+                panic!("Connecting from an output pin")
+            }
+            if to.id == comp.id() && comp.name() == "PinInput" {
+                panic!("Connecting to an input pin")
+            }
+        }
         let conn = Conn::new(from, to);
         self.comp.connections.push(conn);
         self
@@ -246,12 +309,17 @@ impl ComponentComposer {
     }
 
     pub fn compose(mut self) -> BaseComponent {
-        // Build index map and dependencies
         self.comp.dep_map = Default::default();
         self.comp.idx_map = Default::default();
         for (i, comp) in self.comp.components.as_slice().iter().enumerate() {
             self.comp.idx_map.insert(comp.id(), i);
             self.comp.dep_map.push(vec![]);
+            if comp.name() == "PinInput" {
+                self.comp.in_addrs.push(pin!(comp.id(), 0));
+            }
+            if comp.name() == "PinOutput" {
+                self.comp.out_addrs.push(pin!(comp.id(), 0));
+            }
         }
 
         for conn in &self.comp.connections {
@@ -260,51 +328,9 @@ impl ComponentComposer {
             self.comp.dep_map[to_idx].push(from_idx);
         }
 
-        // Extract empty I/O pin addresses
-        let mut used_inputs: Vec<Vec<bool>> = self
-            .comp
-            .components
-            .as_slice()
-            .iter()
-            .map(|comp| comp.ins().to_vec())
-            .collect();
-        let mut used_outputs: Vec<Vec<bool>> = self
-            .comp
-            .components
-            .as_slice()
-            .iter()
-            .map(|comp| comp.outs().to_vec())
-            .collect();
-
-        for conn in self.comp.connections.as_slice() {
-            let from_idx = self.comp.idx_map[&conn.from.id];
-            used_outputs[from_idx][conn.from.addr] = true;
-            let to_idx = self.comp.idx_map[&conn.to.id];
-            used_inputs[to_idx][conn.to.addr] = true;
-        }
-
-        for (i, vals) in used_inputs.iter().enumerate() {
-            for (j, used) in vals.iter().enumerate() {
-                if !*used {
-                    self.comp
-                        .in_addrs
-                        .push(PinAddr::new(self.comp.components[i].id(), j));
-                }
-            }
-        }
-
-        for (i, vals) in used_outputs.iter().enumerate() {
-            for (j, used) in vals.iter().enumerate() {
-                if !*used {
-                    self.comp
-                        .out_addrs
-                        .push(PinAddr::new(self.comp.components[i].id(), j));
-                }
-            }
-        }
-
         ComponentBuilder::new()
-            .id(self.id)
+            .id(self.id.expect("Can not build component without id"))
+            .name(&self.name.expect("Can not build component without name"))
             .upd_fn(|comp| {
                 let sub_comp = comp.sub_comp.as_mut().unwrap();
                 let components = &mut sub_comp.components;

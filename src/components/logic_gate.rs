@@ -5,6 +5,7 @@ pub struct LogicGate;
 impl LogicGate {
     pub fn not(id: u32) -> BaseComponent {
         ComponentBuilder::new()
+            .name("NotGate")
             .id(id)
             .upd_fn(|comp| {
                 comp.outs[0] = !comp.ins[0];
@@ -14,6 +15,7 @@ impl LogicGate {
 
     pub fn and(id: u32, in_count: usize) -> BaseComponent {
         ComponentBuilder::new()
+            .name("NotGate")
             .id(id)
             .upd_fn(|comp| {
                 let out: bool = comp.ins.as_slice().iter().all(|val| *val);
@@ -25,6 +27,7 @@ impl LogicGate {
 
     pub fn or(id: u32, in_count: usize) -> BaseComponent {
         ComponentBuilder::new()
+            .name("OrGate")
             .id(id)
             .upd_fn(|comp| {
                 let out: bool = comp.ins.as_slice().iter().any(|val| *val);
@@ -36,6 +39,7 @@ impl LogicGate {
 
     pub fn nand(id: u32, in_count: usize) -> BaseComponent {
         ComponentBuilder::new()
+            .name("NandGate")
             .id(id)
             .upd_fn(|comp| {
                 let out: bool = comp.ins.as_slice().iter().all(|val| *val);
@@ -47,6 +51,7 @@ impl LogicGate {
 
     pub fn nor(id: u32, in_count: usize) -> BaseComponent {
         ComponentBuilder::new()
+            .name("NorGate")
             .id(id)
             .upd_fn(|comp| {
                 let out: bool = comp.ins.as_slice().iter().any(|val| *val);
@@ -58,6 +63,7 @@ impl LogicGate {
 
     pub fn xor(id: u32, in_count: usize) -> BaseComponent {
         ComponentBuilder::new()
+            .name("XorGate")
             .id(id)
             .upd_fn(|comp| {
                 let mut out = false;
