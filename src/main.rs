@@ -3,7 +3,7 @@ mod id_factory;
 
 use components::{
     clock::Clock,
-    component::{Component, ComponentComposer, PinAddr},
+    component::{Component, ComponentComposer, PinAddr, SimEvent},
     logic_gate::LogicGate,
     pin::Pin,
 };
@@ -51,7 +51,7 @@ fn main() {
     let start = Instant::now();
     loop {
         let time = start.elapsed().as_nanos();
-        comp.update(time);
+        comp.on_event(&SimEvent::Update(time));
         if comp.is_dirty() {
             comp.check_values();
             println!("{:?}", comp.outs());

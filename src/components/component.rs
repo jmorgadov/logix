@@ -1,5 +1,9 @@
 use std::collections::HashMap;
 
+pub enum SimEvent {
+    Update(u128),
+}
+
 pub trait Component {
     fn id(&self) -> u32;
     fn name(&self) -> String;
@@ -9,7 +13,7 @@ pub trait Component {
     fn set_out(&mut self, idx: usize, val: bool);
     fn is_dirty(&self) -> bool;
     fn check_values(&mut self);
-    fn update(&mut self, _time: u128) {}
+    fn on_event(&mut self, _event: &SimEvent) {}
 }
 
 pub struct BaseComponent {
@@ -62,7 +66,7 @@ impl Component for BaseComponent {
 
     fn set_out(&mut self, idx: usize, val: bool) {
         assert!(
-            idx < self.ins.len(),
+            idx < self.outs.len(),
             "Invalid index {} for component {} with {} outputs.",
             idx,
             self.name,
@@ -71,10 +75,12 @@ impl Component for BaseComponent {
         self.outs[idx] = val
     }
 
-    fn update(&mut self, time: u128) {
-        if let Some(sub_com) = &mut self.sub_comp {
-            for comp in &mut sub_com.components {
-                comp.update(time);
+    fn on_event(&mut self, event: &SimEvent) {
+        if let SimEvent::Update(_) = event {
+            if let Some(sub_com) = &mut self.sub_comp {
+                for comp in &mut sub_com.components {
+                    comp.on_event(event);
+                }
             }
         }
     }
@@ -341,15 +347,22 @@ impl ComponentComposer {
                     components[idx].set_in(in_addr.addr, comp.ins[i]);
                 }
 
-                // Update
+                // Update the component
+                //
+                // The visits vector contains the status of all the components
+                // in the updating process.
                 let mut i = 0;
                 let mut visits = vec![];
                 visits.resize(components.len(), CompStatus::NotUpdated);
 
+                // This vector contains the updated values for the
+                // inner connections.
                 let mut new_inputs: Vec<(PinAddr, bool)> = Default::default();
+
                 let mut stack = vec![];
                 while !stack.is_empty() || i < visits.len() {
                     if stack.is_empty() {
+                        // Check if there are unvisited components
                         stack.push(i);
                         i += 1;
                         while i < visits.len() && visits[i].updated() {
@@ -359,7 +372,8 @@ impl ComponentComposer {
                     let idx = stack[stack.len() - 1];
                     let sub = &mut components[idx];
 
-                    // Check new input values for this sub component
+                    // Check for updates in the input values for this
+                    // component
                     let mut j = 0;
                     while j < new_inputs.len() {
                         let (pin_addr, val) = &new_inputs[j];
@@ -371,6 +385,9 @@ impl ComponentComposer {
                         j += 1;
                     }
 
+                    // Check if the current component is ready to update
+                    // according the state of its dependencies.
+                    // Here the dependencie cycles can be checked if needed.
                     let deps = &sub_comp.dep_map[idx];
                     let mut ready_to_upd = true;
                     for dep in deps {
@@ -385,6 +402,9 @@ impl ComponentComposer {
                         visits[idx] = CompStatus::Updated;
                         sub.check_values();
 
+                        // Store the input values of the components
+                        // that depends on the recently updated one
+                        // for future update.
                         for conn in &sub_comp.connections {
                             if conn.from.id == sub.id() {
                                 let val = sub.outs()[conn.from.addr];

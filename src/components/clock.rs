@@ -1,4 +1,4 @@
-use super::component::{BaseComponent, Component, ComponentBuilder};
+use super::component::{BaseComponent, Component, ComponentBuilder, SimEvent};
 
 pub struct Clock {
     base: BaseComponent,
@@ -59,8 +59,10 @@ impl Component for Clock {
         self.base.set_out(idx, val)
     }
 
-    fn update(&mut self, time: u128) {
-        self.val = (time % self.full) > self.interval;
-        self.dirty = self.base.outs[0] != self.val;
+    fn on_event(&mut self, event: &SimEvent) {
+        if let SimEvent::Update(time) = event {
+            self.val = (time % self.full) > self.interval;
+            self.dirty = self.base.outs[0] != self.val;
+        }
     }
 }
