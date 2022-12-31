@@ -24,7 +24,7 @@ macro_rules! pin {
     };
 }
 
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Debug)]
 pub struct Conn {
     pub from: PinAddr,
     pub to: PinAddr,
@@ -57,6 +57,7 @@ impl CompStatus {
     }
 }
 
+#[derive(Debug)]
 pub struct ComposedComponent {
     pub id: u32,
     pub name: String,
@@ -175,7 +176,6 @@ impl ComposedComponent {
                         new_inputs.push((conn.to.clone(), val));
                     }
                 }
-
                 stack.pop();
             }
         }

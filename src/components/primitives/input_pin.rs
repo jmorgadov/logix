@@ -2,6 +2,7 @@ use crate::components::component::{Component, SimEvent};
 
 use super::primitive::Primitive;
 
+#[derive(Debug)]
 pub struct InputPin {
     id: u32,
     ins: Vec<bool>,

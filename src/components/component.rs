@@ -1,9 +1,11 @@
+use std::fmt::Debug;
+
 pub enum SimEvent {
     Update(u128),
     UpdateValues,
 }
 
-pub trait Component {
+pub trait Component : Debug {
     fn id(&self) -> u32;
     fn name(&self) -> String;
     fn ins(&mut self) -> &mut Vec<bool>;

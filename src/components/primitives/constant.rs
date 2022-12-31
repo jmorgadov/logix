@@ -2,6 +2,7 @@ use crate::components::component::Component;
 
 use super::primitive::Primitive;
 
+#[derive(Debug)]
 pub struct Const {
     pub id: u32,
     pub ins: Vec<bool>,

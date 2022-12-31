@@ -2,6 +2,7 @@ use crate::components::component::{Component, SimEvent};
 
 use super::primitive::Primitive;
 
+#[derive(Debug)]
 pub struct NotGate {
     id: u32,
     ins: Vec<bool>,
@@ -32,7 +33,7 @@ impl Component for NotGate {
     }
 
     fn outs(&mut self) -> &mut Vec<bool> {
-        &mut self.ins
+        &mut self.outs
     }
 
     fn on_event(&mut self, event: &SimEvent) {
