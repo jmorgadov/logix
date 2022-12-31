@@ -1,6 +1,6 @@
 use crate::components::component::{Component, SimEvent};
 
-use super::primitives::Primitive;
+use super::primitive::Primitive;
 
 pub struct NotGate {
     id: u32,
@@ -36,11 +36,28 @@ impl Component for NotGate {
     }
 
     fn on_event(&mut self, event: &SimEvent) {
-        match event {
-            SimEvent::UpdateValues => {
-                self.outs[0] = !self.ins[0];
-            }
-            _ => (),
+        if let SimEvent::UpdateValues = event {
+            self.outs[0] = !self.ins[0];
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::NotGate;
+    use crate::components::component::{Component, SimEvent};
+
+    #[test]
+    fn update_values() {
+        let table = [
+            [false, true],
+            [true, false],
+        ];
+        let mut gate = NotGate::new(0);
+        for row in table {
+            gate.set_in(0, row[0]);
+            gate.on_event(&SimEvent::UpdateValues);
+            assert!(gate.outs[0] == row[1]);
         }
     }
 }

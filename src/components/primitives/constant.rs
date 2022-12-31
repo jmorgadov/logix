@@ -1,6 +1,6 @@
 use crate::components::component::Component;
 
-use super::primitives::Primitive;
+use super::primitive::Primitive;
 
 pub struct Const {
     pub id: u32,

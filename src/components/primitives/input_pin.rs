@@ -1,6 +1,6 @@
 use crate::components::component::{Component, SimEvent};
 
-use super::primitives::Primitive;
+use super::primitive::Primitive;
 
 pub struct InputPin {
     id: u32,
@@ -36,11 +36,8 @@ impl Component for InputPin {
     }
 
     fn on_event(&mut self, event: &SimEvent) {
-        match event {
-            SimEvent::UpdateValues => {
-                self.outs[0] = self.ins[0];
-            }
-            _ => (),
+        if let SimEvent::UpdateValues = event {
+            self.outs[0] = self.ins[0];
         }
     }
 }

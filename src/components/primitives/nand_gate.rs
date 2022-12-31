@@ -1,6 +1,6 @@
 use crate::components::component::{Component, SimEvent};
 
-use super::primitives::Primitive;
+use super::primitive::Primitive;
 
 pub struct NandGate {
     id: u32,
@@ -39,6 +39,29 @@ impl Component for NandGate {
         if let SimEvent::UpdateValues = event {
             let out: bool = self.ins.as_slice().iter().all(|val| *val);
             self.outs[0] = !out;
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::NandGate;
+    use crate::components::component::{Component, SimEvent};
+
+    #[test]
+    fn update_values() {
+        let table = [
+            [false, false, true],
+            [true, false, true],
+            [false, true, true],
+            [true, true, false],
+        ];
+        let mut gate = NandGate::new(0, 2);
+        for row in table {
+            gate.set_in(0, row[0]);
+            gate.set_in(1, row[1]);
+            gate.on_event(&SimEvent::UpdateValues);
+            assert!(gate.outs[0] == row[2]);
         }
     }
 }

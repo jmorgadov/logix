@@ -2,7 +2,7 @@ use std::time::Instant;
 
 use components::{
     component::{Component, SimEvent},
-    compose_component::{ComposedComponentBuilder, PinAddr},
+    composed_component::{ComposedComponentBuilder, PinAddr},
     primitives::{clock::Clock, nor_gate::NorGate, output_pin::OutputPin},
 };
 use id_factory::IDFactory;

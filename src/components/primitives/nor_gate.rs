@@ -1,6 +1,6 @@
 use crate::components::component::{Component, SimEvent};
 
-use super::primitives::Primitive;
+use super::primitive::Primitive;
 
 pub struct NorGate {
     id: u32,

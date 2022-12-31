@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use super::{
     component::{Component, SimEvent},
-    primitives::primitives::Primitive,
+    primitives::primitive::Primitive,
 };
 
 #[derive(PartialEq, Eq, Clone, Debug)]

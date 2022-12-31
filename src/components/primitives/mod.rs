@@ -8,6 +8,4 @@ pub mod nand_gate;
 pub mod or_gate;
 pub mod nor_gate;
 pub mod xor_gate;
-pub mod primitives;
-
-use clock::Clock;
+pub mod primitive;
