@@ -11,7 +11,7 @@ impl IDFactory {
         Default::default()
     }
 
-    pub fn from(&mut self, id: &str) -> u32 {
+    pub fn set(&mut self, id: &str) -> u32 {
         let (key, val) = (id.to_string(), self.last);
         if self.ids.contains_key(&key) {
             panic!("Id already exists")
