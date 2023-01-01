@@ -1,13 +1,7 @@
 use std::time::Instant;
 
-use components::{
-    component::{Component, SimEvent},
-    composed_component::{ComposedComponentBuilder, PinAddr},
-    primitives::{input_pin::InputPin, output_pin::OutputPin},
-};
+use components::{prelude::*, primitives::prelude::*};
 use id_factory::IDFactory;
-
-use crate::components::primitives::{clock::Clock, nor_gate::NorGate};
 
 mod components;
 mod id_factory;

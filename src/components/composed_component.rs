@@ -1,18 +1,11 @@
-use std::collections::HashMap;
-
-use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
-
-use crate::serialize::JSONSerialize;
-
 use super::{
     component::{Component, SimEvent},
-    primitives::{
-        and_gate::AndGate, clock::Clock, constant::Const, input_pin::InputPin, nand_gate::NandGate,
-        nor_gate::NorGate, not_gate::NotGate, or_gate::OrGate, output_pin::OutputPin,
-        primitive::Primitive, xor_gate::XorGate,
-    },
+    primitives::prelude::*,
 };
+use crate::serialize::JSONSerialize;
+use serde::{Deserialize, Serialize};
+use serde_json::{json, Value};
+use std::collections::HashMap;
 
 #[derive(PartialEq, Eq, Clone, Debug, Serialize, Deserialize)]
 pub struct PinAddr {
@@ -34,7 +27,7 @@ macro_rules! pin {
 }
 
 #[derive(PartialEq, Eq, Debug, Serialize, Deserialize)]
-pub struct Conn {
+struct Conn {
     pub from: PinAddr,
     pub to: PinAddr,
 }
@@ -68,31 +61,27 @@ impl CompStatus {
 
 #[derive(Debug)]
 pub struct ComposedComponent {
-    pub id: u32,
-    pub name: String,
-    pub ins: Vec<bool>,
-    pub outs: Vec<bool>,
+    id: u32,
+    name: String,
+    ins: Vec<bool>,
+    outs: Vec<bool>,
 
-    pub components: Vec<Box<dyn Component>>,
-    pub idx_map: HashMap<u32, usize>,
-    pub dep_map: Vec<Vec<usize>>,
-    pub connections: Vec<Conn>,
-    pub in_addrs: Vec<PinAddr>,
-    pub out_addrs: Vec<PinAddr>,
+    components: Vec<Box<dyn Component>>,
+    idx_map: HashMap<u32, usize>,
+    dep_map: Vec<Vec<usize>>,
+    connections: Vec<Conn>,
+    in_addrs: Vec<PinAddr>,
+    out_addrs: Vec<PinAddr>,
 }
 
 impl JSONSerialize for ComposedComponent {
     fn to_json(&self) -> Value {
         let mut val: Value = Default::default();
+        let comps: Vec<Value> = self.components.iter().map(|e| e.to_json()).collect();
+
         val["id"] = json!(self.id);
         val["name"] = json!(self.name);
-        // val["idx_map"] = json!(self.idx_map);
-        // val["dep_map"] = json!(self.dep_map);
         val["connections"] = json!(self.connections);
-        // val["in_addrs"] = json!(self.in_addrs);
-        // val["out_addrs"] = json!(self.out_addrs);
-
-        let comps: Vec<Value> = self.components.iter().map(|e| e.to_json()).collect();
         val["components"] = json!(comps);
         val
     }
