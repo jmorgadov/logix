@@ -1,4 +1,7 @@
-use crate::components::component::{Component, SimEvent};
+use crate::{
+    components::component::{Component, SimEvent},
+    serialize::JSONSerialize,
+};
 
 use super::primitive::Primitive;
 
@@ -16,6 +19,22 @@ impl InputPin {
             ins: vec![false],
             outs: vec![false],
         }
+    }
+}
+
+impl JSONSerialize for InputPin {
+    fn to_json(&self) -> serde_json::Value {
+        serde_json::json!({
+            "id": self.id,
+            "name": Primitive::InputPin.to_string(),
+        })
+    }
+
+    fn from_json(json: &serde_json::Value) -> Self
+    where
+        Self: Sized,
+    {
+        InputPin::new(json["id"].as_u64().unwrap() as u32)
     }
 }
 

@@ -1,11 +1,13 @@
 use std::fmt::Debug;
 
+use crate::serialize::JSONSerialize;
+
 pub enum SimEvent {
     Update(u128),
     UpdateValues,
 }
 
-pub trait Component : Debug {
+pub trait Component: Debug + JSONSerialize {
     fn id(&self) -> u32;
     fn name(&self) -> String;
     fn ins(&mut self) -> &mut Vec<bool>;

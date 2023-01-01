@@ -3,12 +3,15 @@ use std::time::Instant;
 use components::{
     component::{Component, SimEvent},
     composed_component::{ComposedComponentBuilder, PinAddr},
-    primitives::{clock::Clock, input_pin::InputPin, nor_gate::NorGate, output_pin::OutputPin},
+    primitives::{input_pin::InputPin, output_pin::OutputPin},
 };
 use id_factory::IDFactory;
 
+use crate::components::primitives::{clock::Clock, nor_gate::NorGate};
+
 mod components;
 mod id_factory;
+mod serialize;
 
 fn main() {
     let mut id = IDFactory::new();

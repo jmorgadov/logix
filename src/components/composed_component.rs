@@ -1,11 +1,20 @@
 use std::collections::HashMap;
 
+use serde::{Deserialize, Serialize};
+use serde_json::{json, Value};
+
+use crate::serialize::JSONSerialize;
+
 use super::{
     component::{Component, SimEvent},
-    primitives::primitive::Primitive,
+    primitives::{
+        and_gate::AndGate, clock::Clock, constant::Const, input_pin::InputPin, nand_gate::NandGate,
+        nor_gate::NorGate, not_gate::NotGate, or_gate::OrGate, output_pin::OutputPin,
+        primitive::Primitive, xor_gate::XorGate,
+    },
 };
 
-#[derive(PartialEq, Eq, Clone, Debug)]
+#[derive(PartialEq, Eq, Clone, Debug, Serialize, Deserialize)]
 pub struct PinAddr {
     pub id: u32,
     pub addr: usize,
@@ -24,7 +33,7 @@ macro_rules! pin {
     };
 }
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Debug, Serialize, Deserialize)]
 pub struct Conn {
     pub from: PinAddr,
     pub to: PinAddr,
@@ -70,6 +79,92 @@ pub struct ComposedComponent {
     pub connections: Vec<Conn>,
     pub in_addrs: Vec<PinAddr>,
     pub out_addrs: Vec<PinAddr>,
+}
+
+impl JSONSerialize for ComposedComponent {
+    fn to_json(&self) -> Value {
+        let mut val: Value = Default::default();
+        val["id"] = json!(self.id);
+        val["name"] = json!(self.name);
+        // val["idx_map"] = json!(self.idx_map);
+        // val["dep_map"] = json!(self.dep_map);
+        val["connections"] = json!(self.connections);
+        // val["in_addrs"] = json!(self.in_addrs);
+        // val["out_addrs"] = json!(self.out_addrs);
+
+        let comps: Vec<Value> = self.components.iter().map(|e| e.to_json()).collect();
+        val["components"] = json!(comps);
+        val
+    }
+
+    fn from_json(json: &Value) -> Self
+    where
+        Self: Sized,
+    {
+        let mut builder = ComposedComponentBuilder::new()
+            .id(json["id"].as_u64().unwrap() as u32)
+            .name(json["name"].as_str().unwrap());
+
+        for comp_json in json["components"].as_array().unwrap().iter() {
+            let name = comp_json["name"].as_str().unwrap();
+            let sub_comp: Box<dyn Component>;
+            if let Ok(prim) = Primitive::from_str(name) {
+                match prim {
+                    Primitive::NotGate => {
+                        sub_comp = Box::new(NotGate::from_json(comp_json));
+                    }
+                    Primitive::AndGate => {
+                        sub_comp = Box::new(AndGate::from_json(comp_json));
+                    }
+                    Primitive::OrGate => {
+                        sub_comp = Box::new(OrGate::from_json(comp_json));
+                    }
+                    Primitive::NandGate => {
+                        sub_comp = Box::new(NandGate::from_json(comp_json));
+                    }
+                    Primitive::NorGate => {
+                        sub_comp = Box::new(NorGate::from_json(comp_json));
+                    }
+                    Primitive::XorGate => {
+                        sub_comp = Box::new(XorGate::from_json(comp_json));
+                    }
+                    Primitive::Clock => {
+                        sub_comp = Box::new(Clock::from_json(comp_json));
+                    }
+                    Primitive::InputPin => {
+                        sub_comp = Box::new(InputPin::from_json(comp_json));
+                    }
+                    Primitive::OutputPin => {
+                        sub_comp = Box::new(OutputPin::from_json(comp_json));
+                    }
+                    Primitive::ConstOne => {
+                        sub_comp = Box::new(Const::from_json(comp_json));
+                    }
+                    Primitive::ConstZero => {
+                        sub_comp = Box::new(Const::from_json(comp_json));
+                    }
+                }
+            } else {
+                sub_comp = Box::new(ComposedComponent::from_json(comp_json))
+            }
+            builder = builder.add_comp(sub_comp);
+        }
+
+        for conn_json in json["connections"].as_array().unwrap().iter() {
+            let from = conn_json["from"].as_object().unwrap();
+            let from_pin = pin!(
+                from["id"].as_u64().unwrap() as u32,
+                from["addr"].as_u64().unwrap() as usize
+            );
+            let to = conn_json["to"].as_object().unwrap();
+            let to_pin = pin!(
+                to["id"].as_u64().unwrap() as u32,
+                to["addr"].as_u64().unwrap() as usize
+            );
+            builder = builder.connect(from_pin, to_pin);
+        }
+        builder.build()
+    }
 }
 
 impl Component for ComposedComponent {
@@ -300,3 +395,35 @@ impl ComposedComponentBuilder {
         }
     }
 }
+
+// #[cfg(test)]
+// mod tests {
+//     use serde_json::json;
+
+//     use crate::components::primitives::{
+//         and_gate::AndGate, constant::Const, input_pin::InputPin, or_gate::OrGate,
+//         output_pin::OutputPin,
+//     };
+
+//     use super::{ComposedComponentBuilder, PinAddr};
+
+//     #[test]
+//     fn to_json() {
+//         let comp = ComposedComponentBuilder::new()
+//             .id(0)
+//             .name("TestComponent")
+//             .add_comp(Box::new(InputPin::new(1)))
+//             .add_comp(Box::new(InputPin::new(2)))
+//             .add_comp(Box::new(Const::one(3)))
+//             .add_comp(Box::new(OutputPin::new(4)))
+//             .add_comp(Box::new(AndGate::new(5, 2)))
+//             .add_comp(Box::new(OrGate::new(6, 2)))
+//             .connect(pin!(1, 0), pin!(5, 0))
+//             .connect(pin!(3, 0), pin!(5, 1))
+//             .connect(pin!(5, 0), pin!(6, 0))
+//             .connect(pin!(2, 0), pin!(6, 1))
+//             .connect(pin!(6, 0), pin!(4, 0))
+//             .build();
+//         json!(comp);
+//     }
+// }

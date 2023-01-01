@@ -1,4 +1,4 @@
-use crate::components::component::Component;
+use crate::{components::component::Component, serialize::JSONSerialize};
 
 use super::primitive::Primitive;
 
@@ -24,6 +24,34 @@ impl Const {
 
     pub fn zero(id: u32) -> Self {
         Const::new(id, false)
+    }
+}
+
+impl JSONSerialize for Const {
+    fn to_json(&self) -> serde_json::Value {
+        let primitive = match self.outs[0] {
+            true => Primitive::ConstOne,
+            false => Primitive::ConstZero,
+        };
+        serde_json::json!({
+            "id": self.id,
+            "name": primitive.to_string(),
+        })
+    }
+
+    fn from_json(json: &serde_json::Value) -> Self
+    where
+        Self: Sized,
+    {
+        let id = json["id"].as_u64().unwrap() as u32;
+        let name = json["name"].as_str().unwrap();
+        if name == Primitive::ConstOne.to_string() {
+            Const::one(id)
+        } else if name == Primitive::ConstZero.to_string() {
+            Const::zero(id)
+        } else {
+            panic!("Unkown name")
+        }
     }
 }
 

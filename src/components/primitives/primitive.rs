@@ -15,27 +15,30 @@ pub enum Primitive {
     ConstZero,
 }
 
+
 impl Display for Primitive {
     fn fmt(&self, f: &mut Formatter) -> Result<(), std::fmt::Error> {
         write!(f, "{:?}", self)
     }
 }
 
+pub struct PrimitiveNotFound;
+
 impl Primitive {
-    pub fn from(name: &str) -> Primitive {
+    pub fn from_str(name: &str) -> Result<Primitive, PrimitiveNotFound> {
         match name {
-            "NotGate" => Self::NotGate,
-            "AndGate" => Self::AndGate,
-            "OrGate" => Self::OrGate,
-            "NandGate" => Self::NandGate,
-            "NorGate" => Self::NorGate,
-            "XorGate" => Self::XorGate,
-            "Clock" => Self::Clock,
-            "InputPin" => Self::InputPin,
-            "OutputPin" => Self::OutputPin,
-            "ConstOne" => Self::ConstOne,
-            "ConstZero" => Self::ConstZero,
-            _ => panic!("Unkown primitive name '{}'", name),
+            "NotGate" => Ok(Self::NotGate),
+            "AndGate" => Ok(Self::AndGate),
+            "OrGate" => Ok(Self::OrGate),
+            "NandGate" => Ok(Self::NandGate),
+            "NorGate" => Ok(Self::NorGate),
+            "XorGate" => Ok(Self::XorGate),
+            "Clock" => Ok(Self::Clock),
+            "InputPin" => Ok(Self::InputPin),
+            "OutputPin" => Ok(Self::OutputPin),
+            "ConstOne" => Ok(Self::ConstOne),
+            "ConstZero" => Ok(Self::ConstZero),
+            _ => Err(PrimitiveNotFound),
         }
     }
 }

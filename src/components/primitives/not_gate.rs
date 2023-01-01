@@ -1,4 +1,7 @@
-use crate::components::component::{Component, SimEvent};
+use crate::{
+    components::component::{Component, SimEvent},
+    serialize::JSONSerialize,
+};
 
 use super::primitive::Primitive;
 
@@ -16,6 +19,23 @@ impl NotGate {
             ins: vec![false],
             outs: vec![false],
         }
+    }
+}
+
+impl JSONSerialize for NotGate {
+    fn to_json(&self) -> serde_json::Value {
+        serde_json::json!({
+            "id": self.id,
+            "name": Primitive::NotGate.to_string(),
+            "in_count": self.ins.len(),
+        })
+    }
+
+    fn from_json(json: &serde_json::Value) -> Self
+    where
+        Self: Sized,
+    {
+        NotGate::new(json["id"].as_u64().unwrap() as u32)
     }
 }
 
@@ -50,10 +70,7 @@ mod tests {
 
     #[test]
     fn update_values() {
-        let table = [
-            [false, true],
-            [true, false],
-        ];
+        let table = [[false, true], [true, false]];
         let mut gate = NotGate::new(0);
         for row in table {
             gate.set_in(0, row[0]);

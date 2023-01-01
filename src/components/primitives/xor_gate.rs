@@ -1,4 +1,7 @@
-use crate::components::component::{Component, SimEvent};
+use crate::{
+    components::component::{Component, SimEvent},
+    serialize::JSONSerialize,
+};
 
 use super::primitive::Primitive;
 
@@ -16,6 +19,26 @@ impl XorGate {
             ins: vec![false; in_count],
             outs: vec![false],
         }
+    }
+}
+
+impl JSONSerialize for XorGate {
+    fn to_json(&self) -> serde_json::Value {
+        serde_json::json!({
+            "id": self.id,
+            "name": Primitive::XorGate.to_string(),
+            "in_count": self.ins.len(),
+        })
+    }
+
+    fn from_json(json: &serde_json::Value) -> Self
+    where
+        Self: Sized,
+    {
+        XorGate::new(
+            json["id"].as_u64().unwrap() as u32,
+            json["in_count"].as_u64().unwrap() as usize,
+        )
     }
 }
 
