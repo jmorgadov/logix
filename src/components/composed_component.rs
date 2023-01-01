@@ -7,6 +7,12 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::collections::HashMap;
 
+/// Address to a pin of a specific component
+///
+/// The type of pin (Input/Output) is inferred in the use of the structure. (e.g.
+/// in the `ComposedComponentBuilder::connect` method where the first argument 'from'
+/// represents the address of an output pin and the second one 'to' represents the
+/// address of an input pin)
 #[derive(PartialEq, Eq, Clone, Debug, Serialize, Deserialize)]
 pub struct PinAddr {
     pub id: u32,
@@ -14,11 +20,30 @@ pub struct PinAddr {
 }
 
 impl PinAddr {
+    /// Creates a new `PinAddr`
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - The component id.
+    /// * `idx` - A usize index that represents the address of the pin.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// let pin_addr = PinAddr::new(0, 2);
+    /// ```
+    ///
+    /// The `pin!` macro can also be used to create a `PinAddr`
+    ///
+    /// ```
+    /// let pin_addr = pin!(0, 2)
+    /// ```
     pub fn new(id: u32, idx: usize) -> PinAddr {
         PinAddr { id, addr: idx }
     }
 }
 
+/// Macro to declare a `PinAddr` in a simple way
 #[macro_export]
 macro_rules! pin {
     ($a:expr,$b:expr) => {
@@ -26,6 +51,10 @@ macro_rules! pin {
     };
 }
 
+/// Represents a connection between two component pins.
+///
+/// The address stored in `from` is assumed to be from an output pin
+/// and the one stored in `to` is assumed to be to an input pin.
 #[derive(PartialEq, Eq, Debug, Serialize, Deserialize)]
 struct Conn {
     pub from: PinAddr,
@@ -33,6 +62,22 @@ struct Conn {
 }
 
 impl Conn {
+    /// Creates a new 'Conn'
+    ///
+    /// # Arguments
+    ///
+    /// * `from` - A `PinAddr` representing the starting point of the connection.
+    /// * `to` - A `PinAddr` representing the end point of the connection.
+    ///
+    /// # Examples
+    ///
+    /// A connection from the first output pin of the component
+    /// with id `10`, to the third input pin of the component with
+    /// id `20`.
+    ///
+    /// ```
+    /// let conn = Conn::new(pin!(10, 0), pin!(20, 3));
+    /// ```
     pub fn new(from: PinAddr, to: PinAddr) -> Conn {
         Conn { from, to }
     }
@@ -59,6 +104,10 @@ impl CompStatus {
     }
 }
 
+/// A component composed by the connection of other components
+///
+/// The sub-components are updated according the dependencies between them created
+/// by the connections.
 #[derive(Debug)]
 pub struct ComposedComponent {
     id: u32,
@@ -272,6 +321,29 @@ impl ComposedComponent {
     }
 }
 
+/// Builder for the `ComposedComponent` structure.
+///
+/// # Example
+///
+/// ```
+/// let mut id = IDFactory::new();
+/// let sr_latch = ComposedComponentBuilder::new()
+///     .id(id.set("sr_latch"))
+///     .name("SRLatch")
+///     .add_comp(Box::new(InputPin::new(id.set("i1"))))
+///     .add_comp(Box::new(InputPin::new(id.set("i2"))))
+///     .add_comp(Box::new(NorGate::new(id.set("nor1"), 2)))
+///     .add_comp(Box::new(NorGate::new(id.set("nor2"), 2)))
+///     .add_comp(Box::new(OutputPin::new(id.set("o1"))))
+///     .add_comp(Box::new(OutputPin::new(id.set("o2"))))
+///     .connect(pin!(id.get("i1"), 0), pin!(id.get("nor1"), 0))
+///     .connect(pin!(id.get("i2"), 0), pin!(id.get("nor2"), 1))
+///     .connect(pin!(id.get("nor1"), 0), pin!(id.get("nor2"), 0))
+///     .connect(pin!(id.get("nor2"), 0), pin!(id.get("nor1"), 1))
+///     .connect(pin!(id.get("nor1"), 0), pin!(id.get("o1"), 0))
+///     .connect(pin!(id.get("nor2"), 0), pin!(id.get("o2"), 0))
+///     .build();
+/// ```
 #[derive(Default)]
 pub struct ComposedComponentBuilder {
     id: Option<u32>,
@@ -286,33 +358,57 @@ pub struct ComposedComponentBuilder {
 }
 
 impl ComposedComponentBuilder {
+    /// Creates a new `ComposedComponentBuilder`
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// let builder = ComposedComponentBuilder::new();
+    /// ```
     pub fn new() -> Self {
         Default::default()
     }
 
+    /// Assigns the `id` for the `ComposedComponent` that will be built
+    /// and returns the updated `ComposedComponentBuilder`
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - An integer that represents the id of the future component
     pub fn id(mut self, id: u32) -> ComposedComponentBuilder {
         self.id = Some(id);
         self
     }
 
+    /// Assigns the `name` for the `ComposedComponent` that will be built
+    /// and returns the updated `ComposedComponentBuilder`
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - An integer that represents the id of the future component
     pub fn name(mut self, name: &str) -> ComposedComponentBuilder {
         self.name = Some(name.to_string());
         self
     }
 
+    /// Adds a component and returns the updated `ComposedComponentBuilder`
+    ///
+    /// # Arguments
+    ///
+    /// * `comp` - A box containing the component to be added
     pub fn add_comp(mut self, comp: Box<dyn Component>) -> ComposedComponentBuilder {
         self.components.push(comp);
         self
     }
 
-    pub fn remove_comp(mut self, idx: usize) -> ComposedComponentBuilder {
-        self.components.remove(idx);
-        self
-    }
-
-    pub fn remove_comp_by_id(mut self, comp_id: u32) -> ComposedComponentBuilder {
+    /// Removes a component and returns the updated `ComposedComponentBuilder`
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - An integer representing the id of the component to be removed
+    pub fn remove_comp(mut self, id: u32) -> ComposedComponentBuilder {
         for i in 0..self.components.len() {
-            if self.components[i].id() == comp_id {
+            if self.components[i].id() == id {
                 self.components.remove(i);
                 break;
             }
@@ -320,6 +416,12 @@ impl ComposedComponentBuilder {
         self
     }
 
+    /// Connects two component pins and returns the updated `ComposedComponentBuilder`
+    ///
+    /// # Arguments
+    ///
+    /// * `from` - A `PinAddr` representing the starting point of the connection
+    /// * `to` - A `PinAddr` representing the end point of the connection.
     pub fn connect(mut self, from: PinAddr, to: PinAddr) -> ComposedComponentBuilder {
         for comp in &self.components {
             if from.id == comp.id() && comp.name() == "PinOutput" {
@@ -334,6 +436,12 @@ impl ComposedComponentBuilder {
         self
     }
 
+    /// Disconnect two component pins and returns the updated `ComposedComponentBuilder`
+    ///
+    /// # Arguments
+    ///
+    /// * `from` - A `PinAddr` representing the starting point of the connection
+    /// * `to` - A `PinAddr` representing the end point of the connection.
     pub fn disconnect(mut self, from: PinAddr, to: PinAddr) -> ComposedComponentBuilder {
         let mut i = 0;
         while i < self.connections.len() {
@@ -346,6 +454,12 @@ impl ComposedComponentBuilder {
         self
     }
 
+    /// Builds the `ComposedComponent`
+    ///
+    /// Here the `idx_map` and the `dep_map` are estimated.
+    ///
+    /// If the component doesn't have and id and a name assiganted
+    /// the build will fail.
     pub fn build(mut self) -> ComposedComponent {
         self.dep_map = Default::default();
         self.idx_map = Default::default();
