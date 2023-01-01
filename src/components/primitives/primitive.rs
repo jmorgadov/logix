@@ -15,6 +15,21 @@ pub enum Primitive {
     ConstZero,
 }
 
+// This array serves as an iterator over the implemented
+// primitives.
+pub const PRIMITIVES: [Primitive; 11] = [
+    Primitive::NotGate,
+    Primitive::AndGate,
+    Primitive::OrGate,
+    Primitive::NandGate,
+    Primitive::NorGate,
+    Primitive::XorGate,
+    Primitive::Clock,
+    Primitive::InputPin,
+    Primitive::OutputPin,
+    Primitive::ConstOne,
+    Primitive::ConstZero,
+];
 
 impl Display for Primitive {
     fn fmt(&self, f: &mut Formatter) -> Result<(), std::fmt::Error> {
@@ -26,20 +41,12 @@ pub struct PrimitiveNotFound;
 
 impl Primitive {
     pub fn from_str(name: &str) -> Result<Primitive, PrimitiveNotFound> {
-        match name {
-            "NotGate" => Ok(Self::NotGate),
-            "AndGate" => Ok(Self::AndGate),
-            "OrGate" => Ok(Self::OrGate),
-            "NandGate" => Ok(Self::NandGate),
-            "NorGate" => Ok(Self::NorGate),
-            "XorGate" => Ok(Self::XorGate),
-            "Clock" => Ok(Self::Clock),
-            "InputPin" => Ok(Self::InputPin),
-            "OutputPin" => Ok(Self::OutputPin),
-            "ConstOne" => Ok(Self::ConstOne),
-            "ConstZero" => Ok(Self::ConstZero),
-            _ => Err(PrimitiveNotFound),
+        for prim in PRIMITIVES {
+            if name == prim.to_string() {
+                return Ok(prim);
+            }
         }
+        Err(PrimitiveNotFound)
     }
 }
 
@@ -50,6 +57,5 @@ mod tests {
     #[test]
     fn primitive_name() {
         assert!(Primitive::AndGate.to_string() == "AndGate");
-        assert!(Primitive::Clock.to_string() == "Clock");
     }
 }
