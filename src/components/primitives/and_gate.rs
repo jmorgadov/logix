@@ -1,5 +1,5 @@
 use crate::{
-    components::component::{Component, SimEvent},
+    components::component::{Component, CompEvent},
     serialize::JSONSerialize,
 };
 
@@ -73,8 +73,8 @@ impl Component for AndGate {
         &mut self.outs
     }
 
-    fn on_event(&mut self, event: &SimEvent) {
-        if let SimEvent::UpdateValues = event {
+    fn on_event(&mut self, event: &CompEvent) {
+        if let CompEvent::UpdateValues = event {
             let out: bool = self.ins.as_slice().iter().all(|val| *val);
             self.outs[0] = out;
         }
@@ -84,7 +84,7 @@ impl Component for AndGate {
 #[cfg(test)]
 mod tests {
     use super::AndGate;
-    use crate::components::component::{Component, SimEvent};
+    use crate::components::component::{Component, CompEvent};
 
     #[test]
     fn update_values() {
@@ -98,7 +98,7 @@ mod tests {
         for row in table {
             gate.set_in(0, row[0]);
             gate.set_in(1, row[1]);
-            gate.on_event(&SimEvent::UpdateValues);
+            gate.on_event(&CompEvent::UpdateValues);
             assert!(gate.outs[0] == row[2]);
         }
     }

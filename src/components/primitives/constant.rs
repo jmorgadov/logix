@@ -115,19 +115,19 @@ impl Component for Const {
 #[cfg(test)]
 mod tests {
     use super::Const;
-    use crate::components::component::{Component, SimEvent};
+    use crate::components::component::{Component, CompEvent};
 
     #[test]
     fn cont_one() {
         let comp = &mut Const::one(0);
-        comp.on_event(&SimEvent::UpdateValues);
+        comp.on_event(&CompEvent::UpdateValues);
         assert!(comp.outs[0]);
     }
 
     #[test]
     fn cont_zero() {
         let comp = &mut Const::zero(0);
-        comp.on_event(&SimEvent::UpdateValues);
+        comp.on_event(&CompEvent::UpdateValues);
         assert!(!comp.outs[0]);
     }
 }

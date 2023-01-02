@@ -1,5 +1,5 @@
 use crate::{
-    components::component::{Component, SimEvent},
+    components::component::{Component, CompEvent},
     serialize::JSONSerialize,
 };
 
@@ -73,8 +73,8 @@ impl Component for XorGate {
         &mut self.outs
     }
 
-    fn on_event(&mut self, event: &SimEvent) {
-        if let SimEvent::UpdateValues = event {
+    fn on_event(&mut self, event: &CompEvent) {
+        if let CompEvent::UpdateValues = event {
             let mut out = false;
             for i in 1..self.ins.len() {
                 if self.ins[i - 1] != self.ins[i] {
@@ -90,7 +90,7 @@ impl Component for XorGate {
 #[cfg(test)]
 mod tests {
     use super::XorGate;
-    use crate::components::component::{Component, SimEvent};
+    use crate::components::component::{Component, CompEvent};
 
     #[test]
     fn update_values() {
@@ -104,7 +104,7 @@ mod tests {
         for row in table {
             gate.set_in(0, row[0]);
             gate.set_in(1, row[1]);
-            gate.on_event(&SimEvent::UpdateValues);
+            gate.on_event(&CompEvent::UpdateValues);
             assert!(gate.outs[0] == row[2]);
         }
     }

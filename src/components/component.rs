@@ -2,15 +2,13 @@ use std::fmt::Debug;
 
 use crate::serialize::JSONSerialize;
 
-/// Represents a simulation event
+/// Represents a component event
 ///
-/// When an event occurs, all the components of the simulation are notified
-/// via the `on_event` function of the `Component` trait.
-pub enum SimEvent {
-    /// Runs in every loop of the simulation and holds the current time in nano.
-    /// seconds
+/// An event is notified via the `on_event` function of the `Component` trait.
+pub enum CompEvent {
+    /// Notifies an update in time.
     Update(u128),
-    /// Runs every time any component is marked as dirty.
+    /// Notifies the component to update its output values.
     UpdateValues,
 }
 
@@ -19,7 +17,7 @@ pub enum SimEvent {
 /// # Implementation details
 ///
 /// All components that implement the `Component` trait are consider primitives,
-/// except for the `ComposedComponent` which is a special implementation of this
+/// except for the `ComposedComponent`. It is a special implementation of this
 /// trait which can hold several components (even composed ones) and connect them
 /// to make a new bigger component.
 pub trait Component: Debug + JSONSerialize {
@@ -86,5 +84,5 @@ pub trait Component: Debug + JSONSerialize {
     /// # Arguments
     ///
     /// * `event` - An enum instance of `SimEvent` representing the event type.
-    fn on_event(&mut self, _event: &SimEvent) {}
+    fn on_event(&mut self, _event: &CompEvent) {}
 }

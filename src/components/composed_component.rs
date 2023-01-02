@@ -1,5 +1,5 @@
 use super::{
-    component::{Component, SimEvent},
+    component::{Component, CompEvent},
     primitives::prelude::*,
 };
 use crate::serialize::JSONSerialize;
@@ -205,10 +205,10 @@ impl Component for ComposedComponent {
         self.components.iter().any(|comp| comp.is_dirty())
     }
 
-    fn on_event(&mut self, event: &SimEvent) {
+    fn on_event(&mut self, event: &CompEvent) {
         match event {
-            SimEvent::UpdateValues => self.check_values(),
-            SimEvent::Update(_) => {
+            CompEvent::UpdateValues => self.check_values(),
+            CompEvent::Update(_) => {
                 self.components
                     .iter_mut()
                     .for_each(|comp| comp.on_event(event));
@@ -285,7 +285,7 @@ impl ComposedComponent {
             }
 
             if ready_to_upd {
-                sub.on_event(&SimEvent::UpdateValues);
+                sub.on_event(&CompEvent::UpdateValues);
 
                 // Mark the current component as updated
                 visits[idx] = 2;

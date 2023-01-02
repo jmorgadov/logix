@@ -1,5 +1,5 @@
 use crate::{
-    components::component::{Component, SimEvent},
+    components::component::{Component, CompEvent},
     serialize::JSONSerialize,
 };
 
@@ -91,13 +91,13 @@ impl Component for Clock {
         self.dirty
     }
 
-    fn on_event(&mut self, event: &SimEvent) {
+    fn on_event(&mut self, event: &CompEvent) {
         match event {
-            SimEvent::Update(time) => {
+            CompEvent::Update(time) => {
                 self.val = (time % self.full) > self.interval;
                 self.dirty = self.outs[0] != self.val;
             }
-            SimEvent::UpdateValues => {
+            CompEvent::UpdateValues => {
                 self.outs[0] = self.val;
                 self.dirty = false;
             }

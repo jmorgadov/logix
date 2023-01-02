@@ -1,5 +1,5 @@
 use crate::{
-    components::component::{Component, SimEvent},
+    components::component::{Component, CompEvent},
     serialize::JSONSerialize,
 };
 
@@ -68,8 +68,8 @@ impl Component for NotGate {
         &mut self.outs
     }
 
-    fn on_event(&mut self, event: &SimEvent) {
-        if let SimEvent::UpdateValues = event {
+    fn on_event(&mut self, event: &CompEvent) {
+        if let CompEvent::UpdateValues = event {
             self.outs[0] = !self.ins[0];
         }
     }
@@ -78,7 +78,7 @@ impl Component for NotGate {
 #[cfg(test)]
 mod tests {
     use super::NotGate;
-    use crate::components::component::{Component, SimEvent};
+    use crate::components::component::{Component, CompEvent};
 
     #[test]
     fn update_values() {
@@ -86,7 +86,7 @@ mod tests {
         let mut gate = NotGate::new(0);
         for row in table {
             gate.set_in(0, row[0]);
-            gate.on_event(&SimEvent::UpdateValues);
+            gate.on_event(&CompEvent::UpdateValues);
             assert!(gate.outs[0] == row[1]);
         }
     }

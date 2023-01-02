@@ -2,10 +2,12 @@ use std::time::Instant;
 
 use components::{prelude::*, primitives::prelude::*};
 use id_factory::IDFactory;
+use simulation::Simulation;
 
 mod components;
 mod id_factory;
 mod serialize;
+mod simulation;
 
 fn main() {
     let mut id = IDFactory::new();
@@ -27,7 +29,7 @@ fn main() {
         .connect(pin!(id.get("nor2"), 0), pin!(id.get("o2"), 0))
         .build();
 
-    let mut comp = ComposedComponentBuilder::new()
+    let comp = ComposedComponentBuilder::new()
         .name("Main")
         .id(id.set("main"))
         .add_comp(Box::new(Clock::new(id.set("clock1"), 1.0)))
@@ -41,13 +43,6 @@ fn main() {
         .connect(pin!(id.get("sr_latch"), 1), pin!(id.get("o4"), 0))
         .build();
 
-    let start = Instant::now();
-    loop {
-        let time = start.elapsed().as_nanos();
-        comp.on_event(&SimEvent::Update(time));
-        if comp.is_dirty() {
-            comp.on_event(&SimEvent::UpdateValues);
-            println!("{:?}", comp.outs());
-        }
-    }
+    let mut simulation = Simulation::new(Box::new(comp));
+    simulation.start();
 }

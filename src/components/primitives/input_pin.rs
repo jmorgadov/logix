@@ -1,5 +1,5 @@
 use crate::{
-    components::component::{Component, SimEvent},
+    components::component::{Component, CompEvent},
     serialize::JSONSerialize,
 };
 
@@ -70,8 +70,8 @@ impl Component for InputPin {
         &mut self.outs
     }
 
-    fn on_event(&mut self, event: &SimEvent) {
-        if let SimEvent::UpdateValues = event {
+    fn on_event(&mut self, event: &CompEvent) {
+        if let CompEvent::UpdateValues = event {
             self.outs[0] = self.ins[0];
         }
     }
@@ -80,7 +80,7 @@ impl Component for InputPin {
 #[cfg(test)]
 mod tests {
     use crate::components::{
-        component::{Component, SimEvent},
+        component::{Component, CompEvent},
         primitives::input_pin::InputPin,
     };
 
@@ -89,11 +89,11 @@ mod tests {
         let comp = &mut InputPin::new(0);
 
         comp.set_in(0, false);
-        comp.on_event(&SimEvent::UpdateValues);
+        comp.on_event(&CompEvent::UpdateValues);
         assert!(!comp.outs[0]);
 
         comp.set_in(0, true);
-        comp.on_event(&SimEvent::UpdateValues);
+        comp.on_event(&CompEvent::UpdateValues);
         assert!(comp.outs[0]);
     }
 }
