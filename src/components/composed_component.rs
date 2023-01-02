@@ -1,5 +1,5 @@
 use super::{
-    component::{Component, CompEvent},
+    component::{CompEvent, Component},
     primitives::prelude::*,
 };
 use crate::serialize::JSONSerialize;
@@ -430,11 +430,26 @@ impl ComposedComponentBuilder {
     /// * `from` - A `PinAddr` representing the starting point of the connection.
     /// * `to` - A `PinAddr` representing the end point of the connection.
     pub fn connect(mut self, from: PinAddr, to: PinAddr) -> ComposedComponentBuilder {
+        // Check no other connection to the same input
+        for conn in &self.connections {
+            if conn.from == from && conn.to == to {
+                // Connection already exists
+                return self;
+            }
+            if conn.to.id == to.id {
+                // Two connections to the same input pin
+                panic!(
+                    "Input pin {} for component {} has already a connection",
+                    to.addr, to.id
+                );
+            }
+        }
+
         for comp in &self.components {
-            if from.id == comp.id() && comp.name() == "PinOutput" {
+            if from.id == comp.id() && comp.name() == Primitive::OutputPin.to_string() {
                 panic!("Connecting from an output pin")
             }
-            if to.id == comp.id() && comp.name() == "PinInput" {
+            if to.id == comp.id() && comp.name() == Primitive::InputPin.to_string() {
                 panic!("Connecting to an input pin")
             }
         }
