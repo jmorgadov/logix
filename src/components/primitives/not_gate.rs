@@ -5,6 +5,7 @@ use crate::{
 
 use super::primitive::Primitive;
 
+/// Represents a NOT gate component.
 #[derive(Debug)]
 pub struct NotGate {
     id: u32,
@@ -13,6 +14,17 @@ pub struct NotGate {
 }
 
 impl NotGate {
+    /// Creates a new `OutputPin` component given an id.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - Integer that represents the component id.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// let gate = OutputPin::new(0);
+    /// ```
     pub fn new(id: u32) -> NotGate {
         NotGate {
             id,

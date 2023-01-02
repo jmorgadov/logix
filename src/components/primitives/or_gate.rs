@@ -5,6 +5,7 @@ use crate::{
 
 use super::primitive::Primitive;
 
+/// Represents an OR gate component.
 #[derive(Debug)]
 pub struct OrGate {
     id: u32,
@@ -13,6 +14,19 @@ pub struct OrGate {
 }
 
 impl OrGate {
+    /// Creates a new `OrGate` component given an id and the count of input
+    /// pins.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - Integer that represents the component id.
+    /// * `in_count` - Integer that represent how many input pins the gate has.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// let gate = OrGate::new(0, 2);
+    /// ```
     pub fn new(id: u32, in_count: usize) -> OrGate {
         OrGate {
             id,

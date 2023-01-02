@@ -5,6 +5,7 @@ use crate::{
 
 use super::primitive::Primitive;
 
+/// Represents a NAND gate component.
 #[derive(Debug)]
 pub struct NandGate {
     id: u32,
@@ -13,6 +14,19 @@ pub struct NandGate {
 }
 
 impl NandGate {
+    /// Creates a new `NandGate` component given an id and the count of input
+    /// pins.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - Integer that represents the component id.
+    /// * `in_count` - Integer that represent how many input pins the gate has.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// let gate = NandGate::new(0, 2);
+    /// ```
     pub fn new(id: u32, in_count: usize) -> NandGate {
         NandGate {
             id,

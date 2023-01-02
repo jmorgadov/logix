@@ -5,6 +5,7 @@ use crate::{
 
 use super::primitive::Primitive;
 
+/// Represents an AND gate component.
 #[derive(Debug)]
 pub struct AndGate {
     id: u32,
@@ -13,6 +14,19 @@ pub struct AndGate {
 }
 
 impl AndGate {
+    /// Creates a new `AndGate` component given an id and the count of input
+    /// pins.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - Integer that represents the component id.
+    /// * `in_count` - Integer that represent how many input pins the gate has.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// let gate = AndGate::new(0, 2);
+    /// ```
     pub fn new(id: u32, in_count: usize) -> AndGate {
         AndGate {
             id,

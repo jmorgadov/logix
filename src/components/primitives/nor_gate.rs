@@ -5,6 +5,7 @@ use crate::{
 
 use super::primitive::Primitive;
 
+/// Represents a NOR gate component.
 #[derive(Debug)]
 pub struct NorGate {
     id: u32,
@@ -13,6 +14,19 @@ pub struct NorGate {
 }
 
 impl NorGate {
+    /// Creates a new `NorGate` component given an id and the count of input
+    /// pins.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - Integer that represents the component id.
+    /// * `in_count` - Integer that represent how many input pins the gate has.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// let gate = NorGate::new(0, 2);
+    /// ```
     pub fn new(id: u32, in_count: usize) -> NorGate {
         NorGate {
             id,

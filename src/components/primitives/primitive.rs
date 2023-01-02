@@ -1,6 +1,7 @@
 use std::fmt::{Display, Formatter};
 
-#[derive(Debug)]
+/// Enum that contains all primitive component types implemented.
+#[derive(Debug, PartialEq, Eq)]
 pub enum Primitive {
     NotGate,
     AndGate,
@@ -15,6 +16,7 @@ pub enum Primitive {
     ConstZero,
 }
 
+/// Primitive enum values stored in an array.
 // This array serves as an iterator over the implemented
 // primitives.
 pub const PRIMITIVES: [Primitive; 11] = [
@@ -37,9 +39,25 @@ impl Display for Primitive {
     }
 }
 
+/// Error that describes the use of a not implemented primitive (e.g., when
+/// getting the primitive enum value given its name).
+#[derive(Debug)]
 pub struct PrimitiveNotFound;
 
 impl Primitive {
+    /// Returns a `Result` that contains the primitive enum value (`Ok(Primitive)`)
+    /// given its name as string. If the primitive name is invalid an
+    /// `Err(PrimitiveNotFound)` is returned.
+    ///
+    /// The name of a primitive is the same as the enum value:
+    ///
+    /// ```
+    /// assert!(Primitive::Clock == Primitive::from_str("Clock").unwrap())
+    /// ```
+    ///
+    /// # Arguments
+    ///
+    /// * `name` - A string slice that holds the primitive name.
     pub fn from_str(name: &str) -> Result<Primitive, PrimitiveNotFound> {
         for prim in PRIMITIVES {
             if name == prim.to_string() {

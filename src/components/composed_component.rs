@@ -7,12 +7,12 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::collections::HashMap;
 
-/// Address to a pin of a specific component
+/// Address to a pin of a specific component.
 ///
 /// The type of pin (Input/Output) is inferred in the use of the structure. (e.g.
 /// in the `ComposedComponentBuilder::connect` method where the first argument 'from'
 /// represents the address of an output pin and the second one 'to' represents the
-/// address of an input pin)
+/// address of an input pin).
 #[derive(PartialEq, Eq, Clone, Debug, Serialize, Deserialize)]
 pub struct PinAddr {
     pub id: u32,
@@ -20,7 +20,7 @@ pub struct PinAddr {
 }
 
 impl PinAddr {
-    /// Creates a new `PinAddr`
+    /// Creates a new `PinAddr`.
     ///
     /// # Arguments
     ///
@@ -43,7 +43,7 @@ impl PinAddr {
     }
 }
 
-/// Macro to declare a `PinAddr` in a simple way
+/// Macro to declare a `PinAddr` in a simple way.
 #[macro_export]
 macro_rules! pin {
     ($a:expr,$b:expr) => {
@@ -62,7 +62,7 @@ struct Conn {
 }
 
 impl Conn {
-    /// Creates a new 'Conn'
+    /// Creates a new 'Conn'.
     ///
     /// # Arguments
     ///
@@ -83,28 +83,7 @@ impl Conn {
     }
 }
 
-#[derive(Clone)]
-enum CompStatus {
-    NotUpdated,
-    InUpdate,
-    Updated,
-}
-
-impl CompStatus {
-    pub fn not_updated(&self) -> bool {
-        matches!(self, CompStatus::NotUpdated)
-    }
-
-    pub fn in_update(&self) -> bool {
-        matches!(self, CompStatus::InUpdate)
-    }
-
-    pub fn updated(&self) -> bool {
-        matches!(self, CompStatus::Updated)
-    }
-}
-
-/// A component composed by the connection of other components
+/// A component composed by the connection of other components.
 ///
 /// The sub-components are updated according the dependencies between them created
 /// by the connections.
@@ -250,8 +229,12 @@ impl ComposedComponent {
         //
         // The visits vector contains the status of all the components
         // in the updating process.
+        //  - 0 means not updated
+        //  - 1 means in update process (have dependencies)
+        //  - 2 means updated
+        //
         let mut i = 0;
-        let mut visits = vec![CompStatus::NotUpdated; self.components.len()];
+        let mut visits = vec![0; self.components.len()];
 
         // This vector contains the updated values for the
         // inner connections.
@@ -263,7 +246,7 @@ impl ComposedComponent {
                 // Check if there are unvisited components
                 stack.push(i);
                 i += 1;
-                while i < visits.len() && visits[i].updated() {
+                while i < visits.len() && visits[i] == 2 {
                     i += 1
                 }
             }
@@ -289,26 +272,33 @@ impl ComposedComponent {
             let deps = &self.dep_map[idx];
             let mut ready_to_upd = true;
             for dep in deps {
-                if visits[*dep].not_updated() {
+                if visits[*dep] == 0 {
+                    // If the dependency is not updated then the current component
+                    // is not ready to update yet.
                     ready_to_upd = false;
-                    visits[*dep] = CompStatus::InUpdate;
+
+                    // Then, push the dependency to the stack and mark it as
+                    // in update process.
                     stack.push(*dep);
+                    visits[*dep] = 1;
                 }
             }
 
             if ready_to_upd {
-                visits[idx] = CompStatus::Updated;
                 sub.on_event(&SimEvent::UpdateValues);
 
-                // Store the input values of the components
-                // that depends on the recently updated one
-                // for future update.
+                // Mark the current component as updated
+                visits[idx] = 2;
+
+                // Store the input values of the components that depends on the
+                // recently updated one for future update of those.
                 for conn in &self.connections {
                     if conn.from.id == sub.id() {
                         let val = sub.outs()[conn.from.addr];
                         new_inputs.push((conn.to.clone(), val));
                     }
                 }
+
                 stack.pop();
             }
         }
@@ -325,23 +315,40 @@ impl ComposedComponent {
 ///
 /// # Example
 ///
+/// The next example shows how to create an SR-Latch using the primitives
+/// components:
+///
+///                  SR-Latch
+///            ____________________
+///           |     _______        |
+///     in1 --o----|       |       |
+///           |    |  NOR  |--o----o-- out1
+///           | .--|_______|  |    |
+///           | `-------------|-,  |
+///           |  .____________' |  |
+///           | |   _______     |  |
+///           | `--|       |    |  |
+///           |    |  NOR  |----o--o-- out2
+///     in2 --o----|_______|       |
+///           |____________________|
+///
 /// ```
 /// let mut id = IDFactory::new();
 /// let sr_latch = ComposedComponentBuilder::new()
 ///     .id(id.set("sr_latch"))
 ///     .name("SRLatch")
-///     .add_comp(Box::new(InputPin::new(id.set("i1"))))
-///     .add_comp(Box::new(InputPin::new(id.set("i2"))))
+///     .add_comp(Box::new(InputPin::new(id.set("in1"))))
+///     .add_comp(Box::new(InputPin::new(id.set("in2"))))
 ///     .add_comp(Box::new(NorGate::new(id.set("nor1"), 2)))
 ///     .add_comp(Box::new(NorGate::new(id.set("nor2"), 2)))
-///     .add_comp(Box::new(OutputPin::new(id.set("o1"))))
-///     .add_comp(Box::new(OutputPin::new(id.set("o2"))))
-///     .connect(pin!(id.get("i1"), 0), pin!(id.get("nor1"), 0))
-///     .connect(pin!(id.get("i2"), 0), pin!(id.get("nor2"), 1))
+///     .add_comp(Box::new(OutputPin::new(id.set("out1"))))
+///     .add_comp(Box::new(OutputPin::new(id.set("out2"))))
+///     .connect(pin!(id.get("in1"), 0), pin!(id.get("nor1"), 0))
+///     .connect(pin!(id.get("in2"), 0), pin!(id.get("nor2"), 1))
 ///     .connect(pin!(id.get("nor1"), 0), pin!(id.get("nor2"), 0))
 ///     .connect(pin!(id.get("nor2"), 0), pin!(id.get("nor1"), 1))
-///     .connect(pin!(id.get("nor1"), 0), pin!(id.get("o1"), 0))
-///     .connect(pin!(id.get("nor2"), 0), pin!(id.get("o2"), 0))
+///     .connect(pin!(id.get("nor1"), 0), pin!(id.get("out1"), 0))
+///     .connect(pin!(id.get("nor2"), 0), pin!(id.get("out2"), 0))
 ///     .build();
 /// ```
 #[derive(Default)]
@@ -358,7 +365,7 @@ pub struct ComposedComponentBuilder {
 }
 
 impl ComposedComponentBuilder {
-    /// Creates a new `ComposedComponentBuilder`
+    /// Creates a new `ComposedComponentBuilder`.
     ///
     /// # Examples
     ///
@@ -370,7 +377,7 @@ impl ComposedComponentBuilder {
     }
 
     /// Assigns the `id` for the `ComposedComponent` that will be built
-    /// and returns the updated `ComposedComponentBuilder`
+    /// and returns the updated `ComposedComponentBuilder`.
     ///
     /// # Arguments
     ///
@@ -381,7 +388,7 @@ impl ComposedComponentBuilder {
     }
 
     /// Assigns the `name` for the `ComposedComponent` that will be built
-    /// and returns the updated `ComposedComponentBuilder`
+    /// and returns the updated `ComposedComponentBuilder`.
     ///
     /// # Arguments
     ///
@@ -391,7 +398,7 @@ impl ComposedComponentBuilder {
         self
     }
 
-    /// Adds a component and returns the updated `ComposedComponentBuilder`
+    /// Adds a component and returns the updated `ComposedComponentBuilder`.
     ///
     /// # Arguments
     ///
@@ -401,7 +408,7 @@ impl ComposedComponentBuilder {
         self
     }
 
-    /// Removes a component and returns the updated `ComposedComponentBuilder`
+    /// Removes a component and returns the updated `ComposedComponentBuilder`.
     ///
     /// # Arguments
     ///
@@ -416,11 +423,11 @@ impl ComposedComponentBuilder {
         self
     }
 
-    /// Connects two component pins and returns the updated `ComposedComponentBuilder`
+    /// Connects two component pins and returns the updated `ComposedComponentBuilder`.
     ///
     /// # Arguments
     ///
-    /// * `from` - A `PinAddr` representing the starting point of the connection
+    /// * `from` - A `PinAddr` representing the starting point of the connection.
     /// * `to` - A `PinAddr` representing the end point of the connection.
     pub fn connect(mut self, from: PinAddr, to: PinAddr) -> ComposedComponentBuilder {
         for comp in &self.components {
@@ -436,12 +443,12 @@ impl ComposedComponentBuilder {
         self
     }
 
-    /// Disconnect two component pins and returns the updated `ComposedComponentBuilder`
+    /// Disconnect two component pins and returns the updated `ComposedComponentBuilder`.
     ///
     /// # Arguments
     ///
-    /// * `from` - A `PinAddr` representing the starting point of the connection
-    /// * `to` - A `PinAddr` representing the end point of the connection.
+    /// * `from` - A `PinAddr` representing the starting point of the connection.
+    /// * `to` - A `PinAddr` representing the end point of the connection..
     pub fn disconnect(mut self, from: PinAddr, to: PinAddr) -> ComposedComponentBuilder {
         let mut i = 0;
         while i < self.connections.len() {
@@ -454,7 +461,7 @@ impl ComposedComponentBuilder {
         self
     }
 
-    /// Builds the `ComposedComponent`
+    /// Builds the `ComposedComponent`.
     ///
     /// Here the `idx_map` and the `dep_map` are estimated.
     ///
@@ -498,35 +505,3 @@ impl ComposedComponentBuilder {
         }
     }
 }
-
-// #[cfg(test)]
-// mod tests {
-//     use serde_json::json;
-
-//     use crate::components::primitives::{
-//         and_gate::AndGate, constant::Const, input_pin::InputPin, or_gate::OrGate,
-//         output_pin::OutputPin,
-//     };
-
-//     use super::{ComposedComponentBuilder, PinAddr};
-
-//     #[test]
-//     fn to_json() {
-//         let comp = ComposedComponentBuilder::new()
-//             .id(0)
-//             .name("TestComponent")
-//             .add_comp(Box::new(InputPin::new(1)))
-//             .add_comp(Box::new(InputPin::new(2)))
-//             .add_comp(Box::new(Const::one(3)))
-//             .add_comp(Box::new(OutputPin::new(4)))
-//             .add_comp(Box::new(AndGate::new(5, 2)))
-//             .add_comp(Box::new(OrGate::new(6, 2)))
-//             .connect(pin!(1, 0), pin!(5, 0))
-//             .connect(pin!(3, 0), pin!(5, 1))
-//             .connect(pin!(5, 0), pin!(6, 0))
-//             .connect(pin!(2, 0), pin!(6, 1))
-//             .connect(pin!(6, 0), pin!(4, 0))
-//             .build();
-//         json!(comp);
-//     }
-// }

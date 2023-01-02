@@ -5,6 +5,10 @@ use crate::{
 
 use super::primitive::Primitive;
 
+/// Represents an output pin.
+///
+/// This component must be use when creating composed components that have
+/// external outputs.
 #[derive(Debug)]
 pub struct OutputPin {
     id: u32,
@@ -13,6 +17,17 @@ pub struct OutputPin {
 }
 
 impl OutputPin {
+    /// Creates a new `OutputPin` component given an id.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - Integer that represents the component id.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// let gate = OutputPin::new(0);
+    /// ```
     pub fn new(id: u32) -> Self {
         OutputPin {
             id,

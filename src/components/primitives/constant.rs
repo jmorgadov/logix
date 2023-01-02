@@ -2,14 +2,28 @@ use crate::{components::component::Component, serialize::JSONSerialize};
 
 use super::primitive::Primitive;
 
+/// Represents a component that emits a constant value.
 #[derive(Debug)]
 pub struct Const {
-    pub id: u32,
-    pub ins: Vec<bool>,
-    pub outs: Vec<bool>,
+    id: u32,
+    ins: Vec<bool>,
+    outs: Vec<bool>,
 }
 
 impl Const {
+    /// Creates a new `Const` component given an id and the value that will
+    /// emit.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - Integer that represents the component id.
+    /// * `value` - Bool that represents the constant value.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// let const = Const::new(0, true);
+    /// ```
     fn new(id: u32, value: bool) -> Self {
         Const {
             id,
@@ -18,10 +32,32 @@ impl Const {
         }
     }
 
+    /// Creates a new `Const` component given an id with a value of true.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - Integer that represents the component id.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// let const = Const::one(0);
+    /// ```
     pub fn one(id: u32) -> Self {
         Const::new(id, true)
     }
 
+    /// Creates a new `Const` component given an id with a value of false.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - Integer that represents the component id.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// let const = Const::zero(0);
+    /// ```
     pub fn zero(id: u32) -> Self {
         Const::new(id, false)
     }

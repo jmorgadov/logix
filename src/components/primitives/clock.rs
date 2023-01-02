@@ -5,6 +5,10 @@ use crate::{
 
 use super::primitive::Primitive;
 
+/// Represents a clock.
+///
+/// This component updates its value between one and zero (true/false) in a specific
+/// frequency.
 #[derive(Debug)]
 pub struct Clock {
     id: u32,
@@ -19,13 +23,25 @@ pub struct Clock {
 }
 
 impl Clock {
-    pub fn new(id: u32, frecuency: f64) -> Self {
-        let nano_sec_dur: u128 = (1e9 / frecuency) as u128;
+    /// Creates a new `Clock` component given an id and the update frequency.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - Integer that represents the component id.
+    /// * `frequency` - Float that represent the update frequency in Hertz.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// let clock = Clock::new(0, 4); // Frequency 4Hz (250ms)
+    /// ```
+    pub fn new(id: u32, frequency: f64) -> Self {
+        let nano_sec_dur: u128 = (1e9 / frequency) as u128;
         Clock {
             id,
             ins: vec![],
             outs: vec![false],
-            frec: frecuency,
+            frec: frequency,
             val: false,
             interval: nano_sec_dur,
             full: nano_sec_dur * 2,

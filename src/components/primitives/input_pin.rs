@@ -5,6 +5,10 @@ use crate::{
 
 use super::primitive::Primitive;
 
+/// Represents an input pin.
+///
+/// This component must be use when creating composed components that have
+/// external inputs.
 #[derive(Debug)]
 pub struct InputPin {
     id: u32,
@@ -13,6 +17,17 @@ pub struct InputPin {
 }
 
 impl InputPin {
+    /// Creates a new `OutputPin` component given an id.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - Integer that represents the component id.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// let gate = OutputPin::new(0);
+    /// ```
     pub fn new(id: u32) -> Self {
         InputPin {
             id,
