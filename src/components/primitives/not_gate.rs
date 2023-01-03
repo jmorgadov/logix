@@ -1,16 +1,13 @@
-use crate::{
-    components::component::{Component, CompEvent},
-    serialize::JSONSerialize,
-};
+use crate::components::prelude::*;
 
 use super::primitive::Primitive;
 
 /// Represents a NOT gate component.
 #[derive(Debug)]
 pub struct NotGate {
-    id: u32,
-    ins: Vec<bool>,
-    outs: Vec<bool>,
+    pub id: u32,
+    pub ins: Vec<bool>,
+    pub outs: Vec<bool>,
 }
 
 impl NotGate {
@@ -34,20 +31,9 @@ impl NotGate {
     }
 }
 
-impl JSONSerialize for NotGate {
-    fn to_json(&self) -> serde_json::Value {
-        serde_json::json!({
-            "id": self.id,
-            "name": Primitive::NotGate.to_string(),
-            "in_count": self.ins.len(),
-        })
-    }
-
-    fn from_json(json: &serde_json::Value) -> Self
-    where
-        Self: Sized,
-    {
-        NotGate::new(json["id"].as_u64().unwrap() as u32)
+impl ComponentCast for NotGate {
+    fn as_not_gate(&self) -> Option<&NotGate> {
+        Some(self)
     }
 }
 
@@ -78,7 +64,7 @@ impl Component for NotGate {
 #[cfg(test)]
 mod tests {
     use super::NotGate;
-    use crate::components::component::{Component, CompEvent};
+    use crate::components::component::{CompEvent, Component};
 
     #[test]
     fn update_values() {

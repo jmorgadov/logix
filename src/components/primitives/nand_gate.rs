@@ -1,16 +1,13 @@
-use crate::{
-    components::component::{Component, CompEvent},
-    serialize::JSONSerialize,
-};
+use crate::components::prelude::*;
 
 use super::primitive::Primitive;
 
 /// Represents a NAND gate component.
 #[derive(Debug)]
 pub struct NandGate {
-    id: u32,
-    ins: Vec<bool>,
-    outs: Vec<bool>,
+    pub id: u32,
+    pub ins: Vec<bool>,
+    pub outs: Vec<bool>,
 }
 
 impl NandGate {
@@ -36,23 +33,9 @@ impl NandGate {
     }
 }
 
-impl JSONSerialize for NandGate {
-    fn to_json(&self) -> serde_json::Value {
-        serde_json::json!({
-            "id": self.id,
-            "name": Primitive::NandGate.to_string(),
-            "in_count": self.ins.len(),
-        })
-    }
-
-    fn from_json(json: &serde_json::Value) -> Self
-    where
-        Self: Sized,
-    {
-        NandGate::new(
-            json["id"].as_u64().unwrap() as u32,
-            json["in_count"].as_u64().unwrap() as usize,
-        )
+impl ComponentCast for NandGate {
+    fn as_nand_gate(&self) -> Option<&NandGate> {
+        Some(self)
     }
 }
 
@@ -84,7 +67,7 @@ impl Component for NandGate {
 #[cfg(test)]
 mod tests {
     use super::NandGate;
-    use crate::components::component::{Component, CompEvent};
+    use crate::components::component::{CompEvent, Component};
 
     #[test]
     fn update_values() {

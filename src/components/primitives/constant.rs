@@ -1,13 +1,13 @@
-use crate::{components::component::Component, serialize::JSONSerialize};
+use crate::components::prelude::*;
 
 use super::primitive::Primitive;
 
 /// Represents a component that emits a constant value.
 #[derive(Debug)]
 pub struct Const {
-    id: u32,
-    ins: Vec<bool>,
-    outs: Vec<bool>,
+    pub id: u32,
+    pub ins: Vec<bool>,
+    pub outs: Vec<bool>,
 }
 
 impl Const {
@@ -63,31 +63,9 @@ impl Const {
     }
 }
 
-impl JSONSerialize for Const {
-    fn to_json(&self) -> serde_json::Value {
-        let primitive = match self.outs[0] {
-            true => Primitive::ConstOne,
-            false => Primitive::ConstZero,
-        };
-        serde_json::json!({
-            "id": self.id,
-            "name": primitive.to_string(),
-        })
-    }
-
-    fn from_json(json: &serde_json::Value) -> Self
-    where
-        Self: Sized,
-    {
-        let id = json["id"].as_u64().unwrap() as u32;
-        let name = json["name"].as_str().unwrap();
-        if name == Primitive::ConstOne.to_string() {
-            Const::one(id)
-        } else if name == Primitive::ConstZero.to_string() {
-            Const::zero(id)
-        } else {
-            panic!("Unkown name")
-        }
+impl ComponentCast for Const {
+    fn as_const(&self) -> Option<&Const> {
+        Some(self)
     }
 }
 
@@ -115,7 +93,7 @@ impl Component for Const {
 #[cfg(test)]
 mod tests {
     use super::Const;
-    use crate::components::component::{Component, CompEvent};
+    use crate::components::component::{CompEvent, Component};
 
     #[test]
     fn cont_one() {

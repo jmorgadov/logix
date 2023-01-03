@@ -1,13 +1,13 @@
-use std::time::Instant;
-
 use components::{prelude::*, primitives::prelude::*};
 use id_factory::IDFactory;
 use simulation::Simulation;
 
 mod components;
 mod id_factory;
-mod serialize;
+mod json_serialization;
+mod parser;
 mod simulation;
+mod visitor;
 
 fn main() {
     let mut id = IDFactory::new();

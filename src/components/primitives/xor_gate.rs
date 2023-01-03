@@ -1,16 +1,13 @@
-use crate::{
-    components::component::{Component, CompEvent},
-    serialize::JSONSerialize,
-};
+use crate::components::prelude::*;
 
 use super::primitive::Primitive;
 
 /// Represents an XOR gate component.
 #[derive(Debug)]
 pub struct XorGate {
-    id: u32,
-    ins: Vec<bool>,
-    outs: Vec<bool>,
+    pub id: u32,
+    pub ins: Vec<bool>,
+    pub outs: Vec<bool>,
 }
 
 impl XorGate {
@@ -36,23 +33,9 @@ impl XorGate {
     }
 }
 
-impl JSONSerialize for XorGate {
-    fn to_json(&self) -> serde_json::Value {
-        serde_json::json!({
-            "id": self.id,
-            "name": Primitive::XorGate.to_string(),
-            "in_count": self.ins.len(),
-        })
-    }
-
-    fn from_json(json: &serde_json::Value) -> Self
-    where
-        Self: Sized,
-    {
-        XorGate::new(
-            json["id"].as_u64().unwrap() as u32,
-            json["in_count"].as_u64().unwrap() as usize,
-        )
+impl ComponentCast for XorGate {
+    fn as_xor_gate(&self) -> Option<&XorGate> {
+        Some(self)
     }
 }
 
@@ -90,7 +73,7 @@ impl Component for XorGate {
 #[cfg(test)]
 mod tests {
     use super::XorGate;
-    use crate::components::component::{Component, CompEvent};
+    use crate::components::component::{CompEvent, Component};
 
     #[test]
     fn update_values() {

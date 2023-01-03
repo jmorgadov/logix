@@ -1,10 +1,8 @@
 use super::{
     component::{CompEvent, Component},
-    primitives::prelude::*,
+    primitives::prelude::*, prelude::ComponentCast,
 };
-use crate::serialize::JSONSerialize;
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
 use std::collections::HashMap;
 
 /// Address to a pin of a specific component.
@@ -56,7 +54,7 @@ macro_rules! pin {
 /// The address stored in `from` is assumed to be from an output pin
 /// and the one stored in `to` is assumed to be to an input pin.
 #[derive(PartialEq, Eq, Debug, Serialize, Deserialize)]
-struct Conn {
+pub struct Conn {
     pub from: PinAddr,
     pub to: PinAddr,
 }
@@ -89,98 +87,22 @@ impl Conn {
 /// by the connections.
 #[derive(Debug)]
 pub struct ComposedComponent {
-    id: u32,
-    name: String,
-    ins: Vec<bool>,
-    outs: Vec<bool>,
+    pub id: u32,
+    pub name: String,
+    pub ins: Vec<bool>,
+    pub outs: Vec<bool>,
 
-    components: Vec<Box<dyn Component>>,
-    idx_map: HashMap<u32, usize>,
-    dep_map: Vec<Vec<usize>>,
-    connections: Vec<Conn>,
-    in_addrs: Vec<PinAddr>,
-    out_addrs: Vec<PinAddr>,
+    pub components: Vec<Box<dyn Component>>,
+    pub idx_map: HashMap<u32, usize>,
+    pub dep_map: Vec<Vec<usize>>,
+    pub connections: Vec<Conn>,
+    pub in_addrs: Vec<PinAddr>,
+    pub out_addrs: Vec<PinAddr>,
 }
 
-impl JSONSerialize for ComposedComponent {
-    fn to_json(&self) -> Value {
-        let mut val: Value = Default::default();
-        let comps: Vec<Value> = self.components.iter().map(|e| e.to_json()).collect();
-
-        val["id"] = json!(self.id);
-        val["name"] = json!(self.name);
-        val["connections"] = json!(self.connections);
-        val["components"] = json!(comps);
-        val
-    }
-
-    fn from_json(json: &Value) -> Self
-    where
-        Self: Sized,
-    {
-        let mut builder = ComposedComponentBuilder::new()
-            .id(json["id"].as_u64().unwrap() as u32)
-            .name(json["name"].as_str().unwrap());
-
-        for comp_json in json["components"].as_array().unwrap().iter() {
-            let name = comp_json["name"].as_str().unwrap();
-            let sub_comp: Box<dyn Component>;
-            if let Ok(prim) = Primitive::from_str(name) {
-                match prim {
-                    Primitive::NotGate => {
-                        sub_comp = Box::new(NotGate::from_json(comp_json));
-                    }
-                    Primitive::AndGate => {
-                        sub_comp = Box::new(AndGate::from_json(comp_json));
-                    }
-                    Primitive::OrGate => {
-                        sub_comp = Box::new(OrGate::from_json(comp_json));
-                    }
-                    Primitive::NandGate => {
-                        sub_comp = Box::new(NandGate::from_json(comp_json));
-                    }
-                    Primitive::NorGate => {
-                        sub_comp = Box::new(NorGate::from_json(comp_json));
-                    }
-                    Primitive::XorGate => {
-                        sub_comp = Box::new(XorGate::from_json(comp_json));
-                    }
-                    Primitive::Clock => {
-                        sub_comp = Box::new(Clock::from_json(comp_json));
-                    }
-                    Primitive::InputPin => {
-                        sub_comp = Box::new(InputPin::from_json(comp_json));
-                    }
-                    Primitive::OutputPin => {
-                        sub_comp = Box::new(OutputPin::from_json(comp_json));
-                    }
-                    Primitive::ConstOne => {
-                        sub_comp = Box::new(Const::from_json(comp_json));
-                    }
-                    Primitive::ConstZero => {
-                        sub_comp = Box::new(Const::from_json(comp_json));
-                    }
-                }
-            } else {
-                sub_comp = Box::new(ComposedComponent::from_json(comp_json))
-            }
-            builder = builder.add_comp(sub_comp);
-        }
-
-        for conn_json in json["connections"].as_array().unwrap().iter() {
-            let from = conn_json["from"].as_object().unwrap();
-            let from_pin = pin!(
-                from["id"].as_u64().unwrap() as u32,
-                from["addr"].as_u64().unwrap() as usize
-            );
-            let to = conn_json["to"].as_object().unwrap();
-            let to_pin = pin!(
-                to["id"].as_u64().unwrap() as u32,
-                to["addr"].as_u64().unwrap() as usize
-            );
-            builder = builder.connect(from_pin, to_pin);
-        }
-        builder.build()
+impl ComponentCast for ComposedComponent {
+    fn as_composed(&self) -> Option<&ComposedComponent> {
+        Some(self)
     }
 }
 
@@ -436,7 +358,7 @@ impl ComposedComponentBuilder {
                 // Connection already exists
                 return self;
             }
-            if conn.to.id == to.id {
+            if conn.to == to {
                 // Two connections to the same input pin
                 panic!(
                     "Input pin {} for component {} has already a connection",

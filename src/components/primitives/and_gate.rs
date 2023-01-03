@@ -1,16 +1,13 @@
-use crate::{
-    components::component::{Component, CompEvent},
-    serialize::JSONSerialize,
-};
+use crate::components::prelude::*;
 
 use super::primitive::Primitive;
 
 /// Represents an AND gate component.
 #[derive(Debug)]
 pub struct AndGate {
-    id: u32,
-    ins: Vec<bool>,
-    outs: Vec<bool>,
+    pub id: u32,
+    pub ins: Vec<bool>,
+    pub outs: Vec<bool>,
 }
 
 impl AndGate {
@@ -36,23 +33,9 @@ impl AndGate {
     }
 }
 
-impl JSONSerialize for AndGate {
-    fn to_json(&self) -> serde_json::Value {
-        serde_json::json!({
-            "id": self.id,
-            "name": Primitive::AndGate.to_string(),
-            "in_count": self.ins.len(),
-        })
-    }
-
-    fn from_json(json: &serde_json::Value) -> Self
-    where
-        Self: Sized,
-    {
-        AndGate::new(
-            json["id"].as_u64().unwrap() as u32,
-            json["in_count"].as_u64().unwrap() as usize,
-        )
+impl ComponentCast for AndGate {
+    fn as_and_gate(&self) -> Option<&AndGate> {
+        Some(self)
     }
 }
 
@@ -84,7 +67,7 @@ impl Component for AndGate {
 #[cfg(test)]
 mod tests {
     use super::AndGate;
-    use crate::components::component::{Component, CompEvent};
+    use crate::components::component::{CompEvent, Component};
 
     #[test]
     fn update_values() {

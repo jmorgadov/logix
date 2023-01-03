@@ -1,16 +1,13 @@
-use crate::{
-    components::component::{Component, CompEvent},
-    serialize::JSONSerialize,
-};
+use crate::components::prelude::*;
 
 use super::primitive::Primitive;
 
 /// Represents an OR gate component.
 #[derive(Debug)]
 pub struct OrGate {
-    id: u32,
-    ins: Vec<bool>,
-    outs: Vec<bool>,
+    pub id: u32,
+    pub ins: Vec<bool>,
+    pub outs: Vec<bool>,
 }
 
 impl OrGate {
@@ -36,23 +33,9 @@ impl OrGate {
     }
 }
 
-impl JSONSerialize for OrGate {
-    fn to_json(&self) -> serde_json::Value {
-        serde_json::json!({
-            "id": self.id,
-            "name": Primitive::OrGate.to_string(),
-            "in_count": self.ins.len(),
-        })
-    }
-
-    fn from_json(json: &serde_json::Value) -> Self
-    where
-        Self: Sized,
-    {
-        OrGate::new(
-            json["id"].as_u64().unwrap() as u32,
-            json["in_count"].as_u64().unwrap() as usize,
-        )
+impl ComponentCast for OrGate {
+    fn as_or_gate(&self) -> Option<&OrGate> {
+        Some(self)
     }
 }
 
@@ -84,7 +67,7 @@ impl Component for OrGate {
 #[cfg(test)]
 mod tests {
     use super::OrGate;
-    use crate::components::component::{Component, CompEvent};
+    use crate::components::component::{CompEvent, Component};
 
     #[test]
     fn update_values() {

@@ -1,7 +1,4 @@
-use crate::{
-    components::component::{Component, CompEvent},
-    serialize::JSONSerialize,
-};
+use crate::components::prelude::*;
 
 use super::primitive::Primitive;
 
@@ -11,9 +8,9 @@ use super::primitive::Primitive;
 /// external inputs.
 #[derive(Debug)]
 pub struct InputPin {
-    id: u32,
-    ins: Vec<bool>,
-    outs: Vec<bool>,
+    pub id: u32,
+    pub ins: Vec<bool>,
+    pub outs: Vec<bool>,
 }
 
 impl InputPin {
@@ -37,19 +34,9 @@ impl InputPin {
     }
 }
 
-impl JSONSerialize for InputPin {
-    fn to_json(&self) -> serde_json::Value {
-        serde_json::json!({
-            "id": self.id,
-            "name": Primitive::InputPin.to_string(),
-        })
-    }
-
-    fn from_json(json: &serde_json::Value) -> Self
-    where
-        Self: Sized,
-    {
-        InputPin::new(json["id"].as_u64().unwrap() as u32)
+impl ComponentCast for InputPin {
+    fn as_input_pin(&self) -> Option<&InputPin> {
+        Some(self)
     }
 }
 
@@ -80,7 +67,7 @@ impl Component for InputPin {
 #[cfg(test)]
 mod tests {
     use crate::components::{
-        component::{Component, CompEvent},
+        component::{CompEvent, Component},
         primitives::input_pin::InputPin,
     };
 

@@ -1,7 +1,4 @@
-use crate::{
-    components::component::{Component, CompEvent},
-    serialize::JSONSerialize,
-};
+use crate::components::prelude::*;
 
 use super::primitive::Primitive;
 
@@ -11,11 +8,11 @@ use super::primitive::Primitive;
 /// frequency.
 #[derive(Debug)]
 pub struct Clock {
-    id: u32,
-    ins: Vec<bool>,
-    outs: Vec<bool>,
+    pub id: u32,
+    pub ins: Vec<bool>,
+    pub outs: Vec<bool>,
 
-    frec: f64,
+    pub frec: f64,
     interval: u128,
     full: u128,
     val: bool,
@@ -50,23 +47,9 @@ impl Clock {
     }
 }
 
-impl JSONSerialize for Clock {
-    fn to_json(&self) -> serde_json::Value {
-        serde_json::json!({
-            "id": self.id,
-            "name": Primitive::Clock.to_string(),
-            "frec": self.frec,
-        })
-    }
-
-    fn from_json(json: &serde_json::Value) -> Self
-    where
-        Self: Sized,
-    {
-        Clock::new(
-            json["id"].as_u64().unwrap() as u32,
-            json["frec"].as_f64().unwrap(),
-        )
+impl ComponentCast for Clock {
+    fn as_clock(&self) -> Option<&Clock> {
+        Some(self)
     }
 }
 

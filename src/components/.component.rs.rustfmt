@@ -1,6 +1,10 @@
 use std::fmt::Debug;
 
-use super::prelude::ComponentCast;
+use crate::serialize::JSONSerialize;
+
+pub trait 
+
+
 
 /// Represents a component event
 ///
@@ -20,7 +24,7 @@ pub enum CompEvent {
 /// except for the `ComposedComponent`. It is a special implementation of this
 /// trait which can hold several components (even composed ones) and connect them
 /// to make a new bigger component.
-pub trait Component: Debug + ComponentCast {
+pub trait Component: Debug + JSONSerialize {
     /// Returns the id of the component.
     fn id(&self) -> u32;
 
