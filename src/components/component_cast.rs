@@ -44,7 +44,7 @@ mod tests {
 
     #[test]
     fn cast_composed_component() {
-        let comp = ComposedComponentBuilder::new().id(0).name("Test").build();
+        let comp = ComposedComponentBuilder::new("Test").build();
         assert!(comp.as_composed().is_some())
     }
 
@@ -55,31 +55,31 @@ mod tests {
         for prim in PRIMITIVES {
             match prim {
                 Primitive::NotGate => {
-                    let comp = NotGate::new(0);
+                    let comp = NotGate::new();
                     assert!(comp.as_not_gate().is_some());
                 }
                 Primitive::AndGate => {
-                    let comp = AndGate::new(0, 2);
+                    let comp = AndGate::new(2);
                     assert!(comp.as_and_gate().is_some());
                 }
                 Primitive::OrGate => {
-                    let comp = OrGate::new(0, 2);
+                    let comp = OrGate::new(2);
                     assert!(comp.as_or_gate().is_some());
                 }
                 Primitive::NandGate => {
-                    let comp = NandGate::new(0, 2);
+                    let comp = NandGate::new(2);
                     assert!(comp.as_nand_gate().is_some());
                 }
                 Primitive::NorGate => {
-                    let comp = NorGate::new(0, 2);
+                    let comp = NorGate::new(2);
                     assert!(comp.as_nor_gate().is_some());
                 }
                 Primitive::XorGate => {
-                    let comp = XorGate::new(0, 2);
+                    let comp = XorGate::new(2);
                     assert!(comp.as_xor_gate().is_some());
                 }
                 Primitive::Clock => {
-                    let comp = Clock::new(0, 1.0);
+                    let comp = Clock::new(1.0);
                     assert!(comp.as_clock().is_some());
                 }
                 Primitive::InputPin => {
@@ -91,11 +91,11 @@ mod tests {
                     assert!(comp.as_output_pin().is_some());
                 }
                 Primitive::ConstOne => {
-                    let comp = Const::one(0);
+                    let comp = Const::one();
                     assert!(comp.as_const().is_some());
                 }
                 Primitive::ConstZero => {
-                    let comp = Const::zero(0);
+                    let comp = Const::zero();
                     assert!(comp.as_const().is_some());
                 }
             }

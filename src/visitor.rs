@@ -61,37 +61,37 @@ mod tests {
     fn component_visitor() {
         let test_visitor = TestCompVisitor {};
 
-        let comp = ComposedComponentBuilder::new().id(0).name("Test").build();
+        let comp = ComposedComponentBuilder::new("Test").build();
         assert!(test_visitor.visit_composed(&comp).is_none());
 
         for prim in PRIMITIVES {
             match prim {
                 Primitive::NotGate => {
-                    let comp = NotGate::new(0);
+                    let comp = NotGate::new();
                     assert!(test_visitor.visit_not_gate(&comp).is_none());
                 }
                 Primitive::AndGate => {
-                    let comp = AndGate::new(0, 2);
+                    let comp = AndGate::new(2);
                     assert!(test_visitor.visit_and_gate(&comp).is_none());
                 }
                 Primitive::OrGate => {
-                    let comp = OrGate::new(0, 2);
+                    let comp = OrGate::new(2);
                     assert!(test_visitor.visit_or_gate(&comp).is_none());
                 }
                 Primitive::NandGate => {
-                    let comp = NandGate::new(0, 2);
+                    let comp = NandGate::new(2);
                     assert!(test_visitor.visit_nand_gate(&comp).is_none());
                 }
                 Primitive::NorGate => {
-                    let comp = NorGate::new(0, 2);
+                    let comp = NorGate::new(2);
                     assert!(test_visitor.visit_nor_gate(&comp).is_none());
                 }
                 Primitive::XorGate => {
-                    let comp = XorGate::new(0, 2);
+                    let comp = XorGate::new(2);
                     assert!(test_visitor.visit_xor_gate(&comp).is_none());
                 }
                 Primitive::Clock => {
-                    let comp = Clock::new(0, 1.0);
+                    let comp = Clock::new(1.0);
                     assert!(test_visitor.visit_clock(&comp).is_none());
                 }
                 Primitive::InputPin => {
@@ -103,11 +103,11 @@ mod tests {
                     assert!(test_visitor.visit_output_pin(&comp).is_none());
                 }
                 Primitive::ConstOne => {
-                    let comp = Const::one(0);
+                    let comp = Const::one();
                     assert!(test_visitor.visit_const(&comp).is_none());
                 }
                 Primitive::ConstZero => {
-                    let comp = Const::zero(0);
+                    let comp = Const::zero();
                     assert!(test_visitor.visit_const(&comp).is_none());
                 }
             }

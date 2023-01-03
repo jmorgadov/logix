@@ -8,7 +8,7 @@ use super::primitive::Primitive;
 /// external outputs.
 #[derive(Debug)]
 pub struct OutputPin {
-    pub id: u32,
+    pub num: usize,
     pub ins: Vec<bool>,
     pub outs: Vec<bool>,
 }
@@ -16,18 +16,14 @@ pub struct OutputPin {
 impl OutputPin {
     /// Creates a new `OutputPin` component given an id.
     ///
-    /// # Arguments
-    ///
-    /// * `id` - Integer that represents the component id.
-    ///
     /// # Example
     ///
     /// ```
     /// let gate = OutputPin::new(0);
     /// ```
-    pub fn new(id: u32) -> Self {
+    pub fn new(num: usize) -> Self {
         OutputPin {
-            id,
+            num,
             ins: vec![false],
             outs: vec![false],
         }
@@ -41,10 +37,6 @@ impl ComponentCast for OutputPin {
 }
 
 impl Component for OutputPin {
-    fn id(&self) -> u32 {
-        self.id
-    }
-
     fn name(&self) -> String {
         Primitive::OutputPin.to_string()
     }

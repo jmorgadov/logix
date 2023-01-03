@@ -5,7 +5,6 @@ use super::primitive::Primitive;
 /// Represents a NOT gate component.
 #[derive(Debug)]
 pub struct NotGate {
-    pub id: u32,
     pub ins: Vec<bool>,
     pub outs: Vec<bool>,
 }
@@ -13,18 +12,13 @@ pub struct NotGate {
 impl NotGate {
     /// Creates a new `OutputPin` component given an id.
     ///
-    /// # Arguments
-    ///
-    /// * `id` - Integer that represents the component id.
-    ///
     /// # Example
     ///
     /// ```
     /// let gate = OutputPin::new(0);
     /// ```
-    pub fn new(id: u32) -> NotGate {
+    pub fn new() -> NotGate {
         NotGate {
-            id,
             ins: vec![false],
             outs: vec![false],
         }
@@ -38,10 +32,6 @@ impl ComponentCast for NotGate {
 }
 
 impl Component for NotGate {
-    fn id(&self) -> u32 {
-        self.id
-    }
-
     fn name(&self) -> String {
         Primitive::NotGate.to_string()
     }
@@ -69,7 +59,7 @@ mod tests {
     #[test]
     fn update_values() {
         let table = [[false, true], [true, false]];
-        let mut gate = NotGate::new(0);
+        let mut gate = NotGate::new();
         for row in table {
             gate.set_in(0, row[0]);
             gate.on_event(&CompEvent::UpdateValues);

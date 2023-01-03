@@ -5,7 +5,6 @@ use super::primitive::Primitive;
 /// Represents a NAND gate component.
 #[derive(Debug)]
 pub struct NandGate {
-    pub id: u32,
     pub ins: Vec<bool>,
     pub outs: Vec<bool>,
 }
@@ -16,7 +15,6 @@ impl NandGate {
     ///
     /// # Arguments
     ///
-    /// * `id` - Integer that represents the component id.
     /// * `in_count` - Integer that represent how many input pins the gate has.
     ///
     /// # Example
@@ -24,9 +22,8 @@ impl NandGate {
     /// ```
     /// let gate = NandGate::new(0, 2);
     /// ```
-    pub fn new(id: u32, in_count: usize) -> NandGate {
+    pub fn new(in_count: usize) -> NandGate {
         NandGate {
-            id,
             ins: vec![false; in_count],
             outs: vec![false],
         }
@@ -40,10 +37,6 @@ impl ComponentCast for NandGate {
 }
 
 impl Component for NandGate {
-    fn id(&self) -> u32 {
-        self.id
-    }
-
     fn name(&self) -> String {
         Primitive::NandGate.to_string()
     }
@@ -77,7 +70,7 @@ mod tests {
             [false, true, true],
             [true, true, false],
         ];
-        let mut gate = NandGate::new(0, 2);
+        let mut gate = NandGate::new(2);
         for row in table {
             gate.set_in(0, row[0]);
             gate.set_in(1, row[1]);

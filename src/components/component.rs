@@ -21,9 +21,6 @@ pub enum CompEvent {
 /// trait which can hold several components (even composed ones) and connect them
 /// to make a new bigger component.
 pub trait Component: Debug + ComponentCast {
-    /// Returns the id of the component.
-    fn id(&self) -> u32;
-
     /// Returns the name of the component.
     fn name(&self) -> String;
 

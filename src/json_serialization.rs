@@ -51,7 +51,6 @@ struct JsonSerializer;
 impl CompVisitor<Value> for JsonSerializer {
     fn visit_not_gate(&self, comp: &NotGate) -> Value {
         serde_json::json!({
-            "id": comp.id(),
             "name": Primitive::NotGate.to_string(),
             "in_count": comp.ins.len(),
         })
@@ -59,7 +58,6 @@ impl CompVisitor<Value> for JsonSerializer {
 
     fn visit_and_gate(&self, comp: &AndGate) -> Value {
         serde_json::json!({
-            "id": comp.id,
             "name": Primitive::AndGate.to_string(),
             "in_count": comp.ins.len(),
         })
@@ -67,7 +65,6 @@ impl CompVisitor<Value> for JsonSerializer {
 
     fn visit_or_gate(&self, comp: &OrGate) -> Value {
         serde_json::json!({
-            "id": comp.id,
             "name": Primitive::OrGate.to_string(),
             "in_count": comp.ins.len(),
         })
@@ -75,7 +72,6 @@ impl CompVisitor<Value> for JsonSerializer {
 
     fn visit_nand_gate(&self, comp: &NandGate) -> Value {
         serde_json::json!({
-            "id": comp.id,
             "name": Primitive::NandGate.to_string(),
             "in_count": comp.ins.len(),
         })
@@ -83,7 +79,6 @@ impl CompVisitor<Value> for JsonSerializer {
 
     fn visit_nor_gate(&self, comp: &NorGate) -> Value {
         serde_json::json!({
-            "id": comp.id,
             "name": Primitive::NorGate.to_string(),
             "in_count": comp.ins.len(),
         })
@@ -91,7 +86,6 @@ impl CompVisitor<Value> for JsonSerializer {
 
     fn visit_xor_gate(&self, comp: &XorGate) -> Value {
         serde_json::json!({
-            "id": comp.id,
             "name": Primitive::XorGate.to_string(),
             "in_count": comp.ins.len(),
         })
@@ -99,7 +93,6 @@ impl CompVisitor<Value> for JsonSerializer {
 
     fn visit_clock(&self, comp: &Clock) -> Value {
         serde_json::json!({
-            "id": comp.id,
             "name": Primitive::Clock.to_string(),
             "frec": comp.frec,
         })
@@ -107,14 +100,14 @@ impl CompVisitor<Value> for JsonSerializer {
 
     fn visit_input_pin(&self, comp: &InputPin) -> Value {
         serde_json::json!({
-            "id": comp.id,
+            "num": comp.num,
             "name": Primitive::InputPin.to_string(),
         })
     }
 
     fn visit_output_pin(&self, comp: &OutputPin) -> Value {
         serde_json::json!({
-            "id": comp.id,
+            "num": comp.num,
             "name": Primitive::OutputPin.to_string(),
         })
     }
@@ -125,7 +118,6 @@ impl CompVisitor<Value> for JsonSerializer {
             false => Primitive::ConstZero,
         };
         serde_json::json!({
-            "id": comp.id,
             "name": primitive.to_string(),
         })
     }
@@ -156,7 +148,6 @@ impl CompVisitor<Value> for JsonSerializer {
             })
             .collect();
 
-        val["id"] = json!(comp.id);
         val["name"] = json!(comp.name);
         val["connections"] = json!(comp.connections);
         val["components"] = json!(comps);
@@ -168,78 +159,57 @@ impl CompVisitor<Value> for JsonSerializer {
 struct JsonDeserializer;
 
 impl CompParser<&Value> for JsonDeserializer {
-    fn parse_not_gate(&self, obj: &Value) -> ParseResult<NotGate> {
-        Ok(NotGate::new(obj["id"].as_u64().ok_or(())? as u32))
+    fn parse_not_gate(&self, _: &Value) -> ParseResult<NotGate> {
+        Ok(NotGate::new())
     }
 
     fn parse_and_gate(&self, obj: &Value) -> ParseResult<AndGate> {
-        Ok(AndGate::new(
-            obj["id"].as_u64().ok_or(())? as u32,
-            obj["in_count"].as_u64().ok_or(())? as usize,
-        ))
+        Ok(AndGate::new(obj["in_count"].as_u64().ok_or(())? as usize))
     }
 
     fn parse_or_gate(&self, obj: &Value) -> ParseResult<OrGate> {
-        Ok(OrGate::new(
-            obj["id"].as_u64().ok_or(())? as u32,
-            obj["in_count"].as_u64().ok_or(())? as usize,
-        ))
+        Ok(OrGate::new(obj["in_count"].as_u64().ok_or(())? as usize))
     }
 
     fn parse_nand_gate(&self, obj: &Value) -> ParseResult<NandGate> {
-        Ok(NandGate::new(
-            obj["id"].as_u64().ok_or(())? as u32,
-            obj["in_count"].as_u64().ok_or(())? as usize,
-        ))
+        Ok(NandGate::new(obj["in_count"].as_u64().ok_or(())? as usize))
     }
 
     fn parse_nor_gate(&self, obj: &Value) -> ParseResult<NorGate> {
-        Ok(NorGate::new(
-            obj["id"].as_u64().ok_or(())? as u32,
-            obj["in_count"].as_u64().ok_or(())? as usize,
-        ))
+        Ok(NorGate::new(obj["in_count"].as_u64().ok_or(())? as usize))
     }
 
     fn parse_xor_gate(&self, obj: &Value) -> ParseResult<XorGate> {
-        Ok(XorGate::new(
-            obj["id"].as_u64().ok_or(())? as u32,
-            obj["in_count"].as_u64().ok_or(())? as usize,
-        ))
+        Ok(XorGate::new(obj["in_count"].as_u64().ok_or(())? as usize))
     }
 
     fn parse_clock(&self, obj: &Value) -> ParseResult<Clock> {
-        Ok(Clock::new(
-            obj["id"].as_u64().ok_or(())? as u32,
-            obj["frec"].as_f64().ok_or(())?,
-        ))
+        Ok(Clock::new(obj["frec"].as_f64().ok_or(())?))
     }
 
     fn parse_input_pin(&self, obj: &Value) -> ParseResult<InputPin> {
-        Ok(InputPin::new(obj["id"].as_u64().ok_or(())? as u32))
+        Ok(InputPin::new(obj["num"].as_u64().ok_or(())? as usize))
     }
 
     fn parse_output_pin(&self, obj: &Value) -> ParseResult<OutputPin> {
-        Ok(OutputPin::new(obj["id"].as_u64().ok_or(())? as u32))
+        Ok(OutputPin::new(obj["num"].as_u64().ok_or(())? as usize))
     }
 
     fn parse_const(&self, obj: &Value) -> ParseResult<Const> {
-        let id = obj["id"].as_u64().ok_or(())? as u32;
         let name = obj["name"].as_str().ok_or(())?;
         if name == Primitive::ConstOne.to_string() {
-            Ok(Const::one(id))
+            Ok(Const::one())
         } else if name == Primitive::ConstZero.to_string() {
-            Ok(Const::zero(id))
+            Ok(Const::zero())
         } else {
-            panic!("Unkown name")
+            Err(())
         }
     }
 
     fn parse_composed(&self, obj: &Value) -> ParseResult<ComposedComponent> {
-        let mut builder = ComposedComponentBuilder::new()
-            .id(obj["id"].as_u64().ok_or(())? as u32)
-            .name(obj["name"].as_str().ok_or(())?);
+        let mut builder = ComposedComponentBuilder::new(obj["name"].as_str().ok_or(())?);
 
-        for comp_json in obj["components"].as_array().ok_or(())?.iter() {
+        for (i, comp_json) in obj["components"].as_array().ok_or(())?.iter().enumerate() {
             let name = comp_json["name"].as_str().ok_or(())?;
             let sub_c: Box<dyn Component>;
             if let Ok(prim) = Primitive::from_str(name) {
@@ -281,18 +251,18 @@ impl CompParser<&Value> for JsonDeserializer {
             } else {
                 sub_c = Box::new(self.parse_composed(comp_json)?);
             }
-            builder = builder.add_comp(sub_c);
+            builder = builder.add_comp(i, sub_c);
         }
 
         for conn_json in obj["connections"].as_array().ok_or(())?.iter() {
             let from = conn_json["from"].as_object().ok_or(())?;
             let from_pin = pin!(
-                from["id"].as_u64().ok_or(())? as u32,
+                from["id"].as_u64().ok_or(())? as usize,
                 from["addr"].as_u64().ok_or(())? as usize
             );
             let to = conn_json["to"].as_object().ok_or(())?;
             let to_pin = pin!(
-                to["id"].as_u64().ok_or(())? as u32,
+                to["id"].as_u64().ok_or(())? as usize,
                 to["addr"].as_u64().ok_or(())? as usize
             );
             builder = builder.connect(from_pin, to_pin);

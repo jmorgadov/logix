@@ -5,7 +5,6 @@ use super::primitive::Primitive;
 /// Represents a component that emits a constant value.
 #[derive(Debug)]
 pub struct Const {
-    pub id: u32,
     pub ins: Vec<bool>,
     pub outs: Vec<bool>,
 }
@@ -16,7 +15,6 @@ impl Const {
     ///
     /// # Arguments
     ///
-    /// * `id` - Integer that represents the component id.
     /// * `value` - Bool that represents the constant value.
     ///
     /// # Example
@@ -24,9 +22,8 @@ impl Const {
     /// ```
     /// let const = Const::new(0, true);
     /// ```
-    fn new(id: u32, value: bool) -> Self {
+    fn new(value: bool) -> Self {
         Const {
-            id,
             ins: vec![],
             outs: vec![value],
         }
@@ -43,8 +40,8 @@ impl Const {
     /// ```
     /// let const = Const::one(0);
     /// ```
-    pub fn one(id: u32) -> Self {
-        Const::new(id, true)
+    pub fn one() -> Self {
+        Const::new(true)
     }
 
     /// Creates a new `Const` component given an id with a value of false.
@@ -58,8 +55,8 @@ impl Const {
     /// ```
     /// let const = Const::zero(0);
     /// ```
-    pub fn zero(id: u32) -> Self {
-        Const::new(id, false)
+    pub fn zero() -> Self {
+        Const::new(false)
     }
 }
 
@@ -70,10 +67,6 @@ impl ComponentCast for Const {
 }
 
 impl Component for Const {
-    fn id(&self) -> u32 {
-        self.id
-    }
-
     fn name(&self) -> String {
         match self.outs[0] {
             true => Primitive::ConstOne.to_string(),
@@ -97,14 +90,14 @@ mod tests {
 
     #[test]
     fn cont_one() {
-        let comp = &mut Const::one(0);
+        let comp = &mut Const::one();
         comp.on_event(&CompEvent::UpdateValues);
         assert!(comp.outs[0]);
     }
 
     #[test]
     fn cont_zero() {
-        let comp = &mut Const::zero(0);
+        let comp = &mut Const::zero();
         comp.on_event(&CompEvent::UpdateValues);
         assert!(!comp.outs[0]);
     }

@@ -8,7 +8,6 @@ use super::primitive::Primitive;
 /// frequency.
 #[derive(Debug)]
 pub struct Clock {
-    pub id: u32,
     pub ins: Vec<bool>,
     pub outs: Vec<bool>,
 
@@ -24,7 +23,6 @@ impl Clock {
     ///
     /// # Arguments
     ///
-    /// * `id` - Integer that represents the component id.
     /// * `frequency` - Float that represent the update frequency in Hertz.
     ///
     /// # Example
@@ -32,10 +30,9 @@ impl Clock {
     /// ```
     /// let clock = Clock::new(0, 4); // Frequency 4Hz (250ms)
     /// ```
-    pub fn new(id: u32, frequency: f64) -> Self {
+    pub fn new(frequency: f64) -> Self {
         let nano_sec_dur: u128 = (1e9 / frequency) as u128;
         Clock {
-            id,
             ins: vec![],
             outs: vec![false],
             frec: frequency,
@@ -54,10 +51,6 @@ impl ComponentCast for Clock {
 }
 
 impl Component for Clock {
-    fn id(&self) -> u32 {
-        self.id
-    }
-
     fn name(&self) -> String {
         Primitive::Clock.to_string()
     }
