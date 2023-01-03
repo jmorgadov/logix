@@ -1,4 +1,4 @@
-use super::{primitives::prelude::*, composed_component::ComposedComponent};
+use super::{composed_component::ComposedComponent, primitives::prelude::*};
 
 pub trait ComponentCast {
     fn as_not_gate(&self) -> Option<&NotGate> {
@@ -32,7 +32,7 @@ pub trait ComponentCast {
 
 #[cfg(test)]
 mod tests {
-    use crate::components::{primitives::prelude::*, composed_component::ComposedComponentBuilder};
+    use crate::components::{composed_component::ComposedComponentBuilder, primitives::prelude::*};
 
     use super::ComponentCast;
 

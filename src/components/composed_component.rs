@@ -6,6 +6,9 @@ use serde::{Deserialize, Serialize};
 
 /// Address to a pin of a specific component.
 ///
+/// The first item of the tuple represents the component index
+/// and the second one represents the pin addr (index of and input/output).
+///
 /// The type of pin (Input/Output) is inferred in the use of the structure.
 pub type PinAddr = (usize, usize);
 
@@ -111,6 +114,29 @@ impl Component for ComposedComponent {
 }
 
 impl ComposedComponent {
+    fn build(
+        name: &str,
+        components: Vec<Box<dyn Component>>,
+        connections: Vec<Conn>,
+        in_addrs: Vec<PinAddr>,
+        out_addrs: Vec<PinAddr>,
+    ) -> Result<Self, ()> {
+        let mut dep_map = vec![vec![]; components.len()];
+        for conn in &connections {
+            dep_map[idx_of(conn.to)].push(idx_of(conn.from));
+        }
+
+        Ok(ComposedComponent {
+            name: name.to_string(),
+            ins: vec![false; in_addrs.len()],
+            outs: vec![false; out_addrs.len()],
+            components,
+            dep_map,
+            connections,
+            in_addrs,
+            out_addrs,
+        })
+    }
     fn check_values(&mut self) {
         // Set the inputs
         for (i, pin) in self.in_addrs.iter().enumerate() {
@@ -237,7 +263,6 @@ pub struct ComposedComponentBuilder {
     name: String,
 
     components: Vec<Box<dyn Component>>,
-    dep_map: Vec<Vec<usize>>,
     connections: Vec<Conn>,
     in_addrs: Vec<PinAddr>,
     out_addrs: Vec<PinAddr>,
@@ -301,21 +326,13 @@ impl ComposedComponentBuilder {
     }
 
     /// Builds the `ComposedComponent`.
-    pub fn build(mut self) -> Result<ComposedComponent, ()> {
-        self.dep_map = vec![vec![]; self.components.len()];
-        for conn in &self.connections {
-            self.dep_map[idx_of(conn.to)].push(idx_of(conn.from));
-        }
-
-        Ok(ComposedComponent {
-            name: self.name,
-            ins: vec![false; self.in_addrs.len()],
-            outs: vec![false; self.out_addrs.len()],
-            dep_map: self.dep_map,
-            components: self.components,
-            connections: self.connections,
-            in_addrs: self.in_addrs,
-            out_addrs: self.out_addrs,
-        })
+    pub fn build(self) -> Result<ComposedComponent, ()> {
+        ComposedComponent::build(
+            &self.name,
+            self.components,
+            self.connections,
+            self.in_addrs,
+            self.out_addrs,
+        )
     }
 }
