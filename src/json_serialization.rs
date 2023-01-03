@@ -150,6 +150,8 @@ impl CompVisitor<Value> for JsonSerializer {
 
         val["name"] = json!(comp.name);
         val["connections"] = json!(comp.connections);
+        val["in_addrs"] = json!(comp.in_addrs);
+        val["out_addrs"] = json!(comp.out_addrs);
         val["components"] = json!(comps);
         val
     }
@@ -209,7 +211,8 @@ impl CompParser<&Value> for JsonDeserializer {
     fn parse_composed(&self, obj: &Value) -> ParseResult<ComposedComponent> {
         let mut builder = ComposedComponentBuilder::new(obj["name"].as_str().ok_or(())?);
 
-        for (i, comp_json) in obj["components"].as_array().ok_or(())?.iter().enumerate() {
+        let mut components = vec![];
+        for comp_json in obj["components"].as_array().ok_or(())?.iter() {
             let name = comp_json["name"].as_str().ok_or(())?;
             let sub_c: Box<dyn Component>;
             if let Ok(prim) = Primitive::from_str(name) {
@@ -251,22 +254,44 @@ impl CompParser<&Value> for JsonDeserializer {
             } else {
                 sub_c = Box::new(self.parse_composed(comp_json)?);
             }
-            builder = builder.add_comp(i, sub_c);
+            components.push(sub_c);
         }
+        builder = builder.components(components);
 
+        let mut connections = vec![];
         for conn_json in obj["connections"].as_array().ok_or(())?.iter() {
-            let from = conn_json["from"].as_object().ok_or(())?;
-            let from_pin = pin!(
-                from["id"].as_u64().ok_or(())? as usize,
-                from["addr"].as_u64().ok_or(())? as usize
+            let from = conn_json["from"].as_array().ok_or(())?;
+            let from_pin = (
+                from[0].as_u64().ok_or(())? as usize,
+                from[1].as_u64().ok_or(())? as usize,
             );
-            let to = conn_json["to"].as_object().ok_or(())?;
-            let to_pin = pin!(
-                to["id"].as_u64().ok_or(())? as usize,
-                to["addr"].as_u64().ok_or(())? as usize
+            let to = conn_json["to"].as_array().ok_or(())?;
+            let to_pin = (
+                to[0].as_u64().ok_or(())? as usize,
+                to[1].as_u64().ok_or(())? as usize,
             );
-            builder = builder.connect(from_pin, to_pin);
+            connections.push(conn!(from_pin, to_pin));
         }
-        Ok(builder.build())
+        builder = builder.connections(connections);
+
+        let mut in_addrs: Vec<PinAddr> = vec![];
+        for input_pin in obj["in_addrs"].as_array().ok_or(())? {
+            in_addrs.push((
+                input_pin[0].as_u64().ok_or(())? as usize,
+                input_pin[1].as_u64().ok_or(())? as usize,
+            ));
+        }
+        builder = builder.inputs(in_addrs);
+
+        let mut out_addrs: Vec<PinAddr> = vec![];
+        for output_pin in obj["out_addrs"].as_array().ok_or(())? {
+            out_addrs.push((
+                output_pin[0].as_u64().ok_or(())? as usize,
+                output_pin[1].as_u64().ok_or(())? as usize,
+            ));
+        }
+        builder = builder.outputs(out_addrs);
+
+        builder.build()
     }
 }

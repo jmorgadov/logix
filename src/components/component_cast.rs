@@ -44,7 +44,7 @@ mod tests {
 
     #[test]
     fn cast_composed_component() {
-        let comp = ComposedComponentBuilder::new("Test").build();
+        let comp = ComposedComponentBuilder::new("Test").build().unwrap();
         assert!(comp.as_composed().is_some())
     }
 

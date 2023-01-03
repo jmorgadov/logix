@@ -61,7 +61,7 @@ mod tests {
     fn component_visitor() {
         let test_visitor = TestCompVisitor {};
 
-        let comp = ComposedComponentBuilder::new("Test").build();
+        let comp = ComposedComponentBuilder::new("Test").build().unwrap();
         assert!(test_visitor.visit_composed(&comp).is_none());
 
         for prim in PRIMITIVES {
