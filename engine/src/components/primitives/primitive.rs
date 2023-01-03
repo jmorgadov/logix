@@ -54,7 +54,7 @@ impl Primitive {
     /// # Arguments
     ///
     /// * `name` - A string slice that holds the primitive name.
-    pub fn from_str(name: &str) -> Result<Primitive, PrimitiveNotFound> {
+    pub fn from_name(name: &str) -> Result<Primitive, PrimitiveNotFound> {
         for prim in PRIMITIVES {
             if name == prim.to_string() {
                 return Ok(prim);

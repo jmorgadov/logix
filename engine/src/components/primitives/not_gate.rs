@@ -25,6 +25,12 @@ impl NotGate {
     }
 }
 
+impl Default for NotGate {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ComponentCast for NotGate {
     fn as_not_gate(&self) -> Option<&NotGate> {
         Some(self)

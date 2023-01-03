@@ -2,7 +2,6 @@ use super::{
     component::{CompEvent, Component},
     prelude::ComponentCast,
 };
-use serde::{Deserialize, Serialize};
 
 /// Address to a pin of a specific component.
 ///
@@ -26,7 +25,7 @@ fn addr_of(pin_addr: PinAddr) -> usize {
 ///
 /// The address stored in `from` is assumed to be from an output pin
 /// and the one stored in `to` is assumed to be to an input pin.
-#[derive(PartialEq, Eq, Debug, Serialize, Deserialize)]
+#[derive(PartialEq, Eq, Debug)]
 pub struct Conn {
     pub from: PinAddr,
     pub to: PinAddr,
@@ -60,6 +59,9 @@ macro_rules! conn {
         Conn::new($a, $b)
     };
 }
+
+#[derive(Default, Debug)]
+pub struct ComponentBuildError;
 
 /// A component composed by the connection of other components.
 ///
@@ -120,7 +122,7 @@ impl ComposedComponent {
         connections: Vec<Conn>,
         in_addrs: Vec<PinAddr>,
         out_addrs: Vec<PinAddr>,
-    ) -> Result<Self, ()> {
+    ) -> Result<Self, ComponentBuildError> {
         let mut dep_map = vec![vec![]; components.len()];
         for conn in &connections {
             dep_map[idx_of(conn.to)].push(idx_of(conn.from));
@@ -326,7 +328,7 @@ impl ComposedComponentBuilder {
     }
 
     /// Builds the `ComposedComponent`.
-    pub fn build(self) -> Result<ComposedComponent, ()> {
+    pub fn build(self) -> Result<ComposedComponent, ComponentBuildError> {
         ComposedComponent::build(
             &self.name,
             self.components,

@@ -1,6 +1,9 @@
 use crate::components::prelude::*;
 
-pub type ParseResult<T> = Result<T, ()>;
+#[derive(Default, Debug)]
+pub struct ParseError;
+
+pub type ParseResult<T> = Result<T, ParseError>;
 
 pub trait CompParser<T> {
     fn parse_not_gate(&self, obj: T) -> ParseResult<NotGate>;
@@ -23,31 +26,31 @@ mod tests {
 
     impl CompParser<()> for TestCompParser {
         fn parse_not_gate(&self, _: ()) -> ParseResult<NotGate> {
-            Err(())
+            Err(Default::default())
         }
         fn parse_and_gate(&self, _: ()) -> ParseResult<AndGate> {
-            Err(())
+            Err(Default::default())
         }
         fn parse_or_gate(&self, _: ()) -> ParseResult<OrGate> {
-            Err(())
+            Err(Default::default())
         }
         fn parse_nand_gate(&self, _: ()) -> ParseResult<NandGate> {
-            Err(())
+            Err(Default::default())
         }
         fn parse_nor_gate(&self, _: ()) -> ParseResult<NorGate> {
-            Err(())
+            Err(Default::default())
         }
         fn parse_xor_gate(&self, _: ()) -> ParseResult<XorGate> {
-            Err(())
+            Err(Default::default())
         }
         fn parse_clock(&self, _: ()) -> ParseResult<Clock> {
-            Err(())
+            Err(Default::default())
         }
         fn parse_const(&self, _: ()) -> ParseResult<Const> {
-            Err(())
+            Err(Default::default())
         }
         fn parse_composed(&self, _: ()) -> ParseResult<ComposedComponent> {
-            Err(())
+            Err(Default::default())
         }
     }
 

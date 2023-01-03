@@ -9,9 +9,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fad582f4b9e86b6caa621cabeb0963332d92eea04729ab12892c2533951e6440"
 
 [[package]]
-name = "logicraft"
+name = "logicraft_engine"
+version = "0.1.0"
+
+[[package]]
+name = "logicraft_serialize"
 version = "0.1.0"
 dependencies = [
+ "logicraft_engine",
  "serde",
  "serde_json",
 ]

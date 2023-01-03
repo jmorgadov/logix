@@ -1,4 +1,4 @@
-use super::{composed_component::ComposedComponent, primitives::prelude::*};
+use crate::components::prelude::*;
 
 pub trait ComponentCast {
     fn as_not_gate(&self) -> Option<&NotGate> {

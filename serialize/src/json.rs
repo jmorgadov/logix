@@ -1,7 +1,9 @@
-use crate::components::composed_component::*;
-use crate::components::prelude::*;
-use crate::parser::{CompParser, ParseResult};
-use crate::visitor::CompVisitor;
+// use crate::components::composed_component::*;
+// use crate::components::prelude::*;
+// use crate::parser::{CompParser, ParseResult};
+// use crate::visitor::CompVisitor;
+use logicraft_engine::prelude::*;
+
 use serde_json::{json, Value};
 use std::fs::{read_to_string, write};
 
@@ -35,13 +37,13 @@ pub fn save(file_path: &str, comp: &ComposedComponent) {
 /// ```
 /// let comp = load("example_comp.json").unwrap();
 /// ```
-pub fn load(file_path: &str) -> Result<ComposedComponent, ()> {
+pub fn load(file_path: &str) -> Result<ComposedComponent, ParseError> {
     let data = read_to_string(file_path).expect("Unable to read file");
     let deserialzier: JsonDeserializer = Default::default();
     let json_result = &serde_json::from_str::<Value>(&data);
     match json_result {
         Ok(json) => Ok(deserialzier.parse_composed(json)?),
-        _ => Err(()),
+        _ => Err(Default::default()),
     }
 }
 
@@ -114,7 +116,7 @@ impl CompVisitor<Value> for JsonSerializer {
             .components
             .iter()
             .map(|e| {
-                if let Ok(prim) = Primitive::from_str(&e.name()) {
+                if let Ok(prim) = Primitive::from_name(&e.name()) {
                     match prim {
                         Primitive::NotGate => self.visit_and_gate(e.as_and_gate().unwrap()),
                         Primitive::AndGate => self.visit_and_gate(e.as_and_gate().unwrap()),
@@ -133,7 +135,13 @@ impl CompVisitor<Value> for JsonSerializer {
             .collect();
 
         val["name"] = json!(comp.name);
-        val["connections"] = json!(comp.connections);
+
+        let connections: Vec<Value> = comp
+            .connections
+            .iter()
+            .map(|conn| json!({"from": conn.from, "to": conn.to}))
+            .collect();
+        val["connections"] = json!(connections);
         val["in_addrs"] = json!(comp.in_addrs);
         val["out_addrs"] = json!(comp.out_addrs);
         val["components"] = json!(comps);
@@ -150,48 +158,65 @@ impl CompParser<&Value> for JsonDeserializer {
     }
 
     fn parse_and_gate(&self, obj: &Value) -> ParseResult<AndGate> {
-        Ok(AndGate::new(obj["in_count"].as_u64().ok_or(())? as usize))
+        Ok(AndGate::new(
+            obj["in_count"].as_u64().ok_or_else(Default::default)? as usize,
+        ))
     }
 
     fn parse_or_gate(&self, obj: &Value) -> ParseResult<OrGate> {
-        Ok(OrGate::new(obj["in_count"].as_u64().ok_or(())? as usize))
+        Ok(OrGate::new(
+            obj["in_count"].as_u64().ok_or_else(Default::default)? as usize,
+        ))
     }
 
     fn parse_nand_gate(&self, obj: &Value) -> ParseResult<NandGate> {
-        Ok(NandGate::new(obj["in_count"].as_u64().ok_or(())? as usize))
+        Ok(NandGate::new(
+            obj["in_count"].as_u64().ok_or_else(Default::default)? as usize,
+        ))
     }
 
     fn parse_nor_gate(&self, obj: &Value) -> ParseResult<NorGate> {
-        Ok(NorGate::new(obj["in_count"].as_u64().ok_or(())? as usize))
+        Ok(NorGate::new(
+            obj["in_count"].as_u64().ok_or_else(Default::default)? as usize,
+        ))
     }
 
     fn parse_xor_gate(&self, obj: &Value) -> ParseResult<XorGate> {
-        Ok(XorGate::new(obj["in_count"].as_u64().ok_or(())? as usize))
+        Ok(XorGate::new(
+            obj["in_count"].as_u64().ok_or_else(Default::default)? as usize,
+        ))
     }
 
     fn parse_clock(&self, obj: &Value) -> ParseResult<Clock> {
-        Ok(Clock::new(obj["frec"].as_f64().ok_or(())?))
+        Ok(Clock::new(
+            obj["frec"].as_f64().ok_or_else(Default::default)?,
+        ))
     }
 
     fn parse_const(&self, obj: &Value) -> ParseResult<Const> {
-        let name = obj["name"].as_str().ok_or(())?;
+        let name = obj["name"].as_str().ok_or_else(Default::default)?;
         if name == Primitive::ConstOne.to_string() {
             Ok(Const::one())
         } else if name == Primitive::ConstZero.to_string() {
             Ok(Const::zero())
         } else {
-            Err(())
+            Err(Default::default())
         }
     }
 
     fn parse_composed(&self, obj: &Value) -> ParseResult<ComposedComponent> {
-        let mut builder = ComposedComponentBuilder::new(obj["name"].as_str().ok_or(())?);
+        let mut builder =
+            ComposedComponentBuilder::new(obj["name"].as_str().ok_or_else(Default::default)?);
 
         let mut components = vec![];
-        for comp_json in obj["components"].as_array().ok_or(())?.iter() {
-            let name = comp_json["name"].as_str().ok_or(())?;
+        for comp_json in obj["components"]
+            .as_array()
+            .ok_or_else(Default::default)?
+            .iter()
+        {
+            let name = comp_json["name"].as_str().ok_or_else(Default::default)?;
             let sub_c: Box<dyn Component>;
-            if let Ok(prim) = Primitive::from_str(name) {
+            if let Ok(prim) = Primitive::from_name(name) {
                 match prim {
                     Primitive::NotGate => {
                         sub_c = Box::new(self.parse_not_gate(comp_json)?);
@@ -229,39 +254,46 @@ impl CompParser<&Value> for JsonDeserializer {
         builder = builder.components(components);
 
         let mut connections = vec![];
-        for conn_json in obj["connections"].as_array().ok_or(())?.iter() {
-            let from = conn_json["from"].as_array().ok_or(())?;
+        for conn_json in obj["connections"]
+            .as_array()
+            .ok_or_else(Default::default)?
+            .iter()
+        {
+            let from = conn_json["from"].as_array().ok_or_else(Default::default)?;
             let from_pin = (
-                from[0].as_u64().ok_or(())? as usize,
-                from[1].as_u64().ok_or(())? as usize,
+                from[0].as_u64().ok_or_else(Default::default)? as usize,
+                from[1].as_u64().ok_or_else(Default::default)? as usize,
             );
-            let to = conn_json["to"].as_array().ok_or(())?;
+            let to = conn_json["to"].as_array().ok_or_else(Default::default)?;
             let to_pin = (
-                to[0].as_u64().ok_or(())? as usize,
-                to[1].as_u64().ok_or(())? as usize,
+                to[0].as_u64().ok_or_else(Default::default)? as usize,
+                to[1].as_u64().ok_or_else(Default::default)? as usize,
             );
             connections.push(conn!(from_pin, to_pin));
         }
         builder = builder.connections(connections);
 
         let mut in_addrs: Vec<PinAddr> = vec![];
-        for input_pin in obj["in_addrs"].as_array().ok_or(())? {
+        for input_pin in obj["in_addrs"].as_array().ok_or_else(Default::default)? {
             in_addrs.push((
-                input_pin[0].as_u64().ok_or(())? as usize,
-                input_pin[1].as_u64().ok_or(())? as usize,
+                input_pin[0].as_u64().ok_or_else(Default::default)? as usize,
+                input_pin[1].as_u64().ok_or_else(Default::default)? as usize,
             ));
         }
         builder = builder.inputs(in_addrs);
 
         let mut out_addrs: Vec<PinAddr> = vec![];
-        for output_pin in obj["out_addrs"].as_array().ok_or(())? {
+        for output_pin in obj["out_addrs"].as_array().ok_or_else(Default::default)? {
             out_addrs.push((
-                output_pin[0].as_u64().ok_or(())? as usize,
-                output_pin[1].as_u64().ok_or(())? as usize,
+                output_pin[0].as_u64().ok_or_else(Default::default)? as usize,
+                output_pin[1].as_u64().ok_or_else(Default::default)? as usize,
             ));
         }
         builder = builder.outputs(out_addrs);
 
-        builder.build()
+        match builder.build() {
+            Ok(comp) => Ok(comp),
+            Err(_) => Err(Default::default()),
+        }
     }
 }
