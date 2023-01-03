@@ -8,8 +8,6 @@ pub trait CompVisitor<T> {
     fn visit_nor_gate(&self, comp: &NorGate) -> T;
     fn visit_xor_gate(&self, comp: &XorGate) -> T;
     fn visit_clock(&self, comp: &Clock) -> T;
-    fn visit_input_pin(&self, comp: &InputPin) -> T;
-    fn visit_output_pin(&self, comp: &OutputPin) -> T;
     fn visit_const(&self, comp: &Const) -> T;
     fn visit_composed(&self, comp: &ComposedComponent) -> T;
 }
@@ -41,12 +39,6 @@ mod tests {
             None
         }
         fn visit_clock(&self, _: &Clock) -> Option<()> {
-            None
-        }
-        fn visit_input_pin(&self, _: &InputPin) -> Option<()> {
-            None
-        }
-        fn visit_output_pin(&self, _: &OutputPin) -> Option<()> {
             None
         }
         fn visit_const(&self, _: &Const) -> Option<()> {
@@ -93,14 +85,6 @@ mod tests {
                 Primitive::Clock => {
                     let comp = Clock::new(1.0);
                     assert!(test_visitor.visit_clock(&comp).is_none());
-                }
-                Primitive::InputPin => {
-                    let comp = InputPin::new(0);
-                    assert!(test_visitor.visit_input_pin(&comp).is_none());
-                }
-                Primitive::OutputPin => {
-                    let comp = OutputPin::new(0);
-                    assert!(test_visitor.visit_output_pin(&comp).is_none());
                 }
                 Primitive::ConstOne => {
                     let comp = Const::one();

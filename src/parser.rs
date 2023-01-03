@@ -10,8 +10,6 @@ pub trait CompParser<T> {
     fn parse_nor_gate(&self, obj: T) -> ParseResult<NorGate>;
     fn parse_xor_gate(&self, obj: T) -> ParseResult<XorGate>;
     fn parse_clock(&self, obj: T) -> ParseResult<Clock>;
-    fn parse_input_pin(&self, obj: T) -> ParseResult<InputPin>;
-    fn parse_output_pin(&self, obj: T) -> ParseResult<OutputPin>;
     fn parse_const(&self, obj: T) -> ParseResult<Const>;
     fn parse_composed(&self, obj: T) -> ParseResult<ComposedComponent>;
 }
@@ -43,12 +41,6 @@ mod tests {
             Err(())
         }
         fn parse_clock(&self, _: ()) -> ParseResult<Clock> {
-            Err(())
-        }
-        fn parse_input_pin(&self, _: ()) -> ParseResult<InputPin> {
-            Err(())
-        }
-        fn parse_output_pin(&self, _: ()) -> ParseResult<OutputPin> {
             Err(())
         }
         fn parse_const(&self, _: ()) -> ParseResult<Const> {
@@ -87,12 +79,6 @@ mod tests {
                 }
                 Primitive::Clock => {
                     assert!(test_parser.parse_clock(()).is_err());
-                }
-                Primitive::InputPin => {
-                    assert!(test_parser.parse_input_pin(()).is_err());
-                }
-                Primitive::OutputPin => {
-                    assert!(test_parser.parse_output_pin(()).is_err());
                 }
                 Primitive::ConstOne => {
                     assert!(test_parser.parse_const(()).is_err());

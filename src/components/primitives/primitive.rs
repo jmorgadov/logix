@@ -10,8 +10,6 @@ pub enum Primitive {
     NorGate,
     XorGate,
     Clock,
-    InputPin,
-    OutputPin,
     ConstOne,
     ConstZero,
 }
@@ -19,7 +17,7 @@ pub enum Primitive {
 /// Primitive enum values stored in an array.
 // This array serves as an iterator over the implemented
 // primitives.
-pub const PRIMITIVES: [Primitive; 11] = [
+pub const PRIMITIVES: [Primitive; 9] = [
     Primitive::NotGate,
     Primitive::AndGate,
     Primitive::OrGate,
@@ -27,8 +25,6 @@ pub const PRIMITIVES: [Primitive; 11] = [
     Primitive::NorGate,
     Primitive::XorGate,
     Primitive::Clock,
-    Primitive::InputPin,
-    Primitive::OutputPin,
     Primitive::ConstOne,
     Primitive::ConstZero,
 ];

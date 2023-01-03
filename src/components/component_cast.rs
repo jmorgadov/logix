@@ -22,12 +22,6 @@ pub trait ComponentCast {
     fn as_clock(&self) -> Option<&Clock> {
         None
     }
-    fn as_input_pin(&self) -> Option<&InputPin> {
-        None
-    }
-    fn as_output_pin(&self) -> Option<&OutputPin> {
-        None
-    }
     fn as_const(&self) -> Option<&Const> {
         None
     }
@@ -81,14 +75,6 @@ mod tests {
                 Primitive::Clock => {
                     let comp = Clock::new(1.0);
                     assert!(comp.as_clock().is_some());
-                }
-                Primitive::InputPin => {
-                    let comp = InputPin::new(0);
-                    assert!(comp.as_input_pin().is_some());
-                }
-                Primitive::OutputPin => {
-                    let comp = OutputPin::new(0);
-                    assert!(comp.as_output_pin().is_some());
                 }
                 Primitive::ConstOne => {
                     let comp = Const::one();

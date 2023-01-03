@@ -98,20 +98,6 @@ impl CompVisitor<Value> for JsonSerializer {
         })
     }
 
-    fn visit_input_pin(&self, comp: &InputPin) -> Value {
-        serde_json::json!({
-            "num": comp.num,
-            "name": Primitive::InputPin.to_string(),
-        })
-    }
-
-    fn visit_output_pin(&self, comp: &OutputPin) -> Value {
-        serde_json::json!({
-            "num": comp.num,
-            "name": Primitive::OutputPin.to_string(),
-        })
-    }
-
     fn visit_const(&self, comp: &Const) -> Value {
         let primitive = match comp.outs[0] {
             true => Primitive::ConstOne,
@@ -137,8 +123,6 @@ impl CompVisitor<Value> for JsonSerializer {
                         Primitive::NorGate => self.visit_nor_gate(e.as_nor_gate().unwrap()),
                         Primitive::XorGate => self.visit_xor_gate(e.as_xor_gate().unwrap()),
                         Primitive::Clock => self.visit_clock(e.as_clock().unwrap()),
-                        Primitive::InputPin => self.visit_input_pin(e.as_input_pin().unwrap()),
-                        Primitive::OutputPin => self.visit_output_pin(e.as_output_pin().unwrap()),
                         Primitive::ConstOne => self.visit_const(e.as_const().unwrap()),
                         Primitive::ConstZero => self.visit_const(e.as_const().unwrap()),
                     }
@@ -189,14 +173,6 @@ impl CompParser<&Value> for JsonDeserializer {
         Ok(Clock::new(obj["frec"].as_f64().ok_or(())?))
     }
 
-    fn parse_input_pin(&self, obj: &Value) -> ParseResult<InputPin> {
-        Ok(InputPin::new(obj["num"].as_u64().ok_or(())? as usize))
-    }
-
-    fn parse_output_pin(&self, obj: &Value) -> ParseResult<OutputPin> {
-        Ok(OutputPin::new(obj["num"].as_u64().ok_or(())? as usize))
-    }
-
     fn parse_const(&self, obj: &Value) -> ParseResult<Const> {
         let name = obj["name"].as_str().ok_or(())?;
         if name == Primitive::ConstOne.to_string() {
@@ -237,12 +213,6 @@ impl CompParser<&Value> for JsonDeserializer {
                     }
                     Primitive::Clock => {
                         sub_c = Box::new(self.parse_clock(comp_json)?);
-                    }
-                    Primitive::InputPin => {
-                        sub_c = Box::new(self.parse_input_pin(comp_json)?);
-                    }
-                    Primitive::OutputPin => {
-                        sub_c = Box::new(self.parse_output_pin(comp_json)?);
                     }
                     Primitive::ConstOne => {
                         sub_c = Box::new(self.parse_const(comp_json)?);
