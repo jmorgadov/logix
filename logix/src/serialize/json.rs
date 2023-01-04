@@ -1,9 +1,35 @@
 #![cfg(feature = "serialize")]
 
 use crate::prelude::*;
-
 use serde_json::{json, Value};
 use std::fs::{read_to_string, write};
+use thiserror::Error;
+
+#[derive(Error, Debug)]
+pub enum JsonDeserializationError {
+    #[error("Error serializing Not gate from json")]
+    InvalidNotGate,
+    #[error("Error serializing And gate from json")]
+    InvalidAndGate,
+    #[error("Error serializing Or gate from json")]
+    InvalidOrGate,
+    #[error("Error serializing Nand gate from json")]
+    InvalidNandGate,
+    #[error("Error serializing Nor gate from json")]
+    InvalidNorGate,
+    #[error("Error serializing Xor gate from json")]
+    InvalidXorGate,
+    #[error("Error serializing Clock from json")]
+    InvalidClock,
+    #[error("Error serializing Const from json")]
+    InvalidConst,
+    #[error("Error serializing Composed Component from json")]
+    InvalidComposedComponent,
+    #[error("Unable to read file {0}")]
+    InvalidPath(String),
+    #[error("The file '{0}' is not a valid JSON file")]
+    InvalidJsonFile(String),
+}
 
 /// Saves a `ComposedComponent` as a JSON file to a given location
 ///
@@ -39,19 +65,22 @@ pub fn save(file_path: &str, comp: &ComposedComponent) {
 /// #
 /// let comp = load("example_comp.json").unwrap();
 /// ```
-pub fn load(file_path: &str) -> Result<ComposedComponent, ParseError> {
-    let data = read_to_string(file_path).expect("Unable to read file");
-    let json_result = &serde_json::from_str::<Value>(&data);
-    match json_result {
-        Ok(json) => Ok(JsonDeserializer::parse_composed(json)?),
-        _ => Err(Default::default()),
+pub fn load(file_path: &str) -> Result<ComposedComponent, JsonDeserializationError> {
+    if let Ok(data) = read_to_string(file_path) {
+        if let Ok(json) = &serde_json::from_str::<Value>(&data) {
+            return JsonDeserializer::parse_composed(json);
+        }
+        return Err(JsonDeserializationError::InvalidJsonFile(
+            file_path.to_string(),
+        ));
     }
+    Err(JsonDeserializationError::InvalidPath(file_path.to_string()))
 }
 
 #[derive(Default)]
 struct JsonSerializer;
 
-impl CompVisitor<Value> for JsonSerializer {
+impl JsonSerializer {
     fn visit_not_gate(comp: &NotGate) -> Value {
         serde_json::json!({
             "name": Primitive::NotGate.to_string(),
@@ -163,69 +192,88 @@ impl CompVisitor<Value> for JsonSerializer {
 #[derive(Default)]
 struct JsonDeserializer;
 
-impl CompParser<&Value> for JsonDeserializer {
-    fn parse_not_gate(_: &Value) -> ParseResult<NotGate> {
+impl JsonDeserializer {
+    fn parse_not_gate(_: &Value) -> Result<NotGate, JsonDeserializationError> {
         Ok(NotGate::new())
     }
 
-    fn parse_and_gate(obj: &Value) -> ParseResult<AndGate> {
+    fn parse_and_gate(obj: &Value) -> Result<AndGate, JsonDeserializationError> {
         Ok(AndGate::new(
-            obj["in_count"].as_u64().ok_or_else(Default::default)? as usize,
+            obj["in_count"]
+                .as_u64()
+                .ok_or(JsonDeserializationError::InvalidAndGate)? as usize,
         ))
     }
 
-    fn parse_or_gate(obj: &Value) -> ParseResult<OrGate> {
+    fn parse_or_gate(obj: &Value) -> Result<OrGate, JsonDeserializationError> {
         Ok(OrGate::new(
-            obj["in_count"].as_u64().ok_or_else(Default::default)? as usize,
+            obj["in_count"]
+                .as_u64()
+                .ok_or(JsonDeserializationError::InvalidOrGate)? as usize,
         ))
     }
 
-    fn parse_nand_gate(obj: &Value) -> ParseResult<NandGate> {
+    fn parse_nand_gate(obj: &Value) -> Result<NandGate, JsonDeserializationError> {
         Ok(NandGate::new(
-            obj["in_count"].as_u64().ok_or_else(Default::default)? as usize,
+            obj["in_count"]
+                .as_u64()
+                .ok_or(JsonDeserializationError::InvalidNandGate)? as usize,
         ))
     }
 
-    fn parse_nor_gate(obj: &Value) -> ParseResult<NorGate> {
+    fn parse_nor_gate(obj: &Value) -> Result<NorGate, JsonDeserializationError> {
         Ok(NorGate::new(
-            obj["in_count"].as_u64().ok_or_else(Default::default)? as usize,
+            obj["in_count"]
+                .as_u64()
+                .ok_or(JsonDeserializationError::InvalidNorGate)? as usize,
         ))
     }
 
-    fn parse_xor_gate(obj: &Value) -> ParseResult<XorGate> {
+    fn parse_xor_gate(obj: &Value) -> Result<XorGate, JsonDeserializationError> {
         Ok(XorGate::new(
-            obj["in_count"].as_u64().ok_or_else(Default::default)? as usize,
+            obj["in_count"]
+                .as_u64()
+                .ok_or(JsonDeserializationError::InvalidXorGate)? as usize,
         ))
     }
 
-    fn parse_clock(obj: &Value) -> ParseResult<Clock> {
+    fn parse_clock(obj: &Value) -> Result<Clock, JsonDeserializationError> {
         Ok(Clock::new(
-            obj["frec"].as_f64().ok_or_else(Default::default)?,
+            obj["frec"]
+                .as_f64()
+                .ok_or(JsonDeserializationError::InvalidClock)?,
         ))
     }
 
-    fn parse_const(obj: &Value) -> ParseResult<Const> {
-        let name = obj["name"].as_str().ok_or_else(Default::default)?;
+    fn parse_const(obj: &Value) -> Result<Const, JsonDeserializationError> {
+        let name = obj["name"]
+            .as_str()
+            .ok_or(JsonDeserializationError::InvalidConst)?;
         if name == Primitive::ConstOne.to_string() {
             Ok(Const::one())
         } else if name == Primitive::ConstZero.to_string() {
             Ok(Const::zero())
         } else {
-            Err(Default::default())
+            Err(JsonDeserializationError::InvalidConst)
         }
     }
 
-    fn parse_composed(obj: &Value) -> ParseResult<ComposedComponent> {
-        let mut builder =
-            ComposedComponentBuilder::new(obj["name"].as_str().ok_or_else(Default::default)?);
+    fn parse_composed(obj: &Value) -> Result<ComposedComponent, JsonDeserializationError> {
+        let mut builder = ComposedComponentBuilder::new(
+            obj["name"]
+                .as_str()
+                .ok_or(JsonDeserializationError::InvalidComposedComponent)?,
+        );
 
         let mut components = vec![];
         for comp_json in obj["components"]
             .as_array()
-            .ok_or_else(Default::default)?
+            .ok_or(JsonDeserializationError::InvalidComposedComponent)?
             .iter()
         {
-            let name = comp_json["name"].as_str().ok_or_else(Default::default)?;
+            let name = comp_json["name"]
+                .as_str()
+                .ok_or(JsonDeserializationError::InvalidComposedComponent)?;
             let sub_c: Box<dyn Component>;
             if let Ok(prim) = Primitive::from_name(name) {
                 match prim {
@@ -267,44 +315,78 @@ impl CompParser<&Value> for JsonDeserializer {
         let mut connections = vec![];
         for conn_json in obj["connections"]
             .as_array()
-            .ok_or_else(Default::default)?
+            .ok_or(JsonDeserializationError::InvalidComposedComponent)?
             .iter()
         {
-            let from = conn_json["from"].as_array().ok_or_else(Default::default)?;
+            let from = conn_json["from"]
+                .as_array()
+                .ok_or(JsonDeserializationError::InvalidComposedComponent)?;
             let from_pin = (
-                from[0].as_u64().ok_or_else(Default::default)? as usize,
-                from[1].as_u64().ok_or_else(Default::default)? as usize,
+                from[0]
+                    .as_u64()
+                    .ok_or(JsonDeserializationError::InvalidComposedComponent)?
+                    as usize,
+                from[1]
+                    .as_u64()
+                    .ok_or(JsonDeserializationError::InvalidComposedComponent)?
+                    as usize,
             );
-            let to = conn_json["to"].as_array().ok_or_else(Default::default)?;
+            let to = conn_json["to"]
+                .as_array()
+                .ok_or(JsonDeserializationError::InvalidComposedComponent)?;
             let to_pin = (
-                to[0].as_u64().ok_or_else(Default::default)? as usize,
-                to[1].as_u64().ok_or_else(Default::default)? as usize,
+                to[0]
+                    .as_u64()
+                    .ok_or(JsonDeserializationError::InvalidComposedComponent)?
+                    as usize,
+                to[1]
+                    .as_u64()
+                    .ok_or(JsonDeserializationError::InvalidComposedComponent)?
+                    as usize,
             );
             connections.push(conn!(from_pin, to_pin));
         }
         builder = builder.connections(connections);
 
         let mut in_addrs: Vec<PinAddr> = vec![];
-        for input_pin in obj["in_addrs"].as_array().ok_or_else(Default::default)? {
+        for input_pin in obj["in_addrs"]
+            .as_array()
+            .ok_or(JsonDeserializationError::InvalidComposedComponent)?
+        {
             in_addrs.push((
-                input_pin[0].as_u64().ok_or_else(Default::default)? as usize,
-                input_pin[1].as_u64().ok_or_else(Default::default)? as usize,
+                input_pin[0]
+                    .as_u64()
+                    .ok_or(JsonDeserializationError::InvalidComposedComponent)?
+                    as usize,
+                input_pin[1]
+                    .as_u64()
+                    .ok_or(JsonDeserializationError::InvalidComposedComponent)?
+                    as usize,
             ));
         }
         builder = builder.inputs(in_addrs);
 
         let mut out_addrs: Vec<PinAddr> = vec![];
-        for output_pin in obj["out_addrs"].as_array().ok_or_else(Default::default)? {
+        for output_pin in obj["out_addrs"]
+            .as_array()
+            .ok_or(JsonDeserializationError::InvalidComposedComponent)?
+        {
             out_addrs.push((
-                output_pin[0].as_u64().ok_or_else(Default::default)? as usize,
-                output_pin[1].as_u64().ok_or_else(Default::default)? as usize,
+                output_pin[0]
+                    .as_u64()
+                    .ok_or(JsonDeserializationError::InvalidComposedComponent)?
+                    as usize,
+                output_pin[1]
+                    .as_u64()
+                    .ok_or(JsonDeserializationError::InvalidComposedComponent)?
+                    as usize,
             ));
         }
         builder = builder.outputs(out_addrs);
 
         match builder.build() {
             Ok(comp) => Ok(comp),
-            Err(_) => Err(Default::default()),
+            Err(_) => Err(JsonDeserializationError::InvalidComposedComponent),
         }
     }
 }

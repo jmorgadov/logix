@@ -1,10 +1,8 @@
-use std::time::Instant;
-
-use logix::prelude::*;
-
 use crate::visitors::{
     update_time_visitor::UpdateTimeVisitor, update_values_visitor::UpdateValuesVisitor,
 };
+use logix::prelude::*;
+use std::time::Instant;
 
 /// Simulation.
 pub struct Simulation {
