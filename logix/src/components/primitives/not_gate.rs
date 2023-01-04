@@ -15,7 +15,8 @@ impl NotGate {
     /// # Example
     ///
     /// ```
-    /// use logix::prelude::NotGate;
+    /// # use logix::prelude::NotGate;
+    /// #
     /// let gate = NotGate::new();
     /// ```
     pub fn new() -> NotGate {
@@ -36,6 +37,9 @@ impl ComponentCast for NotGate {
     fn as_not_gate(&self) -> Option<&NotGate> {
         Some(self)
     }
+    fn as_not_gate_mut(&mut self) -> Option<&mut NotGate> {
+        Some(self)
+    }
 }
 
 impl Component for NotGate {
@@ -49,28 +53,5 @@ impl Component for NotGate {
 
     fn outs(&mut self) -> &mut Vec<bool> {
         &mut self.outs
-    }
-
-    fn on_event(&mut self, event: &CompEvent) {
-        if let CompEvent::UpdateValues = event {
-            self.outs[0] = !self.ins[0];
-        }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::NotGate;
-    use crate::components::component::{CompEvent, Component};
-
-    #[test]
-    fn update_values() {
-        let table = [[false, true], [true, false]];
-        let mut gate = NotGate::new();
-        for row in table {
-            gate.set_in(0, row[0]);
-            gate.on_event(&CompEvent::UpdateValues);
-            assert!(gate.outs[0] == row[1]);
-        }
     }
 }

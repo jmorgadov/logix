@@ -2,16 +2,6 @@ use std::fmt::Debug;
 
 use super::prelude::ComponentCast;
 
-/// Represents a component event
-///
-/// An event is notified via the `on_event` function of the `Component` trait.
-pub enum CompEvent {
-    /// Notifies an update in time.
-    Update(u128),
-    /// Notifies the component to update its output values.
-    UpdateValues,
-}
-
 /// Basic trait that describes a component.
 ///
 /// # Implementation details
@@ -63,23 +53,4 @@ pub trait Component: Debug + ComponentCast {
         );
         self.outs()[idx] = val;
     }
-
-    /// Returns a bool indicating if the component is dirty, by default false.
-    ///
-    /// When a component is dirty, all the components updates their output values
-    /// according their inputs. For the composed components the update is done
-    /// taking into account the dependencies between the components according the
-    /// connections.
-    fn is_dirty(&self) -> bool {
-        false
-    }
-
-    /// This function runs every time an event occurs in the simulation,
-    /// like updating the time (`Update(time)`), or updating the values
-    /// `UpdateValues`.
-    ///
-    /// # Arguments
-    ///
-    /// * `event` - An enum instance of `SimEvent` representing the event type.
-    fn on_event(&mut self, _event: &CompEvent) {}
 }

@@ -1,7 +1,4 @@
-use super::{
-    component::{CompEvent, Component},
-    prelude::ComponentCast,
-};
+use super::{component::Component, prelude::ComponentCast};
 
 /// Address to a pin of a specific component.
 ///
@@ -12,12 +9,12 @@ use super::{
 pub type PinAddr = (usize, usize);
 
 #[inline(always)]
-fn idx_of(pin_addr: PinAddr) -> usize {
+pub fn idx_of(pin_addr: PinAddr) -> usize {
     pin_addr.0
 }
 
 #[inline(always)]
-fn addr_of(pin_addr: PinAddr) -> usize {
+pub fn addr_of(pin_addr: PinAddr) -> usize {
     pin_addr.1
 }
 
@@ -46,7 +43,8 @@ impl Conn {
     /// id `20`.
     ///
     /// ```
-    /// use logix::prelude::Conn;
+    /// # use logix::prelude::Conn;
+    /// #
     /// let conn = Conn::new((10, 0), (20, 3));
     /// ```
     pub fn new(from: PinAddr, to: PinAddr) -> Conn {
@@ -85,6 +83,9 @@ impl ComponentCast for ComposedComponent {
     fn as_composed(&self) -> Option<&ComposedComponent> {
         Some(self)
     }
+    fn as_composed_mut(&mut self) -> Option<&mut ComposedComponent> {
+        Some(self)
+    }
 }
 
 impl Component for ComposedComponent {
@@ -98,21 +99,6 @@ impl Component for ComposedComponent {
 
     fn outs(&mut self) -> &mut Vec<bool> {
         &mut self.outs
-    }
-
-    fn is_dirty(&self) -> bool {
-        self.components.iter().any(|comp| comp.is_dirty())
-    }
-
-    fn on_event(&mut self, event: &CompEvent) {
-        match event {
-            CompEvent::UpdateValues => self.check_values(),
-            CompEvent::Update(_) => {
-                self.components
-                    .iter_mut()
-                    .for_each(|comp| comp.on_event(event));
-            }
-        }
     }
 }
 
@@ -140,95 +126,6 @@ impl ComposedComponent {
             out_addrs,
         })
     }
-    fn check_values(&mut self) {
-        // Set the inputs
-        for (i, pin) in self.in_addrs.iter().enumerate() {
-            self.components[idx_of(*pin)].set_in(addr_of(*pin), self.ins[i]);
-        }
-
-        // Update the component
-        //
-        // The visits vector contains the status of all the components
-        // in the updating process.
-        //  - 0 means not updated
-        //  - 1 means in update process (have dependencies)
-        //  - 2 means updated
-        //
-        let mut i = 0;
-        let mut visits = vec![0; self.components.len()];
-
-        // This vector contains the updated values for the
-        // inner connections.
-        let mut new_inputs: Vec<(PinAddr, bool)> = Default::default();
-
-        let mut stack = vec![];
-        while !stack.is_empty() || i < visits.len() {
-            if stack.is_empty() {
-                // Check if there are unvisited components
-                stack.push(i);
-                i += 1;
-                while i < visits.len() && visits[i] == 2 {
-                    i += 1
-                }
-            }
-            let idx = stack[stack.len() - 1];
-            let sub = &mut self.components[idx];
-
-            // Check for updates in the input values for this
-            // component
-            let mut j = 0;
-            while j < new_inputs.len() {
-                let (pin, val) = new_inputs[j];
-                if idx_of(pin) == idx {
-                    sub.set_in(addr_of(pin), val);
-                    new_inputs.remove(j);
-                    continue;
-                }
-                j += 1;
-            }
-
-            // Check if the current component is ready to update
-            // according the state of its dependencies.
-            // Here the dependencie cycles can be checked if needed.
-            let deps = &self.dep_map[idx];
-            let mut ready_to_upd = true;
-            for dep in deps {
-                if visits[*dep] == 0 {
-                    // If the dependency is not updated then the current component
-                    // is not ready to update yet.
-                    ready_to_upd = false;
-
-                    // Then, push the dependency to the stack and mark it as
-                    // in update process.
-                    stack.push(*dep);
-                    visits[*dep] = 1;
-                }
-            }
-
-            if ready_to_upd {
-                sub.on_event(&CompEvent::UpdateValues);
-
-                // Mark the current component as updated
-                visits[idx] = 2;
-
-                // Store the input values of the components that depends on the
-                // recently updated one for future update of those.
-                for conn in &self.connections {
-                    if idx_of(conn.from) == idx {
-                        let val = sub.outs()[addr_of(conn.from)];
-                        new_inputs.push((conn.to, val));
-                    }
-                }
-
-                stack.pop();
-            }
-        }
-
-        // Set outputs
-        for (i, pin) in self.out_addrs.iter().enumerate() {
-            self.outs[i] = self.components[idx_of(*pin)].outs()[addr_of(*pin)];
-        }
-    }
 }
 
 /// Builder for the `ComposedComponent` structure.
@@ -239,7 +136,8 @@ impl ComposedComponent {
 /// components:
 ///
 /// ```
-/// use logix::prelude::*;
+/// # use logix::prelude::*;
+/// #
 /// let sr_latch = ComposedComponentBuilder::new("SRLatch")
 ///     .components(vec![Box::new(NorGate::new(2)), Box::new(NorGate::new(2))])
 ///     .connections(vec![conn!((0, 0), (1, 0)), conn!((1, 0), (0, 1))])
@@ -264,7 +162,8 @@ impl ComposedComponentBuilder {
     /// # Examples
     ///
     /// ```
-    /// use logix::prelude::ComposedComponentBuilder;
+    /// # use logix::prelude::ComposedComponentBuilder;
+    /// #
     /// let builder = ComposedComponentBuilder::new("MyComp");
     /// ```
     pub fn new(name: &str) -> Self {

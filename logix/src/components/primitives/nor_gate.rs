@@ -20,7 +20,8 @@ impl NorGate {
     /// # Example
     ///
     /// ```
-    /// use logix::prelude::NorGate;
+    /// # use logix::prelude::NorGate;
+    /// #
     /// let gate = NorGate::new(2);
     /// ```
     pub fn new(in_count: usize) -> NorGate {
@@ -33,6 +34,9 @@ impl NorGate {
 
 impl ComponentCast for NorGate {
     fn as_nor_gate(&self) -> Option<&NorGate> {
+        Some(self)
+    }
+    fn as_nor_gate_mut(&mut self) -> Option<&mut NorGate> {
         Some(self)
     }
 }
@@ -48,35 +52,5 @@ impl Component for NorGate {
 
     fn outs(&mut self) -> &mut Vec<bool> {
         &mut self.outs
-    }
-
-    fn on_event(&mut self, event: &CompEvent) {
-        if let CompEvent::UpdateValues = event {
-            let out: bool = self.ins.as_slice().iter().any(|val| *val);
-            self.outs[0] = !out;
-        }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::NorGate;
-    use crate::components::component::{CompEvent, Component};
-
-    #[test]
-    fn update_values() {
-        let table = [
-            [false, false, true],
-            [true, false, false],
-            [false, true, false],
-            [true, true, false],
-        ];
-        let mut gate = NorGate::new(2);
-        for row in table {
-            gate.set_in(0, row[0]);
-            gate.set_in(1, row[1]);
-            gate.on_event(&CompEvent::UpdateValues);
-            assert!(gate.outs[0] == row[2]);
-        }
     }
 }

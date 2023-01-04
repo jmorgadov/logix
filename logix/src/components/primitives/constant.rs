@@ -20,7 +20,8 @@ impl Const {
     /// # Example
     ///
     /// ```
-    /// use logix::prelude::Const;
+    /// # use logix::prelude::Const;
+    /// #
     /// let const_comp = Const::new(true);
     /// ```
     pub fn new(value: bool) -> Self {
@@ -35,7 +36,8 @@ impl Const {
     /// # Example
     ///
     /// ```
-    /// use logix::prelude::Const;
+    /// # use logix::prelude::Const;
+    /// #
     /// let const_comp = Const::one();
     /// ```
     pub fn one() -> Self {
@@ -47,7 +49,8 @@ impl Const {
     /// # Example
     ///
     /// ```
-    /// use logix::prelude::Const;
+    /// # use logix::prelude::Const;
+    /// #
     /// let const_comp = Const::zero();
     /// ```
     pub fn zero() -> Self {
@@ -57,6 +60,9 @@ impl Const {
 
 impl ComponentCast for Const {
     fn as_const(&self) -> Option<&Const> {
+        Some(self)
+    }
+    fn as_const_mut(&mut self) -> Option<&mut Const> {
         Some(self)
     }
 }
@@ -75,25 +81,5 @@ impl Component for Const {
 
     fn outs(&mut self) -> &mut Vec<bool> {
         &mut self.outs
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::Const;
-    use crate::components::component::{CompEvent, Component};
-
-    #[test]
-    fn cont_one() {
-        let comp = &mut Const::one();
-        comp.on_event(&CompEvent::UpdateValues);
-        assert!(comp.outs[0]);
-    }
-
-    #[test]
-    fn cont_zero() {
-        let comp = &mut Const::zero();
-        comp.on_event(&CompEvent::UpdateValues);
-        assert!(!comp.outs[0]);
     }
 }

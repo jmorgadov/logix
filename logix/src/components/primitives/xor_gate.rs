@@ -20,7 +20,8 @@ impl XorGate {
     /// # Example
     ///
     /// ```
-    /// use logix::prelude::XorGate;
+    /// # use logix::prelude::XorGate;
+    /// #
     /// let gate = XorGate::new(2);
     /// ```
     pub fn new(in_count: usize) -> XorGate {
@@ -33,6 +34,9 @@ impl XorGate {
 
 impl ComponentCast for XorGate {
     fn as_xor_gate(&self) -> Option<&XorGate> {
+        Some(self)
+    }
+    fn as_xor_gate_mut(&mut self) -> Option<&mut XorGate> {
         Some(self)
     }
 }
@@ -48,41 +52,5 @@ impl Component for XorGate {
 
     fn outs(&mut self) -> &mut Vec<bool> {
         &mut self.outs
-    }
-
-    fn on_event(&mut self, event: &CompEvent) {
-        if let CompEvent::UpdateValues = event {
-            let mut out = false;
-            for i in 1..self.ins.len() {
-                if self.ins[i - 1] != self.ins[i] {
-                    out = true;
-                    break;
-                }
-            }
-            self.outs[0] = out;
-        }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::XorGate;
-    use crate::components::component::{CompEvent, Component};
-
-    #[test]
-    fn update_values() {
-        let table = [
-            [false, false, false],
-            [true, false, true],
-            [false, true, true],
-            [true, true, false],
-        ];
-        let mut gate = XorGate::new(2);
-        for row in table {
-            gate.set_in(0, row[0]);
-            gate.set_in(1, row[1]);
-            gate.on_event(&CompEvent::UpdateValues);
-            assert!(gate.outs[0] == row[2]);
-        }
     }
 }

@@ -4,10 +4,11 @@ pub mod composed_component;
 pub mod primitives;
 
 pub mod prelude {
-    pub use crate::components::component::{CompEvent, Component};
+    pub use crate::components::component::Component;
     pub use crate::components::component_cast::ComponentCast;
     pub use crate::components::composed_component::{
-        ComponentBuildError, ComposedComponent, ComposedComponentBuilder, Conn, PinAddr,
+        addr_of, idx_of, ComponentBuildError, ComposedComponent, ComposedComponentBuilder, Conn,
+        PinAddr,
     };
     pub use crate::components::primitives::prelude::*;
     pub use crate::conn;

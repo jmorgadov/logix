@@ -28,6 +28,33 @@ pub trait ComponentCast {
     fn as_composed(&self) -> Option<&ComposedComponent> {
         None
     }
+    fn as_not_gate_mut(&mut self) -> Option<&mut NotGate> {
+        None
+    }
+    fn as_and_gate_mut(&mut self) -> Option<&mut AndGate> {
+        None
+    }
+    fn as_or_gate_mut(&mut self) -> Option<&mut OrGate> {
+        None
+    }
+    fn as_nand_gate_mut(&mut self) -> Option<&mut NandGate> {
+        None
+    }
+    fn as_nor_gate_mut(&mut self) -> Option<&mut NorGate> {
+        None
+    }
+    fn as_xor_gate_mut(&mut self) -> Option<&mut XorGate> {
+        None
+    }
+    fn as_clock_mut(&mut self) -> Option<&mut Clock> {
+        None
+    }
+    fn as_const_mut(&mut self) -> Option<&mut Const> {
+        None
+    }
+    fn as_composed_mut(&mut self) -> Option<&mut ComposedComponent> {
+        None
+    }
 }
 
 #[cfg(test)]

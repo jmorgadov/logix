@@ -22,8 +22,7 @@ use std::fs::{read_to_string, write};
 /// save("example_comp.json", &comp);
 /// ```
 pub fn save(file_path: &str, comp: &ComposedComponent) {
-    let serialzier: JsonSerializer = Default::default();
-    let value = serialzier.visit_composed(comp);
+    let value = JsonSerializer::visit_composed(comp);
     write(file_path, serde_json::to_string(&value).unwrap()).expect("Unable to write file");
 }
 
@@ -42,10 +41,9 @@ pub fn save(file_path: &str, comp: &ComposedComponent) {
 /// ```
 pub fn load(file_path: &str) -> Result<ComposedComponent, ParseError> {
     let data = read_to_string(file_path).expect("Unable to read file");
-    let deserialzier: JsonDeserializer = Default::default();
     let json_result = &serde_json::from_str::<Value>(&data);
     match json_result {
-        Ok(json) => Ok(deserialzier.parse_composed(json)?),
+        Ok(json) => Ok(JsonDeserializer::parse_composed(json)?),
         _ => Err(Default::default()),
     }
 }
@@ -54,56 +52,56 @@ pub fn load(file_path: &str) -> Result<ComposedComponent, ParseError> {
 struct JsonSerializer;
 
 impl CompVisitor<Value> for JsonSerializer {
-    fn visit_not_gate(&self, comp: &NotGate) -> Value {
+    fn visit_not_gate(comp: &NotGate) -> Value {
         serde_json::json!({
             "name": Primitive::NotGate.to_string(),
             "in_count": comp.ins.len(),
         })
     }
 
-    fn visit_and_gate(&self, comp: &AndGate) -> Value {
+    fn visit_and_gate(comp: &AndGate) -> Value {
         serde_json::json!({
             "name": Primitive::AndGate.to_string(),
             "in_count": comp.ins.len(),
         })
     }
 
-    fn visit_or_gate(&self, comp: &OrGate) -> Value {
+    fn visit_or_gate(comp: &OrGate) -> Value {
         serde_json::json!({
             "name": Primitive::OrGate.to_string(),
             "in_count": comp.ins.len(),
         })
     }
 
-    fn visit_nand_gate(&self, comp: &NandGate) -> Value {
+    fn visit_nand_gate(comp: &NandGate) -> Value {
         serde_json::json!({
             "name": Primitive::NandGate.to_string(),
             "in_count": comp.ins.len(),
         })
     }
 
-    fn visit_nor_gate(&self, comp: &NorGate) -> Value {
+    fn visit_nor_gate(comp: &NorGate) -> Value {
         serde_json::json!({
             "name": Primitive::NorGate.to_string(),
             "in_count": comp.ins.len(),
         })
     }
 
-    fn visit_xor_gate(&self, comp: &XorGate) -> Value {
+    fn visit_xor_gate(comp: &XorGate) -> Value {
         serde_json::json!({
             "name": Primitive::XorGate.to_string(),
             "in_count": comp.ins.len(),
         })
     }
 
-    fn visit_clock(&self, comp: &Clock) -> Value {
+    fn visit_clock(comp: &Clock) -> Value {
         serde_json::json!({
             "name": Primitive::Clock.to_string(),
             "frec": comp.frec,
         })
     }
 
-    fn visit_const(&self, comp: &Const) -> Value {
+    fn visit_const(comp: &Const) -> Value {
         let primitive = match comp.outs[0] {
             true => Primitive::ConstOne,
             false => Primitive::ConstZero,
@@ -113,7 +111,7 @@ impl CompVisitor<Value> for JsonSerializer {
         })
     }
 
-    fn visit_composed(&self, comp: &ComposedComponent) -> Value {
+    fn visit_composed(comp: &ComposedComponent) -> Value {
         let mut val: Value = Default::default();
         let comps: Vec<Value> = comp
             .components
@@ -121,18 +119,28 @@ impl CompVisitor<Value> for JsonSerializer {
             .map(|e| {
                 if let Ok(prim) = Primitive::from_name(&e.name()) {
                     match prim {
-                        Primitive::NotGate => self.visit_and_gate(e.as_and_gate().unwrap()),
-                        Primitive::AndGate => self.visit_and_gate(e.as_and_gate().unwrap()),
-                        Primitive::OrGate => self.visit_or_gate(e.as_or_gate().unwrap()),
-                        Primitive::NandGate => self.visit_nand_gate(e.as_nand_gate().unwrap()),
-                        Primitive::NorGate => self.visit_nor_gate(e.as_nor_gate().unwrap()),
-                        Primitive::XorGate => self.visit_xor_gate(e.as_xor_gate().unwrap()),
-                        Primitive::Clock => self.visit_clock(e.as_clock().unwrap()),
-                        Primitive::ConstOne => self.visit_const(e.as_const().unwrap()),
-                        Primitive::ConstZero => self.visit_const(e.as_const().unwrap()),
+                        Primitive::NotGate => {
+                            JsonSerializer::visit_not_gate(e.as_not_gate().unwrap())
+                        }
+                        Primitive::AndGate => {
+                            JsonSerializer::visit_and_gate(e.as_and_gate().unwrap())
+                        }
+                        Primitive::OrGate => JsonSerializer::visit_or_gate(e.as_or_gate().unwrap()),
+                        Primitive::NandGate => {
+                            JsonSerializer::visit_nand_gate(e.as_nand_gate().unwrap())
+                        }
+                        Primitive::NorGate => {
+                            JsonSerializer::visit_nor_gate(e.as_nor_gate().unwrap())
+                        }
+                        Primitive::XorGate => {
+                            JsonSerializer::visit_xor_gate(e.as_xor_gate().unwrap())
+                        }
+                        Primitive::Clock => JsonSerializer::visit_clock(e.as_clock().unwrap()),
+                        Primitive::ConstOne => JsonSerializer::visit_const(e.as_const().unwrap()),
+                        Primitive::ConstZero => JsonSerializer::visit_const(e.as_const().unwrap()),
                     }
                 } else {
-                    self.visit_composed(e.as_composed().unwrap())
+                    JsonSerializer::visit_composed(e.as_composed().unwrap())
                 }
             })
             .collect();
@@ -156,47 +164,47 @@ impl CompVisitor<Value> for JsonSerializer {
 struct JsonDeserializer;
 
 impl CompParser<&Value> for JsonDeserializer {
-    fn parse_not_gate(&self, _: &Value) -> ParseResult<NotGate> {
+    fn parse_not_gate(_: &Value) -> ParseResult<NotGate> {
         Ok(NotGate::new())
     }
 
-    fn parse_and_gate(&self, obj: &Value) -> ParseResult<AndGate> {
+    fn parse_and_gate(obj: &Value) -> ParseResult<AndGate> {
         Ok(AndGate::new(
             obj["in_count"].as_u64().ok_or_else(Default::default)? as usize,
         ))
     }
 
-    fn parse_or_gate(&self, obj: &Value) -> ParseResult<OrGate> {
+    fn parse_or_gate(obj: &Value) -> ParseResult<OrGate> {
         Ok(OrGate::new(
             obj["in_count"].as_u64().ok_or_else(Default::default)? as usize,
         ))
     }
 
-    fn parse_nand_gate(&self, obj: &Value) -> ParseResult<NandGate> {
+    fn parse_nand_gate(obj: &Value) -> ParseResult<NandGate> {
         Ok(NandGate::new(
             obj["in_count"].as_u64().ok_or_else(Default::default)? as usize,
         ))
     }
 
-    fn parse_nor_gate(&self, obj: &Value) -> ParseResult<NorGate> {
+    fn parse_nor_gate(obj: &Value) -> ParseResult<NorGate> {
         Ok(NorGate::new(
             obj["in_count"].as_u64().ok_or_else(Default::default)? as usize,
         ))
     }
 
-    fn parse_xor_gate(&self, obj: &Value) -> ParseResult<XorGate> {
+    fn parse_xor_gate(obj: &Value) -> ParseResult<XorGate> {
         Ok(XorGate::new(
             obj["in_count"].as_u64().ok_or_else(Default::default)? as usize,
         ))
     }
 
-    fn parse_clock(&self, obj: &Value) -> ParseResult<Clock> {
+    fn parse_clock(obj: &Value) -> ParseResult<Clock> {
         Ok(Clock::new(
             obj["frec"].as_f64().ok_or_else(Default::default)?,
         ))
     }
 
-    fn parse_const(&self, obj: &Value) -> ParseResult<Const> {
+    fn parse_const(obj: &Value) -> ParseResult<Const> {
         let name = obj["name"].as_str().ok_or_else(Default::default)?;
         if name == Primitive::ConstOne.to_string() {
             Ok(Const::one())
@@ -207,7 +215,7 @@ impl CompParser<&Value> for JsonDeserializer {
         }
     }
 
-    fn parse_composed(&self, obj: &Value) -> ParseResult<ComposedComponent> {
+    fn parse_composed(obj: &Value) -> ParseResult<ComposedComponent> {
         let mut builder =
             ComposedComponentBuilder::new(obj["name"].as_str().ok_or_else(Default::default)?);
 
@@ -222,35 +230,35 @@ impl CompParser<&Value> for JsonDeserializer {
             if let Ok(prim) = Primitive::from_name(name) {
                 match prim {
                     Primitive::NotGate => {
-                        sub_c = Box::new(self.parse_not_gate(comp_json)?);
+                        sub_c = Box::new(JsonDeserializer::parse_not_gate(comp_json)?);
                     }
                     Primitive::AndGate => {
-                        sub_c = Box::new(self.parse_and_gate(comp_json)?);
+                        sub_c = Box::new(JsonDeserializer::parse_and_gate(comp_json)?);
                     }
                     Primitive::OrGate => {
-                        sub_c = Box::new(self.parse_or_gate(comp_json)?);
+                        sub_c = Box::new(JsonDeserializer::parse_or_gate(comp_json)?);
                     }
                     Primitive::NandGate => {
-                        sub_c = Box::new(self.parse_nand_gate(comp_json)?);
+                        sub_c = Box::new(JsonDeserializer::parse_nand_gate(comp_json)?);
                     }
                     Primitive::NorGate => {
-                        sub_c = Box::new(self.parse_nor_gate(comp_json)?);
+                        sub_c = Box::new(JsonDeserializer::parse_nor_gate(comp_json)?);
                     }
                     Primitive::XorGate => {
-                        sub_c = Box::new(self.parse_xor_gate(comp_json)?);
+                        sub_c = Box::new(JsonDeserializer::parse_xor_gate(comp_json)?);
                     }
                     Primitive::Clock => {
-                        sub_c = Box::new(self.parse_clock(comp_json)?);
+                        sub_c = Box::new(JsonDeserializer::parse_clock(comp_json)?);
                     }
                     Primitive::ConstOne => {
-                        sub_c = Box::new(self.parse_const(comp_json)?);
+                        sub_c = Box::new(JsonDeserializer::parse_const(comp_json)?);
                     }
                     Primitive::ConstZero => {
-                        sub_c = Box::new(self.parse_const(comp_json)?);
+                        sub_c = Box::new(JsonDeserializer::parse_const(comp_json)?);
                     }
                 }
             } else {
-                sub_c = Box::new(self.parse_composed(comp_json)?);
+                sub_c = Box::new(JsonDeserializer::parse_composed(comp_json)?);
             }
             components.push(sub_c);
         }

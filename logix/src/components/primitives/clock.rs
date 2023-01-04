@@ -12,10 +12,8 @@ pub struct Clock {
     pub outs: Vec<bool>,
 
     pub frec: f64,
-    interval: u128,
-    full: u128,
-    val: bool,
-    dirty: bool,
+    pub interval: u128,
+    pub full_cycle: u128,
 }
 
 impl Clock {
@@ -28,7 +26,8 @@ impl Clock {
     /// # Example
     ///
     /// ```
-    /// use logix::prelude::Clock;
+    /// # use logix::prelude::Clock;
+    /// #
     /// let clock = Clock::new(4.0); // Frequency 4Hz (250ms)
     /// ```
     pub fn new(frequency: f64) -> Self {
@@ -37,16 +36,17 @@ impl Clock {
             ins: vec![],
             outs: vec![false],
             frec: frequency,
-            val: false,
             interval: nano_sec_dur,
-            full: nano_sec_dur * 2,
-            dirty: false,
+            full_cycle: nano_sec_dur * 2,
         }
     }
 }
 
 impl ComponentCast for Clock {
     fn as_clock(&self) -> Option<&Clock> {
+        Some(self)
+    }
+    fn as_clock_mut(&mut self) -> Option<&mut Clock> {
         Some(self)
     }
 }
@@ -62,22 +62,5 @@ impl Component for Clock {
 
     fn outs(&mut self) -> &mut Vec<bool> {
         &mut self.outs
-    }
-
-    fn is_dirty(&self) -> bool {
-        self.dirty
-    }
-
-    fn on_event(&mut self, event: &CompEvent) {
-        match event {
-            CompEvent::Update(time) => {
-                self.val = (time % self.full) > self.interval;
-                self.dirty = self.outs[0] != self.val;
-            }
-            CompEvent::UpdateValues => {
-                self.outs[0] = self.val;
-                self.dirty = false;
-            }
-        }
     }
 }

@@ -20,7 +20,8 @@ impl OrGate {
     /// # Example
     ///
     /// ```
-    /// use logix::prelude::OrGate;
+    /// # use logix::prelude::OrGate;
+    /// #
     /// let gate = OrGate::new(2);
     /// ```
     pub fn new(in_count: usize) -> OrGate {
@@ -33,6 +34,9 @@ impl OrGate {
 
 impl ComponentCast for OrGate {
     fn as_or_gate(&self) -> Option<&OrGate> {
+        Some(self)
+    }
+    fn as_or_gate_mut(&mut self) -> Option<&mut OrGate> {
         Some(self)
     }
 }
@@ -48,35 +52,5 @@ impl Component for OrGate {
 
     fn outs(&mut self) -> &mut Vec<bool> {
         &mut self.outs
-    }
-
-    fn on_event(&mut self, event: &CompEvent) {
-        if let CompEvent::UpdateValues = event {
-            let out: bool = self.ins.as_slice().iter().any(|val| *val);
-            self.outs[0] = out;
-        }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::OrGate;
-    use crate::components::component::{CompEvent, Component};
-
-    #[test]
-    fn update_values() {
-        let table = [
-            [false, false, false],
-            [true, false, true],
-            [false, true, true],
-            [true, true, true],
-        ];
-        let mut gate = OrGate::new(2);
-        for row in table {
-            gate.set_in(0, row[0]);
-            gate.set_in(1, row[1]);
-            gate.on_event(&CompEvent::UpdateValues);
-            assert!(gate.outs[0] == row[2]);
-        }
     }
 }

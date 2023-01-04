@@ -2,4 +2,5 @@
 
 members = [
 	"logix",
+	"logix_sim",
 ]

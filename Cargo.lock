@@ -17,6 +17,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "logix_sim"
+version = "0.1.0"
+dependencies = [
+ "logix",
+]
+
+[[package]]
 name = "proc-macro2"
 version = "1.0.49"
 source = "registry+https://github.com/rust-lang/crates.io-index"
