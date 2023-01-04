@@ -28,7 +28,8 @@ impl Clock {
     /// # Example
     ///
     /// ```
-    /// let clock = Clock::new(0, 4); // Frequency 4Hz (250ms)
+    /// use logix::prelude::Clock;
+    /// let clock = Clock::new(4.0); // Frequency 4Hz (250ms)
     /// ```
     pub fn new(frequency: f64) -> Self {
         let nano_sec_dur: u128 = (1e9 / frequency) as u128;

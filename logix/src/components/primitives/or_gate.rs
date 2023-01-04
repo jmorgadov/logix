@@ -2,15 +2,15 @@ use crate::components::prelude::*;
 
 use super::primitive::Primitive;
 
-/// Represents an AND gate component.
+/// Represents an OR gate component.
 #[derive(Debug)]
-pub struct AndGate {
+pub struct OrGate {
     pub ins: Vec<bool>,
     pub outs: Vec<bool>,
 }
 
-impl AndGate {
-    /// Creates a new `AndGate` component given an id and the count of input
+impl OrGate {
+    /// Creates a new `OrGate` component given an id and the count of input
     /// pins.
     ///
     /// # Arguments
@@ -20,25 +20,26 @@ impl AndGate {
     /// # Example
     ///
     /// ```
-    /// let gate = AndGate::new(0, 2);
+    /// use logix::prelude::OrGate;
+    /// let gate = OrGate::new(2);
     /// ```
-    pub fn new(in_count: usize) -> AndGate {
-        AndGate {
+    pub fn new(in_count: usize) -> OrGate {
+        OrGate {
             ins: vec![false; in_count],
             outs: vec![false],
         }
     }
 }
 
-impl ComponentCast for AndGate {
-    fn as_and_gate(&self) -> Option<&AndGate> {
+impl ComponentCast for OrGate {
+    fn as_or_gate(&self) -> Option<&OrGate> {
         Some(self)
     }
 }
 
-impl Component for AndGate {
+impl Component for OrGate {
     fn name(&self) -> String {
-        Primitive::AndGate.to_string()
+        Primitive::OrGate.to_string()
     }
 
     fn ins(&mut self) -> &mut Vec<bool> {
@@ -51,7 +52,7 @@ impl Component for AndGate {
 
     fn on_event(&mut self, event: &CompEvent) {
         if let CompEvent::UpdateValues = event {
-            let out: bool = self.ins.as_slice().iter().all(|val| *val);
+            let out: bool = self.ins.as_slice().iter().any(|val| *val);
             self.outs[0] = out;
         }
     }
@@ -59,18 +60,18 @@ impl Component for AndGate {
 
 #[cfg(test)]
 mod tests {
-    use super::AndGate;
+    use super::OrGate;
     use crate::components::component::{CompEvent, Component};
 
     #[test]
     fn update_values() {
         let table = [
             [false, false, false],
-            [true, false, false],
-            [false, true, false],
+            [true, false, true],
+            [false, true, true],
             [true, true, true],
         ];
-        let mut gate = AndGate::new(2);
+        let mut gate = OrGate::new(2);
         for row in table {
             gate.set_in(0, row[0]);
             gate.set_in(1, row[1]);

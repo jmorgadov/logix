@@ -20,7 +20,8 @@ impl XorGate {
     /// # Example
     ///
     /// ```
-    /// let gate = XorGate::new(0, 2);
+    /// use logix::prelude::XorGate;
+    /// let gate = XorGate::new(2);
     /// ```
     pub fn new(in_count: usize) -> XorGate {
         XorGate {

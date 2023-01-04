@@ -10,12 +10,13 @@ pub struct NotGate {
 }
 
 impl NotGate {
-    /// Creates a new `OutputPin` component given an id.
+    /// Creates a new `NotGate` component given an id.
     ///
     /// # Example
     ///
     /// ```
-    /// let gate = OutputPin::new(0);
+    /// use logix::prelude::NotGate;
+    /// let gate = NotGate::new();
     /// ```
     pub fn new() -> NotGate {
         NotGate {

@@ -20,9 +20,10 @@ impl Const {
     /// # Example
     ///
     /// ```
-    /// let const = Const::new(0, true);
+    /// use logix::prelude::Const;
+    /// let const_comp = Const::new(true);
     /// ```
-    fn new(value: bool) -> Self {
+    pub fn new(value: bool) -> Self {
         Const {
             ins: vec![],
             outs: vec![value],
@@ -31,14 +32,11 @@ impl Const {
 
     /// Creates a new `Const` component given an id with a value of true.
     ///
-    /// # Arguments
-    ///
-    /// * `id` - Integer that represents the component id.
-    ///
     /// # Example
     ///
     /// ```
-    /// let const = Const::one(0);
+    /// use logix::prelude::Const;
+    /// let const_comp = Const::one();
     /// ```
     pub fn one() -> Self {
         Const::new(true)
@@ -46,14 +44,11 @@ impl Const {
 
     /// Creates a new `Const` component given an id with a value of false.
     ///
-    /// # Arguments
-    ///
-    /// * `id` - Integer that represents the component id.
-    ///
     /// # Example
     ///
     /// ```
-    /// let const = Const::zero(0);
+    /// use logix::prelude::Const;
+    /// let const_comp = Const::zero();
     /// ```
     pub fn zero() -> Self {
         Const::new(false)

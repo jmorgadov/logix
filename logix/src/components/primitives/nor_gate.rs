@@ -20,7 +20,8 @@ impl NorGate {
     /// # Example
     ///
     /// ```
-    /// let gate = NorGate::new(0, 2);
+    /// use logix::prelude::NorGate;
+    /// let gate = NorGate::new(2);
     /// ```
     pub fn new(in_count: usize) -> NorGate {
         NorGate {

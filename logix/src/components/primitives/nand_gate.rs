@@ -20,7 +20,8 @@ impl NandGate {
     /// # Example
     ///
     /// ```
-    /// let gate = NandGate::new(0, 2);
+    /// use logix::prelude::NandGate;
+    /// let gate = NandGate::new(2);
     /// ```
     pub fn new(in_count: usize) -> NandGate {
         NandGate {

@@ -46,7 +46,8 @@ impl Conn {
     /// id `20`.
     ///
     /// ```
-    /// let conn = Conn::new(pin!(10, 0), pin!(20, 3));
+    /// use logix::prelude::Conn;
+    /// let conn = Conn::new((10, 0), (20, 3));
     /// ```
     pub fn new(from: PinAddr, to: PinAddr) -> Conn {
         Conn { from, to }
@@ -237,21 +238,8 @@ impl ComposedComponent {
 /// The next example shows how to create an SR-Latch using the primitives
 /// components:
 ///
-///                  SR-Latch
-///            ____________________
-///           |     _______        |
-///     in1 --o----|       |       |
-///           |    |  NOR  |--o----o-- out1
-///           | .--|_______|  |    |
-///           | `-------------|-,  |
-///           |  .____________' |  |
-///           | |   _______     |  |
-///           | `--|       |    |  |
-///           |    |  NOR  |----o--o-- out2
-///     in2 --o----|_______|       |
-///           |____________________|
-///
 /// ```
+/// use logix::prelude::*;
 /// let sr_latch = ComposedComponentBuilder::new("SRLatch")
 ///     .components(vec![Box::new(NorGate::new(2)), Box::new(NorGate::new(2))])
 ///     .connections(vec![conn!((0, 0), (1, 0)), conn!((1, 0), (0, 1))])
@@ -276,6 +264,7 @@ impl ComposedComponentBuilder {
     /// # Examples
     ///
     /// ```
+    /// use logix::prelude::ComposedComponentBuilder;
     /// let builder = ComposedComponentBuilder::new("MyComp");
     /// ```
     pub fn new(name: &str) -> Self {

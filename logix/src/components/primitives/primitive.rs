@@ -48,7 +48,8 @@ impl Primitive {
     /// The name of a primitive is the same as the enum value:
     ///
     /// ```
-    /// assert!(Primitive::Clock == Primitive::from_str("Clock").unwrap())
+    /// use logix::prelude::*;
+    /// assert!(Primitive::Clock == Primitive::from_name("Clock").unwrap())
     /// ```
     ///
     /// # Arguments

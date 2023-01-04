@@ -1,8 +1,6 @@
-// use crate::components::composed_component::*;
-// use crate::components::prelude::*;
-// use crate::parser::{CompParser, ParseResult};
-// use crate::visitor::CompVisitor;
-use logicraft_engine::prelude::*;
+#![cfg(feature = "serialize")]
+
+use crate::prelude::*;
 
 use serde_json::{json, Value};
 use std::fs::{read_to_string, write};
@@ -16,8 +14,11 @@ use std::fs::{read_to_string, write};
 ///
 /// # Examples
 ///
-/// ```
-/// // Assuming `comp` is a variable that holds a `ComposedComponent`
+/// ```no_run
+/// # use logix::prelude::*;
+/// # use logix::serialize::json::*;
+/// #
+/// let comp = ComposedComponentBuilder::new("MyComp").build().unwrap();
 /// save("example_comp.json", &comp);
 /// ```
 pub fn save(file_path: &str, comp: &ComposedComponent) {
@@ -34,7 +35,9 @@ pub fn save(file_path: &str, comp: &ComposedComponent) {
 ///
 /// # Examples
 ///
-/// ```
+/// ```no_run
+/// # use logix::serialize::json::load;
+/// #
 /// let comp = load("example_comp.json").unwrap();
 /// ```
 pub fn load(file_path: &str) -> Result<ComposedComponent, ParseError> {
