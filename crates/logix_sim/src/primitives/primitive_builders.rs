@@ -1,5 +1,5 @@
 use super::prelude::Primitive;
-use logix::prelude::*;
+use logix_core::prelude::*;
 
 fn base_component(name: &str, in_count: usize, out_count: usize) -> Component {
     ComponentBuilder::new(name)

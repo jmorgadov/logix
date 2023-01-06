@@ -1,6 +1,5 @@
 [workspace]
 
 members = [
-	"logix",
-	"logix_sim",
+	"crates/*",
 ]

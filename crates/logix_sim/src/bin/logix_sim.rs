@@ -1,4 +1,4 @@
-use logix::prelude::*;
+use logix_core::prelude::*;
 use logix_sim::{primitives::prelude::*, Simulation};
 
 fn main() {

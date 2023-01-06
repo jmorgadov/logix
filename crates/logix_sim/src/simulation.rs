@@ -1,5 +1,5 @@
 use crate::primitives::prelude::*;
-use logix::prelude::*;
+use logix_core::prelude::*;
 use std::time::Instant;
 
 /// Simulation.
@@ -42,17 +42,19 @@ fn update_time(comp: &mut Component, time: u128) -> bool {
         Primitive::Clock => {
             let interv =
                 u128::from_ne_bytes(comp.info.as_slice().try_into().expect("Wrong clock info"));
-            let val = (time % (interv << 1)) > interv;
+            // println!("{:?}", interv);
+            let val = (time % (interv * 2)) > interv;
             let dirty = comp.outputs[0] != val;
             comp.outputs[0] = val;
             dirty
         }
         Primitive::Unknown => {
             if let Some(sub) = comp.sub.as_mut() {
-                return sub
-                    .components
-                    .iter_mut()
-                    .any(|comp| update_time(comp, time));
+                let mut dirty = false;
+                for comp in sub.components.iter_mut() {
+                    dirty |= update_time(comp, time);
+                }
+                return dirty;
             }
             false
         }

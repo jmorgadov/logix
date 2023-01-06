@@ -97,7 +97,7 @@ pub struct Component {
 /// # Example
 ///
 /// ```
-/// # use logix::prelude::*;
+/// # use logix_core::prelude::*;
 /// #
 /// let and_gate = ComponentBuilder::new("AND").port_count(2, 1).build();
 /// ```
