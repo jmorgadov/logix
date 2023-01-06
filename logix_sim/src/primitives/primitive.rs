@@ -1,6 +1,6 @@
 use std::fmt::{Display, Formatter};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Primitive {
     NotGate,
     AndGate,
@@ -26,15 +26,16 @@ pub const PRIMITIVES: [Primitive; 9] = [
 ];
 
 impl Primitive {
-    /// Returns a `Result` that contains the primitive enum value (`Ok(Primitive)`)
-    /// given its name as string. If the primitive name is invalid an
-    /// `Err(PrimitiveNotFound)` is returned.
+    /// Returns the primitive type given the component's name. If the name
+    /// does not match with any primitive, the [`Primitive::Unknown`] value
+    /// is returned;
     ///
     /// The name of a primitive is the same as the enum value:
     ///
     /// ```
-    /// use logix::prelude::*;
-    /// assert!(Primitive::Clock == Primitive::from_name("Clock").unwrap())
+    /// # use logix_sim::primitives::prelude::*;
+    /// #
+    /// assert!(Primitive::Clock == Primitive::from_name("Clock"))
     /// ```
     ///
     /// # Arguments

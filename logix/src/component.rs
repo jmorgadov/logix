@@ -1,15 +1,28 @@
+/// Represents a location of a port inside a Component.
+///
+/// The first item is the index of the component in the sub-components vector.
+/// The second item is the index of the port.
+///
+/// The distinction between Input/Output ports depends on the context.
 pub type PortAddr = (usize, usize);
 
+/// Returns the sub-component index of a [`PortAddr`].
 #[inline(always)]
 pub fn idx_of(port_addr: PortAddr) -> usize {
     port_addr.0
 }
 
+/// Returns the port index of a [`PortAddr`].
 #[inline(always)]
 pub fn addr_of(port_addr: PortAddr) -> usize {
     port_addr.1
 }
 
+/// Represents a connection between two ports.
+///
+/// The port index of the `from` part is taken from the outputs of the
+/// component it represents. The port index of the `to` part is taken from
+/// the inputs of the component it represents.
 #[derive(Default, Debug)]
 pub struct Conn {
     pub from: PortAddr,
@@ -17,6 +30,19 @@ pub struct Conn {
 }
 
 impl Conn {
+    /// Creates a connection given de indexes of the components and ports of the
+    /// starting and ending points of the connection.
+    ///
+    /// # Arguments
+    ///
+    /// * `from_idx` - An integer representing the index of the sub-component
+    /// where the connection starts.
+    /// * `from_port` - An integer representing the index of the output port
+    /// where the connection starts.
+    /// * `to_idx` - An integer representing the index of the sub-component
+    /// where the connection ends.
+    /// * `to_port` - An integer representing the index of the input port
+    /// where the connection starts.
     pub fn new(from_idx: usize, from_port: usize, to_idx: usize, to_port: usize) -> Conn {
         Conn {
             from: (from_idx, from_port),
@@ -25,25 +51,56 @@ impl Conn {
     }
 }
 
+/// Holds all the information of the sub-components of a component.
 #[derive(Default, Debug)]
 pub struct SubComponent {
+    /// Vector of sub-components.
     pub components: Vec<Component>,
+
+    /// Vector that holds the connections between the sub-components.
     pub connections: Vec<Conn>,
+
+    /// Vector that maps the component inputs to input ports of the sub-components
     pub in_addrs: Vec<PortAddr>,
+
+    /// Vector that maps the component outputs to outputs ports of the sub-components
     pub out_addrs: Vec<PortAddr>,
+
+    /// Vector that holds the indexes of each component dependencies.
     pub dep_map: Vec<Vec<usize>>,
 }
 
+/// Represents a component.
 #[derive(Default, Debug)]
 pub struct Component {
+    /// Name of the component.
     pub name: String,
+
+    /// Input ports of the component.
     pub inputs: Vec<bool>,
+
+    /// Output ports of the component.
     pub outputs: Vec<bool>,
 
+    /// Option that holds the sub-component information.
+    ///
+    /// If None, then the component is consider a base component.
     pub sub: Option<SubComponent>,
+
+    /// General info the component can hold as a byte array. It can be seen as
+    /// an internal memory.
     pub info: Vec<u8>,
 }
 
+/// Component builder.
+///
+/// # Example
+///
+/// ```
+/// # use logix::prelude::*;
+/// #
+/// let and_gate = ComponentBuilder::new("AND").port_count(2, 1).build();
+/// ```
 #[derive(Default)]
 pub struct ComponentBuilder {
     name: String,
@@ -58,6 +115,7 @@ pub struct ComponentBuilder {
 }
 
 impl ComponentBuilder {
+    /// Creates a new [`ComponentBuilder`]
     pub fn new(name: &str) -> Self {
         ComponentBuilder {
             name: name.to_string(),
@@ -71,47 +129,90 @@ impl ComponentBuilder {
         }
     }
 
+    /// Sets the amount of input ports.
+    ///
+    /// # Arguments
+    ///
+    /// * `n`: Integer that represents the amount of input ports.
     pub fn in_count(mut self, n: usize) -> Self {
         self.inputs = vec![false; n];
         self
     }
 
+    /// Sets the amount of output ports.
+    ///
+    /// # Arguments
+    ///
+    /// * `n`: Integer that represents the amount of output ports.
     pub fn out_count(mut self, n: usize) -> Self {
         self.outputs = vec![false; n];
         self
     }
 
+    /// Sets the amount of input and output ports.
+    ///
+    /// # Arguments
+    ///
+    /// * `in_count`: Integer that represents the amount of input ports.
+    /// * `out_count`: Integer that represents the amount of output ports.
     pub fn port_count(mut self, in_count: usize, out_count: usize) -> Self {
         self.inputs = vec![false; in_count];
         self.outputs = vec![false; out_count];
         self
     }
 
+    /// Sets the subcomponents.
+    ///
+    /// # Arguments
+    ///
+    /// * `sub_comps`: Vector of [`Components`] that holds all the sub-components.
     pub fn sub_comps(mut self, sub_comps: Vec<Component>) -> Self {
         self.sub_comps = Some(sub_comps);
         self
     }
 
+    /// Sets the connections between the subcomponents.
+    ///
+    /// # Arguments
+    ///
+    /// * `connections`: Vector of [`Conn`] that holds all the connections between
+    /// the sub-components.
     pub fn connections(mut self, connections: Vec<Conn>) -> Self {
         self.connections = Some(connections);
         self
     }
 
+    /// Sets the input port addresses.
+    ///
+    /// # Arguments
+    ///
+    /// * `in_addrs`: Vector of [`PortAddr`] that holds all input port addresses.
     pub fn in_addrs(mut self, in_addrs: Vec<PortAddr>) -> Self {
         self.in_addrs = Some(in_addrs);
         self
     }
 
+    /// Sets the output port addresses.
+    ///
+    /// # Arguments
+    ///
+    /// * `out_addrs`: Vector of [`PortAddr`] that holds all output port addresses.
     pub fn out_addrs(mut self, out_addrs: Vec<PortAddr>) -> Self {
         self.out_addrs = Some(out_addrs);
         self
     }
 
+    /// Sets the information the component will hold.
+    ///
+    /// # Arguments
+    ///
+    /// * `info`: Vector of bytes that holds the component information.
     pub fn info(mut self, info: Vec<u8>) -> Self {
         self.info = info;
         self
     }
 
+    /// Builds the [`Component`].
     pub fn build(self) -> Component {
         // Build dependency map
         let mut dep_map: Option<Vec<Vec<usize>>> = None;
@@ -134,6 +235,7 @@ impl ComponentBuilder {
                 out_addrs: self.out_addrs.unwrap_or_default(),
                 dep_map: dep_map.unwrap_or_default(),
             })
+            // TODO: Check valid connections
         }
 
         Component {

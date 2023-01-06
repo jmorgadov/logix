@@ -1,5 +1,5 @@
 use logix::prelude::*;
-use logix_sim::{primitives::*, Simulation};
+use logix_sim::{primitives::prelude::*, Simulation};
 
 fn main() {
     let sr_latch = ComponentBuilder::new("SRLatch")
