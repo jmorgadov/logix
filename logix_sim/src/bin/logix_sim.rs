@@ -1,22 +1,22 @@
 use logix::prelude::*;
-use logix_sim::Simulation;
+use logix_sim::{primitives::*, Simulation};
 
 fn main() {
-    let sr_latch = ComposedComponentBuilder::new("SRLatch")
-        .components(vec![Box::new(NorGate::new(2)), Box::new(NorGate::new(2))])
-        .connections(vec![conn!((0, 0), (1, 0)), conn!((1, 0), (0, 1))])
-        .inputs(vec![(0, 0), (1, 1)])
-        .outputs(vec![(0, 0), (1, 0)])
-        .build()
-        .unwrap();
+    let sr_latch = ComponentBuilder::new("SRLatch")
+        .port_count(2, 2)
+        .sub_comps(vec![nor_gate(2), nor_gate(2)])
+        .connections(vec![Conn::new(0, 0, 1, 0), Conn::new(1, 0, 0, 1)])
+        .in_addrs(vec![(0, 0), (1, 1)])
+        .out_addrs(vec![(0, 0), (1, 0)])
+        .build();
 
-    let main = ComposedComponentBuilder::new("Main")
-        .components(vec![Box::new(Clock::new(1.0)), Box::new(Clock::new(4.0)), Box::new(sr_latch)])
-        .connections(vec![conn!((0, 0), (2, 0)), conn!((1, 0), (2, 1))])
-        .outputs(vec![(2, 0), (2, 1)])
-        .build()
-        .unwrap();
+    let comp = ComponentBuilder::new("Main")
+        .out_count(2)
+        .sub_comps(vec![clock(1.0), clock(4.0), sr_latch])
+        .connections(vec![Conn::new(0, 0, 2, 0), Conn::new(1, 0, 2, 1)])
+        .out_addrs(vec![(2, 0), (2, 1)])
+        .build();
 
-    let mut sim = Simulation::new(main);
+    let mut sim = Simulation::new(comp);
     sim.start();
 }

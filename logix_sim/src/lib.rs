@@ -1,4 +1,4 @@
-mod simulation;
-mod visitors;
+pub mod simulation;
+pub mod primitives;
 
 pub use simulation::Simulation;
