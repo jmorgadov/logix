@@ -61,7 +61,7 @@ pub struct SubComponent {
     pub connections: Vec<Conn>,
 
     /// Vector that maps the component inputs to input ports of the sub-components
-    pub in_addrs: Vec<PortAddr>,
+    pub in_addrs: Vec<(usize, PortAddr)>,
 
     /// Vector that maps the component outputs to outputs ports of the sub-components
     pub out_addrs: Vec<PortAddr>,
@@ -109,7 +109,7 @@ pub struct ComponentBuilder {
 
     sub_comps: Option<Vec<Component>>,
     connections: Option<Vec<Conn>>,
-    in_addrs: Option<Vec<PortAddr>>,
+    in_addrs: Option<Vec<(usize, PortAddr)>>,
     out_addrs: Option<Vec<PortAddr>>,
     info: Vec<u8>,
 }
@@ -187,7 +187,7 @@ impl ComponentBuilder {
     /// # Arguments
     ///
     /// * `in_addrs`: Vector of [`PortAddr`] that holds all input port addresses.
-    pub fn in_addrs(mut self, in_addrs: Vec<PortAddr>) -> Self {
+    pub fn in_addrs(mut self, in_addrs: Vec<(usize, PortAddr)>) -> Self {
         self.in_addrs = Some(in_addrs);
         self
     }
@@ -228,14 +228,44 @@ impl ComponentBuilder {
 
         let mut sub = None;
         if let Some(sub_comps) = self.sub_comps {
+            let mut used_inputs: Vec<Vec<bool>> = sub_comps
+                .iter()
+                .map(|c| vec![false; c.inputs.len()])
+                .collect();
+
+            let connections = self.connections.unwrap_or_default();
+            for conn in connections.iter() {
+                if used_inputs[idx_of(conn.to)][addr_of(conn.to)] {
+                    panic!(
+                        "[{0}] Input {1} of comp {2} has two entries (one from [{3}; {4}])",
+                        self.name,
+                        addr_of(conn.to),
+                        idx_of(conn.to),
+                        idx_of(conn.from),
+                        addr_of(conn.from)
+                    );
+                }
+                used_inputs[idx_of(conn.to)][addr_of(conn.to)] = true;
+            }
+
+            let in_addrs = self.in_addrs.unwrap_or_default();
+            for (in_idx, (comp_idx, addr)) in in_addrs.iter() {
+                if used_inputs[*comp_idx][*addr] {
+                    panic!(
+                        "[{0}] Input {1} of comp {2} has to entries (one from input {3})",
+                        self.name, addr, comp_idx, in_idx,
+                    );
+                }
+                used_inputs[*comp_idx][*addr] = true;
+            }
+
             sub = Some(SubComponent {
                 components: sub_comps,
-                connections: self.connections.unwrap_or_default(),
-                in_addrs: self.in_addrs.unwrap_or_default(),
+                connections,
+                in_addrs,
                 out_addrs: self.out_addrs.unwrap_or_default(),
                 dep_map: dep_map.unwrap_or_default(),
-            })
-            // TODO: Check valid connections
+            });
         }
 
         Component {
