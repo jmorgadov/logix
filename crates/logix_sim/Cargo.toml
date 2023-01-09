@@ -7,3 +7,4 @@ edition = "2021"
 
 [dependencies]
 logix_core = { path = "../logix_core" }
+rand = "0.8.5"

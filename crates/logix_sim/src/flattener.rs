@@ -1,19 +1,26 @@
-use crate::bit::{Bit, fmt_bit};
+use crate::bit::{fmt_bit, Bit};
 use logix_core::prelude::*;
+
+#[derive(Debug)]
+pub enum NestedConfig {
+    Single(usize),
+    Compose(String, Vec<NestedConfig>, Vec<PortAddr>, Vec<PortAddr>),
+}
 
 #[derive(Debug)]
 pub struct FlattenComponent {
     pub components: Vec<Component<Bit>>,
     pub connections: Vec<Conn>,
-
     pub deps: Vec<Vec<usize>>,
     pub inv_deps: Vec<Vec<usize>>,
+
+    pub nested_config: NestedConfig,
 }
 
 impl FlattenComponent {
     pub fn new(comp: Component<Bit>) -> Self {
         let mut mut_comp = comp;
-        reindex_connections(&mut mut_comp, 0);
+        let (_, nested) = reindex_connections(&mut mut_comp, 0);
         let (components, connections) = flat_comp(mut_comp);
 
         // Build dependency map
@@ -50,14 +57,60 @@ impl FlattenComponent {
             connections,
             deps,
             inv_deps,
+            nested_config: nested,
         }
     }
 
-    pub fn show(&self) {
+    pub fn show_flat(&self) {
         for (i, comp) in self.components.iter().enumerate() {
             print!("{} - ", i);
             show_comp(comp);
         }
+    }
+
+    fn show_config(&self, conf: &NestedConfig, level: usize) -> String {
+        let mut s = String::new();
+        match conf {
+            NestedConfig::Compose(n, subs, ins, outs) => {
+                for _ in 0..level {
+                    s.push_str("  ");
+                }
+                s.push_str(n);
+                s.push(' ');
+                for addr in ins {
+                    s.push(fmt_bit(&self.components[addr.0].inputs[addr.1]));
+                }
+                s.push(' ');
+                for addr in outs {
+                    s.push(fmt_bit(&self.components[addr.0].outputs[addr.1]));
+                }
+                s.push('\n');
+                subs.iter().for_each(|c| {
+                    s.push_str(&self.show_config(c, level + 1));
+                });
+            }
+            NestedConfig::Single(idx) => {
+                let comp = &self.components[*idx];
+                for _ in 0..level {
+                    s.push_str("  ");
+                }
+                s.push_str(&comp.name);
+                s.push(' ');
+                for bit in &comp.inputs {
+                    s.push(fmt_bit(bit));
+                }
+                s.push(' ');
+                for bit in &comp.outputs {
+                    s.push(fmt_bit(bit));
+                }
+                s.push('\n');
+            }
+        }
+        s
+    }
+
+    pub fn show(&self) {
+        println!("{}", self.show_config(&self.nested_config, 0));
     }
 }
 
@@ -72,7 +125,6 @@ fn show_comp(comp: &Component<Bit>) {
         line.push(fmt_bit(bit));
     }
     println!("{}", line);
-
 }
 
 fn flat_comp(comp: Component<Bit>) -> (Vec<Component<Bit>>, Vec<Conn>) {
@@ -89,12 +141,14 @@ fn flat_comp(comp: Component<Bit>) -> (Vec<Component<Bit>>, Vec<Conn>) {
     (vec![comp], vec![])
 }
 
-fn reindex_connections(comp: &mut Component<Bit>, start_idx: usize) -> usize {
+fn reindex_connections(comp: &mut Component<Bit>, start_idx: usize) -> (usize, NestedConfig) {
     if let Some(sub) = comp.sub.as_mut() {
         let mut idx_starts = vec![start_idx];
+        let mut sub_configs = vec![];
         for comp in sub.components.as_mut_slice() {
-            let new_start = reindex_connections(comp, *idx_starts.last().unwrap());
+            let (new_start, nested) = reindex_connections(comp, *idx_starts.last().unwrap());
             idx_starts.push(new_start);
+            sub_configs.push(nested);
         }
         // change connections
         let mut new_conns = vec![];
@@ -143,8 +197,16 @@ fn reindex_connections(comp: &mut Component<Bit>, start_idx: usize) -> usize {
             }
         }
         sub.in_addrs = new_in_addrs;
+        let max = sub.in_addrs.iter().map(|(i, _)| *i).max();
+        let mut nested_in = vec![];
+        if let Some(m) = max {
+            nested_in.resize(m + 1, (0, 0));
+            for in_addr in &sub.in_addrs {
+                nested_in[in_addr.0] = in_addr.1;
+            }
+        }
 
-        // change out addrs
+        // change out addresses
         for i in 0..sub.out_addrs.len() {
             let (from_comp_idx, from_comp_addr) = sub.out_addrs[i];
             if let Some(subsub) = &sub.components[from_comp_idx].sub {
@@ -153,8 +215,12 @@ fn reindex_connections(comp: &mut Component<Bit>, start_idx: usize) -> usize {
                 sub.out_addrs[i] = (idx_starts[from_comp_idx], from_comp_addr)
             }
         }
+        let nested_out = sub.out_addrs.clone();
 
-        return *idx_starts.last().unwrap();
+        return (
+            *idx_starts.last().unwrap(),
+            NestedConfig::Compose(comp.name.to_string(), sub_configs, nested_in, nested_out),
+        );
     }
-    start_idx + 1
+    (start_idx + 1, NestedConfig::Single(start_idx))
 }

@@ -9,11 +9,6 @@ pub struct Simulation {
 }
 
 impl Simulation {
-    /// Creates a new simulation given the main component.
-    ///
-    /// # Arguments
-    ///
-    /// * `comp` - A box containing the main component.
     pub fn new(comp: FlattenComponent) -> Self {
         Simulation {
             comp,
@@ -22,27 +17,40 @@ impl Simulation {
     }
 
     pub fn prepare(&mut self) {
+        // FIXME: this sometimes gets into a loop finding a stable initial
+        // state (specially is unk values are not selected random). Maybe
+        // a brute backtrack solves the problem.
+        update_values(&mut self.comp);
         loop {
-            update_values(&mut self.comp);
-            let unk_idx = self.comp.components.iter().enumerate().find_map(|(i, c)| {
-                for (j, bit) in c.outputs.iter().enumerate() {
-                    if *bit == UNK {
-                        return Some((i, j));
+            let unk_idexes: Vec<(usize, usize)> = self
+                .comp
+                .components
+                .iter()
+                .enumerate()
+                .filter_map(|(i, c)| {
+                    for (j, bit) in c.outputs.iter().enumerate() {
+                        println!("{:?}", bit);
+                        if *bit == UNK {
+                            return Some((i, j));
+                        }
                     }
-                }
-                None
-            });
+                    None
+                })
+                .collect();
 
-            print!("{}[2J", 27 as char);
-            print!("{esc}[2J{esc}[1;1H", esc = 27 as char);
-            self.comp.show();
-            if let Some(idx) = unk_idx {
-                self.comp.components[idx.0].outputs[idx.1] = ZERO;
-                propagate_from(&mut self.comp, idx.0);
-            } else {
+            // self.comp.show_flat();
+            // std::io::stdin().read_line(&mut "".to_string());
+
+            if unk_idexes.is_empty() {
                 break;
             }
-            // std::io::stdin().read_line(&mut "".to_string());
+
+            let idx = unk_idexes[rand::random::<usize>() % unk_idexes.len()];
+            print!("{}[2J", 27 as char);
+            print!("{esc}[2J{esc}[1;1H", esc = 27 as char);
+            self.comp.show_flat();
+            self.comp.components[idx.0].outputs[idx.1] = ZERO;
+            propagate_from(&mut self.comp, idx.0);
         }
     }
 
@@ -97,13 +105,15 @@ fn propagate_from(main: &mut FlattenComponent, idx: usize) {
         queue.push_back(dep);
     }
 
-    println!("{:?}", main.deps);
-    println!("{:?}", main.inv_deps);
     while !queue.is_empty() {
         let current_idx = *queue.pop_front().unwrap();
+        if visit[current_idx] {
+            continue;
+        }
         update_comp(&mut main.components[current_idx]);
+        main.show_flat();
         visit[current_idx] = true;
-        for dep in main.inv_deps[current_idx].iter().filter(|d| !visit[**d]) {
+        for dep in main.inv_deps[current_idx].iter() {
             queue.push_back(dep);
         }
     }
