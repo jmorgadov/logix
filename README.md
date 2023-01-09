@@ -43,7 +43,7 @@ with the help of something like `logix_sim` simulate them.
 
 ### `logix_vhdl`
 
-Library crate the allows to obtain the
+Library crate that allows to obtain the
 [VHDL](https://en.wikipedia.org/wiki/VHDL) code of a component.
 
 The inverse conversion may be implemented as well but taking into account
