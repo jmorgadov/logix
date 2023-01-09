@@ -99,7 +99,7 @@ pub struct Component<T: Default + Clone> {
 /// ```
 /// # use logix_core::prelude::*;
 /// #
-/// let and_gate = ComponentBuilder::new("AND").port_count(2, 1).build();
+/// let and_gate = ComponentBuilder::<bool>::new("AND").port_count(2, 1).build();
 /// ```
 #[derive(Default)]
 pub struct ComponentBuilder<T: Default + Clone> {
