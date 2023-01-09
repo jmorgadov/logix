@@ -9,11 +9,12 @@ pub enum Primitive {
     NorGate,
     XorGate,
     Clock,
-    Const,
+    HighConst,
+    LowConst,
     Unknown,
 }
 
-pub const PRIMITIVES: [Primitive; 9] = [
+pub const PRIMITIVES: [Primitive; 10] = [
     Primitive::NotGate,
     Primitive::AndGate,
     Primitive::OrGate,
@@ -21,7 +22,8 @@ pub const PRIMITIVES: [Primitive; 9] = [
     Primitive::NorGate,
     Primitive::XorGate,
     Primitive::Clock,
-    Primitive::Const,
+    Primitive::HighConst,
+    Primitive::LowConst,
     Primitive::Unknown,
 ];
 

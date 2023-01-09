@@ -1,10 +1,10 @@
-use crate::primitives::prelude::*;
+use crate::{bit::*, flattener::FlattenComponent, primitives::prelude::*};
 use logix_core::prelude::*;
 use std::time::Instant;
 
 /// Simulation.
 pub struct Simulation {
-    comp: Component,
+    comp: FlattenComponent,
     running: bool,
 }
 
@@ -14,15 +14,41 @@ impl Simulation {
     /// # Arguments
     ///
     /// * `comp` - A box containing the main component.
-    pub fn new(comp: Component) -> Self {
+    pub fn new(comp: FlattenComponent) -> Self {
         Simulation {
             comp,
             running: false,
         }
     }
 
+    pub fn prepare(&mut self) {
+        loop {
+            update_values(&mut self.comp);
+            let unk_idx = self.comp.components.iter().enumerate().find_map(|(i, c)| {
+                for (j, bit) in c.outputs.iter().enumerate() {
+                    if *bit == UNK {
+                        return Some((i, j));
+                    }
+                }
+                None
+            });
+
+            print!("{}[2J", 27 as char);
+            print!("{esc}[2J{esc}[1;1H", esc = 27 as char);
+            self.comp.show();
+            if let Some(idx) = unk_idx {
+                self.comp.components[idx.0].outputs[idx.1] = ZERO;
+                propagate_from(&mut self.comp, idx.0);
+            } else {
+                break;
+            }
+            // std::io::stdin().read_line(&mut "".to_string());
+        }
+    }
+
     /// Starts the simulation.
     pub fn start(&mut self) {
+        self.prepare();
         self.running = true;
 
         let start = Instant::now();
@@ -31,145 +57,163 @@ impl Simulation {
             let dirty = update_time(&mut self.comp, time);
             if dirty {
                 update_values(&mut self.comp);
-                println!("{:?}", self.comp.outputs);
+                print!("{}[2J", 27 as char);
+                print!("{esc}[2J{esc}[1;1H", esc = 27 as char);
+                self.comp.show();
             }
         }
     }
 }
 
-fn update_time(comp: &mut Component, time: u128) -> bool {
-    match Primitive::from_name(&comp.name) {
-        Primitive::Clock => {
+fn one_step_output_porpagation(main: &mut FlattenComponent, idx: usize) {
+    for conn in main.connections.iter().filter(|c| idx_of(c.from) == idx) {
+        let val = main.components[idx].outputs[addr_of(conn.from)];
+        println!("{:?} {:?}", val, conn);
+        if val == UNK {
+            continue;
+        }
+        let old_val = main.components[idx_of(conn.to)].inputs[addr_of(conn.to)];
+        if old_val == UNK {
+            println!(
+                "Setting {:?} on [{},{}]",
+                val,
+                idx_of(conn.to),
+                addr_of(conn.to)
+            );
+            main.components[idx_of(conn.to)].inputs[addr_of(conn.to)] = val;
+        } else if old_val != val {
+            panic!("Contradiction");
+        }
+    }
+}
+
+fn propagate_from(main: &mut FlattenComponent, idx: usize) {
+    let mut visit = vec![false; main.components.len()];
+    visit[idx] = true;
+    let mut queue = std::collections::VecDeque::new();
+
+    one_step_output_porpagation(main, idx);
+    for dep in main.inv_deps[idx].iter().filter(|d| !visit[**d]) {
+        queue.push_back(dep);
+    }
+
+    println!("{:?}", main.deps);
+    println!("{:?}", main.inv_deps);
+    while !queue.is_empty() {
+        let current_idx = *queue.pop_front().unwrap();
+        update_comp(&mut main.components[current_idx]);
+        visit[current_idx] = true;
+        for dep in main.inv_deps[current_idx].iter().filter(|d| !visit[**d]) {
+            queue.push_back(dep);
+        }
+    }
+}
+
+fn update_time(main: &mut FlattenComponent, time: u128) -> bool {
+    let mut dirty = false;
+    for comp in main.components.iter_mut() {
+        if let Primitive::Clock = Primitive::from_name(&comp.name) {
             let interv =
                 u128::from_ne_bytes(comp.info.as_slice().try_into().expect("Wrong clock info"));
-            // println!("{:?}", interv);
             let val = (time % (interv * 2)) > interv;
-            let dirty = comp.outputs[0] != val;
-            comp.outputs[0] = val;
-            dirty
+            let dirty_clock = comp.outputs[0] != val.into();
+            comp.outputs[0] = val.into();
+            dirty |= dirty_clock;
         }
-        Primitive::Unknown => {
-            if let Some(sub) = comp.sub.as_mut() {
-                let mut dirty = false;
-                for comp in sub.components.iter_mut() {
-                    dirty |= update_time(comp, time);
-                }
-                return dirty;
-            }
-            false
-        }
-        _ => false,
     }
+    dirty
 }
 
-fn update_values(comp: &mut Component) {
+fn update_comp(comp: &mut Component<Bit>) {
     match Primitive::from_name(&comp.name) {
         Primitive::NotGate => comp.outputs[0] = !comp.inputs[0],
-        Primitive::AndGate => comp.outputs[0] = comp.inputs.as_slice().iter().all(|val| *val),
-        Primitive::NandGate => comp.outputs[0] = !comp.inputs.as_slice().iter().all(|val| *val),
-        Primitive::OrGate => comp.outputs[0] = comp.inputs.as_slice().iter().any(|val| *val),
-        Primitive::NorGate => comp.outputs[0] = !comp.inputs.as_slice().iter().any(|val| *val),
+        Primitive::AndGate => {
+            let mut out = comp.inputs[0];
+            for bit in &comp.inputs[1..comp.inputs.len()] {
+                out = out & *bit;
+                if out == ZERO {
+                    break;
+                }
+            }
+            comp.outputs[0] = out;
+        }
+        Primitive::NandGate => {
+            let mut out = comp.inputs[0];
+            for bit in &comp.inputs[1..comp.inputs.len()] {
+                out = out & *bit;
+            }
+            comp.outputs[0] = !out;
+        }
+        Primitive::OrGate => {
+            let mut out = comp.inputs[0];
+            for bit in &comp.inputs[1..comp.inputs.len()] {
+                out = out | *bit;
+            }
+            comp.outputs[0] = out;
+        }
+        Primitive::NorGate => {
+            let mut out = comp.inputs[0];
+            for bit in &comp.inputs[1..comp.inputs.len()] {
+                out = out | *bit;
+            }
+            comp.outputs[0] = !out;
+        }
         Primitive::XorGate => {
-            let mut out = false;
+            let mut out = comp.inputs[0];
             for i in 1..comp.inputs.len() {
-                if comp.inputs[i - 1] != comp.inputs[i] {
-                    out = true;
+                out = out ^ comp.inputs[i];
+                if out == UNK || out == ONE {
                     break;
                 }
             }
             comp.inputs[0] = out;
         }
-        Primitive::Unknown => {
-            if let Some(sub) = comp.sub.as_mut() {
-                // Set the inputs
-                for (i, pin) in sub.in_addrs.iter().enumerate() {
-                    sub.components[idx_of(*pin)].inputs[addr_of(*pin)] = comp.inputs[i];
-                }
+        // No update needed
+        Primitive::Clock => (),
+        Primitive::HighConst => (),
+        Primitive::LowConst => (),
+        Primitive::Unknown => panic!("Unreashable"),
+    }
+}
 
-                // Update the component
-                //
-                // The visits vector contains the status of all the components
-                // in the updating process.
-                //  - 0 means not updated
-                //  - 1 means in update process (have dependencies)
-                //  - 2 means updated
-                //
-                let mut i = 0;
-                let mut visits = vec![0; sub.components.len()];
+fn update_values(main: &mut FlattenComponent) {
+    let mut visit_idx = 0;
+    let mut visit = vec![0; main.components.len()];
+    let mut stack: Vec<usize> = vec![];
 
-                // This vector contains the updated values for the
-                // inner connections.
-                let mut new_inputs: Vec<(PortAddr, bool)> = Default::default();
+    while !stack.is_empty() || visit_idx < visit.len() {
+        if stack.is_empty() {
+            if visit[visit_idx] != 0 {
+                visit_idx += 1;
+                continue;
+            }
+            stack.push(visit_idx);
+        }
 
-                let mut stack = vec![];
-                while !stack.is_empty() || i < visits.len() {
-                    if stack.is_empty() {
-                        // Check if there are unvisited components
-                        stack.push(i);
-                        i += 1;
-                        while i < visits.len() && visits[i] == 2 {
-                            i += 1
-                        }
-                    }
-                    let idx = stack[stack.len() - 1];
-                    let sub_comp = &mut sub.components[idx];
+        let idx = *stack.last().unwrap();
 
-                    // Check for updates in the input values for this
-                    // component
-                    let mut j = 0;
-                    while j < new_inputs.len() {
-                        let (pin, val) = new_inputs[j];
-                        if idx_of(pin) == idx {
-                            sub_comp.inputs[addr_of(pin)] = val;
-                            new_inputs.remove(j);
-                            continue;
-                        }
-                        j += 1;
-                    }
+        let mut ready_to_update = true;
 
-                    // Check if the current component is ready to update
-                    // according the state of its dependencies.
-                    // Here the dependencie cycles can be checked if needed.
-                    let deps = &sub.dep_map[idx];
-                    let mut ready_to_upd = true;
-                    for dep in deps {
-                        if visits[*dep] == 0 {
-                            // If the dependency is not updated then the current component
-                            // is not ready to update yet.
-                            ready_to_upd = false;
-
-                            // Then, push the dependency to the stack and mark it as
-                            // in update process.
-                            stack.push(*dep);
-                            visits[*dep] = 1;
-                        }
-                    }
-
-                    if ready_to_upd {
-                        update_values(sub_comp);
-
-                        // Mark the current component as updated
-                        visits[idx] = 2;
-
-                        // Store the input values of the components that depends on the
-                        // recently updated one for future update of those.
-                        for conn in &sub.connections {
-                            if idx_of(conn.from) == idx {
-                                let val = sub_comp.outputs[addr_of(conn.from)];
-                                new_inputs.push((conn.to, val));
-                            }
-                        }
-
-                        stack.pop();
-                    }
-                }
-
-                // Set outputs
-                for (i, pin) in sub.out_addrs.iter().enumerate() {
-                    comp.outputs[i] = sub.components[idx_of(*pin)].outputs[addr_of(*pin)];
-                }
+        for dep in &main.deps[idx] {
+            if visit[*dep] == 0 {
+                stack.push(*dep);
+                visit[*dep] = 1;
+                ready_to_update = false;
             }
         }
-        _ => (),
+
+        if ready_to_update {
+            update_comp(&mut main.components[idx]);
+
+            for conn in &main.connections {
+                if idx_of(conn.from) == idx {
+                    let val = main.components[idx].outputs[addr_of(conn.from)];
+                    main.components[idx_of(conn.to)].inputs[addr_of(conn.to)] = val;
+                }
+            }
+
+            visit[idx] = 2;
+            stack.pop();
+        }
     }
 }
