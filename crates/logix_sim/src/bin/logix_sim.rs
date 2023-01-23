@@ -1,11 +1,6 @@
 use logix_core::prelude::*;
 use logix_sim::{bit::Bit, flattener::FlattenComponent, primitives::prelude::*, Simulation};
 
-// TODO:
-//  - (DONE) Flat component
-//  - (PARTIALLY DONE) Stabilize algorithm
-//  - Detect contradictions
-
 fn sr_latch() -> Component<Bit> {
     ComponentBuilder::new("SR-Latch")
         .port_count(2, 2)
@@ -19,7 +14,7 @@ fn sr_latch() -> Component<Bit> {
 fn jk_ff() -> Component<Bit> {
     ComponentBuilder::new("JK-Flip-Flop")
         .port_count(3, 2)
-        .sub_comps(vec![and_gate(3), and_gate(3), sr_latch()])
+        .sub_comps(vec![nand_gate(3), nand_gate(3), sr_latch()])
         .connections(vec![
             Conn::new(0, 0, 2, 0),
             Conn::new(1, 0, 2, 1),
@@ -31,73 +26,79 @@ fn jk_ff() -> Component<Bit> {
         .build()
 }
 
-
 fn ms_jk() -> Component<Bit> {
     ComponentBuilder::new("MS-JK")
-        .port_count(3, 2)
+        .port_count(5, 2)
         .sub_comps(vec![
             nand_gate(3),
             nand_gate(3),
-            sr_latch(),
             nand_gate(2),
             nand_gate(2),
-            sr_latch(),
+            nand_gate(2),
+            nand_gate(2),
+            nand_gate(3),
+            nand_gate(3),
+            nand_gate(2),
+            nand_gate(2),
+            nand_gate(2),
+            nand_gate(2),
+            not_gate(),
+            not_gate(),
             not_gate(),
         ])
         .connections(vec![
             Conn::new(0, 0, 2, 0),
-            Conn::new(1, 0, 2, 1),
+            Conn::new(1, 0, 3, 1),
             Conn::new(2, 0, 3, 0),
-            Conn::new(2, 1, 4, 1),
-            Conn::new(3, 0, 5, 0),
-            Conn::new(4, 0, 5, 1),
-            Conn::new(5, 0, 1, 2),
-            Conn::new(5, 1, 0, 0),
-            Conn::new(6, 0, 3, 1),
-            Conn::new(6, 0, 4, 0),
+            Conn::new(3, 0, 2, 1),
+            Conn::new(2, 0, 4, 0),
+            Conn::new(3, 0, 5, 1),
+            Conn::new(4, 0, 6, 1),
+            Conn::new(5, 0, 7, 1),
+            Conn::new(6, 0, 7, 0),
+            Conn::new(7, 0, 6, 2),
+            Conn::new(6, 0, 8, 1),
+            Conn::new(7, 0, 9, 1),
+            Conn::new(6, 0, 1, 2),
+            Conn::new(7, 0, 0, 0),
+            Conn::new(8, 0, 10, 0),
+            Conn::new(8, 0, 10, 1),
+            Conn::new(9, 0, 11, 0),
+            Conn::new(9, 0, 11, 1),
+            Conn::new(12, 0, 4, 1),
+            Conn::new(12, 0, 5, 0),
+            Conn::new(13, 0, 6, 0),
+            Conn::new(13, 0, 9, 0),
+            Conn::new(14, 0, 7, 2),
+            Conn::new(14, 0, 8, 0),
         ])
         .in_addrs(vec![
+            // J
             (0, (0, 1)),
+            // CLK
+            (1, (12, 0)),
             (1, (0, 2)),
             (1, (1, 0)),
-            (1, (6, 0)),
+            // K
             (2, (1, 1)),
+            // PRESET
+            (3, (13, 0)),
+            // RESET
+            (4, (14, 0)),
         ])
-        .out_addrs(vec![(5, 0), (5, 1)])
+        .out_addrs(vec![
+            // Q
+            (10, 0),
+            // !Q
+            (11, 0),
+        ])
         .build()
 }
 
 fn main() {
-    let counter = ComponentBuilder::new("Counter")
-        .port_count(1, 1)
-        .sub_comps(vec![
-            high_const(),
-            jk_ff(),
-            jk_ff(),
-            jk_ff(),
-        ])
-        .connections(vec![
-            // Connect high constant
-            Conn::new(0, 0, 1, 0),
-            Conn::new(0, 0, 1, 2),
-            Conn::new(0, 0, 2, 0),
-            Conn::new(0, 0, 2, 2),
-            Conn::new(0, 0, 3, 0),
-            Conn::new(0, 0, 3, 2),
-            // Connect each JK flip flop Q output to next JK flip flop clock
-            Conn::new(1, 0, 2, 1),
-            Conn::new(2, 0, 3, 1),
-        ])
-        .in_addrs(vec![(0, (1, 1))])
-        .out_addrs(vec![(1, 0), (2, 0), (3, 0)])
-        // .out_addrs(vec![(1, 0)])
-        .build();
-
     let comp = ComponentBuilder::new("Main")
-        .sub_comps(vec![clock(1.0), counter])
-        .connections(vec![Conn::new(0, 0, 1, 0)])
+        .sub_comps(vec![clock(1.0)])
         .build();
-
     let flat = FlattenComponent::new(comp);
     let mut sim = Simulation::new(flat);
     sim.start();

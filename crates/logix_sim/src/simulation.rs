@@ -16,47 +16,8 @@ impl Simulation {
         }
     }
 
-    pub fn prepare(&mut self) {
-        // FIXME: this sometimes gets into a loop finding a stable initial
-        // state (specially is unk values are not selected random). Maybe
-        // a brute backtrack solves the problem.
-        update_values(&mut self.comp);
-        loop {
-            let unk_idexes: Vec<(usize, usize)> = self
-                .comp
-                .components
-                .iter()
-                .enumerate()
-                .filter_map(|(i, c)| {
-                    for (j, bit) in c.outputs.iter().enumerate() {
-                        println!("{:?}", bit);
-                        if *bit == UNK {
-                            return Some((i, j));
-                        }
-                    }
-                    None
-                })
-                .collect();
-
-            // self.comp.show_flat();
-            // std::io::stdin().read_line(&mut "".to_string());
-
-            if unk_idexes.is_empty() {
-                break;
-            }
-
-            let idx = unk_idexes[rand::random::<usize>() % unk_idexes.len()];
-            print!("{}[2J", 27 as char);
-            print!("{esc}[2J{esc}[1;1H", esc = 27 as char);
-            self.comp.show_flat();
-            self.comp.components[idx.0].outputs[idx.1] = ZERO;
-            propagate_from(&mut self.comp, idx.0);
-        }
-    }
-
     /// Starts the simulation.
     pub fn start(&mut self) {
-        self.prepare();
         self.running = true;
 
         let start = Instant::now();
@@ -73,51 +34,6 @@ impl Simulation {
     }
 }
 
-fn one_step_output_porpagation(main: &mut FlattenComponent, idx: usize) {
-    for conn in main.connections.iter().filter(|c| idx_of(c.from) == idx) {
-        let val = main.components[idx].outputs[addr_of(conn.from)];
-        println!("{:?} {:?}", val, conn);
-        if val == UNK {
-            continue;
-        }
-        let old_val = main.components[idx_of(conn.to)].inputs[addr_of(conn.to)];
-        if old_val == UNK {
-            println!(
-                "Setting {:?} on [{},{}]",
-                val,
-                idx_of(conn.to),
-                addr_of(conn.to)
-            );
-            main.components[idx_of(conn.to)].inputs[addr_of(conn.to)] = val;
-        } else if old_val != val {
-            panic!("Contradiction");
-        }
-    }
-}
-
-fn propagate_from(main: &mut FlattenComponent, idx: usize) {
-    let mut visit = vec![false; main.components.len()];
-    visit[idx] = true;
-    let mut queue = std::collections::VecDeque::new();
-
-    one_step_output_porpagation(main, idx);
-    for dep in main.inv_deps[idx].iter().filter(|d| !visit[**d]) {
-        queue.push_back(dep);
-    }
-
-    while !queue.is_empty() {
-        let current_idx = *queue.pop_front().unwrap();
-        if visit[current_idx] {
-            continue;
-        }
-        update_comp(&mut main.components[current_idx]);
-        main.show_flat();
-        visit[current_idx] = true;
-        for dep in main.inv_deps[current_idx].iter() {
-            queue.push_back(dep);
-        }
-    }
-}
 
 fn update_time(main: &mut FlattenComponent, time: u128) -> bool {
     let mut dirty = false;
