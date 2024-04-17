@@ -97,9 +97,18 @@ fn ms_jk() -> Component<Bit> {
 
 fn main() {
     let comp = ComponentBuilder::new("Main")
-        .sub_comps(vec![clock(1.0)])
+        .sub_comps(vec![clock(1.0), ms_jk(), clock(3.0), high_const()])
+        .connections(
+            vec![
+                Conn::new(0, 0, 1, 1),
+                Conn::new(2, 0, 1, 4),
+                Conn::new(3, 0, 1, 0),
+            ]
+        )
         .build();
     let flat = FlattenComponent::new(comp);
+
+    println!("{:?}", flat);
     let mut sim = Simulation::new(flat);
     sim.start();
 }
