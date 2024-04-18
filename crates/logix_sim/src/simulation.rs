@@ -14,27 +14,13 @@ pub struct Simulation {
 impl Simulation {
     pub fn new(comp: FlattenComponent) -> Self {
         let count = comp.components.len();
-        let clock_idxs = comp
-            .components
-            .iter()
-            .enumerate()
-            .filter_map(|(idx, comp)| {
-                if let Primitive::Clock = Primitive::from_name(&comp.name) {
-                    Some(idx)
-                } else {
-                    None
-                }
-            })
-            .collect::<Vec<_>>();
 
-        let mut needs_update = vec![false; count];
-        for &idx in &clock_idxs {
-            needs_update[idx] = true;
-        }
+        let upd_queue = (0..count).collect::<Vec<usize>>();
+        let needs_update = vec![true; count];
         Simulation {
             comp,
             running: false,
-            upd_queue: clock_idxs,
+            upd_queue: upd_queue,
             needs_update: needs_update,
         }
     }
@@ -45,14 +31,16 @@ impl Simulation {
 
         let start = Instant::now();
         while self.upd_queue.len() > 0 {
+            println!("Comp to upd: {:?}", self.upd_queue.iter().map(|x| self.comp.components[*x].name.to_string()).collect::<Vec<String>>());
             let time = start.elapsed().as_nanos();
 
             let rand_idx = rand::random::<usize>() % self.upd_queue.len();
             let comp_idx = self.upd_queue[rand_idx];
             let comp = &mut self.comp.components[comp_idx];
-            update_comp(comp, time);
+            let c_type = &self.comp.c_types[comp_idx];
+            update_comp(comp, c_type, time);
 
-            if Primitive::Clock != Primitive::from_name(&comp.name) {
+            if *c_type != Primitive::Clock {
                 self.upd_queue.remove(rand_idx);
                 self.needs_update[comp_idx] = false;
             }
@@ -64,6 +52,7 @@ impl Simulation {
                 .filter(|conn| conn.from.0 == comp_idx)
             {
                 let val = self.comp.components[comp_idx].outputs[conn.from.1];
+                println!("Val: {:?}", val);
 
                 // Do not update if the value is the same
                 if val == self.comp.components[conn.to.0].inputs[conn.to.1] {
@@ -85,14 +74,14 @@ impl Simulation {
     }
 }
 
-fn update_comp(comp: &mut Component<Bit>, time: u128) {
-    match Primitive::from_name(&comp.name) {
+fn update_comp(comp: &mut Component<Bit>, c_type: &Primitive, time: u128) {
+    match c_type {
         Primitive::NotGate => comp.outputs[0] = !comp.inputs[0],
         Primitive::AndGate => {
             let mut out = comp.inputs[0];
             for bit in &comp.inputs[1..comp.inputs.len()] {
                 out = out & *bit;
-                if out == ZERO {
+                if !out {
                     break;
                 }
             }
@@ -131,7 +120,7 @@ fn update_comp(comp: &mut Component<Bit>, time: u128) {
             let interv =
                 u128::from_ne_bytes(comp.info.as_slice().try_into().expect("Wrong clock info"));
             let val = (time % (interv * 2)) > interv;
-            comp.outputs[0] = val.into();
+            comp.outputs[0] = val;
         }
         Primitive::HighConst => (),
         Primitive::LowConst => (),

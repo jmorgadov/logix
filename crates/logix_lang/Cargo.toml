@@ -1,0 +1,17 @@
+[package]
+name = "logix_lang"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+logix_core = { path = "../logix_core" }
+logix_sim = { path = "../logix_sim" }
+lalrpop-util = "0.20.2"
+
+[build-dependencies]
+lalrpop = "0.20.2"
+
+[env]
+OUT_DIR = "./"

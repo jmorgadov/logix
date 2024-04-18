@@ -108,7 +108,7 @@ fn main() {
         .build();
     let flat = FlattenComponent::new(comp);
 
-    println!("{:?}", flat);
+    // println!("{:?}", flat);
     let mut sim = Simulation::new(flat);
     sim.start();
 }

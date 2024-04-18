@@ -1,4 +1,4 @@
-use crate::bit::{Bit, ZERO, ONE};
+use crate::bit::Bit;
 use super::prelude::Primitive;
 use logix_core::prelude::*;
 
@@ -89,6 +89,24 @@ pub fn nor_gate(in_count: usize) -> Component<Bit> {
     base_component(&Primitive::NorGate.to_string(), in_count, 1)
 }
 
+
+/// Creates a XOR gate component.
+/// 
+/// # Arguments
+/// 
+/// * `in_count` - Amount of input ports.
+/// 
+/// # Example
+/// 
+/// ```
+/// # use logix_sim::primitives::prelude::*;
+/// #
+/// let comp = xor_gate(2);
+/// ```
+pub fn xor_gate(in_count: usize) -> Component<Bit> {
+    base_component(&Primitive::XorGate.to_string(), in_count, 1)
+}
+
 /// Creates a Clock component.
 ///
 /// # Arguments
@@ -108,7 +126,7 @@ pub fn clock(frec: f64) -> Component<Bit> {
         .port_count(0, 1)
         .info(frec_in_nano.to_ne_bytes().to_vec())
         .build();
-    comp.outputs[0] = ZERO;
+    comp.outputs[0] = false;
     comp
 }
 
@@ -123,7 +141,7 @@ pub fn clock(frec: f64) -> Component<Bit> {
 /// ```
 pub fn high_const() -> Component<Bit> {
     let mut comp = base_component(&Primitive::HighConst.to_string(), 0, 1);
-    comp.outputs[0] = ONE;
+    comp.outputs[0] = true;
     comp
 }
 
@@ -138,6 +156,6 @@ pub fn high_const() -> Component<Bit> {
 /// ```
 pub fn low_const() -> Component<Bit> {
     let mut comp = base_component(&Primitive::HighConst.to_string(), 0, 1);
-    comp.outputs[0] = ZERO;
+    comp.outputs[0] = false;
     comp
 }

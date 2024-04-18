@@ -1,0 +1,90 @@
+use std::str::FromStr;
+use std::collections::HashMap;
+use crate::ast::prelude::*;
+
+grammar;
+
+pub ID: String = {
+    <s:r"[a-zA-Z_][a-zA-Z0-9_]*"> => s.to_string(),
+};
+
+Num: usize = <s:r"[0-9]+"> => s.parse::<usize>().unwrap();
+Float: f64 = <s:r"[0-9]+\.[0-9]+"> => f64::from_str(s).unwrap();
+
+pub PinAddr: PinAddr = {
+    <comp:ID> => PinAddr::External(comp),
+    <comp:ID> "." <pin:Num> => PinAddr::InternalIdx(comp, pin),
+    <comp:ID> "." <pin:ID> => PinAddr::InternalName(comp, pin),
+};
+
+pub Conn: ConnDecl = {
+    <src:PinAddr> "->" <dest:PinAddr> => ConnDecl { src, dest },
+};
+
+pub ConnItems: Vec<ConnDecl> = {
+    <c:Conn> => vec![c],
+    <c:Conn> "," <cs:ConnItems> => {
+        vec![c].into_iter().chain(cs.into_iter()).collect()
+    },
+}
+
+pub CompInst: Comp = {
+    <name:ID> => Comp::from_name(&name, 0, 0.0),
+    <name:ID> "(" <n:Num> ")" => Comp::from_name(&name, n, 0.0),
+    <name:ID> "(" <f:Float> ")" => Comp::from_name(&name, 0, f),
+}
+
+pub SubcItems: Vec<(String, Comp)> = {
+    <name:ID> ":" <comp:CompInst> => vec![(name, comp)],
+    <name:ID> ":" <comp:CompInst> "," <cs:SubcItems> => {
+        cs.into_iter().chain(vec![(name, comp)].into_iter()).collect()
+    },
+}
+
+pub SubcDecl: HashMap<String, Comp> = {
+    "subc" "(" <cs:SubcItems> ")" => {
+        let mut map = HashMap::new();
+        for (name, comp) in cs {
+            map.insert(name, comp);
+        }
+        map
+    },
+}
+
+pub DesignDecl: Vec<ConnDecl> = {
+    "design" "(" <cs:ConnItems> ")" => cs,
+}
+
+pub IDItems: Vec<String> = {
+    <name:ID> => vec![name],
+    <name:ID> "," <ns:IDItems> => {
+        vec![name].into_iter().chain(ns.into_iter()).collect()
+    },
+}
+
+pub InsDecl: Vec<String> = {
+    "ins" "(" ")" => vec![],
+    "ins" "(" <ins:IDItems> ")" => ins,
+}
+
+pub OutsDecl: Vec<String> = {
+    "outs" "(" ")" => vec![],
+    "outs" "(" <outs:IDItems> ")" => outs,
+}
+
+pub CompDecl: CompDecl = {
+    <name:ID> "(" <subc:SubcDecl> <ins:InsDecl> <outs:OutsDecl> <design:DesignDecl> ")" => CompDecl { name, subc, ins, outs, design },
+}
+
+pub CompDeclItems: Vec<CompDecl> = {
+    <c:CompDecl> => vec![c],
+}
+
+pub Circuit: Circuit = {
+    <c:CompDecl> => Circuit { comps: vec![c] },
+    <c:CompDecl> <cs:Circuit> => {
+        let mut comps = vec![c];
+        comps.extend(cs.comps);
+        Circuit { comps }
+    },
+};

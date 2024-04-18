@@ -1,4 +1,4 @@
-use crate::bit::{fmt_bit, Bit};
+use crate::{bit::{fmt_bit, Bit}, primitives::prelude::Primitive};
 use logix_core::prelude::*;
 
 #[derive(Debug)]
@@ -10,6 +10,7 @@ pub enum NestedConfig {
 #[derive(Debug)]
 pub struct FlattenComponent {
     pub components: Vec<Component<Bit>>,
+    pub c_types: Vec<Primitive>,
     pub connections: Vec<Conn>,
     pub deps: Vec<Vec<usize>>,
     pub inv_deps: Vec<Vec<usize>>,
@@ -52,8 +53,11 @@ impl FlattenComponent {
             })
             .collect();
 
+        let c_types = components.iter().map(|c| Primitive::from_name(&c.name)).collect();
+
         FlattenComponent {
             components,
+            c_types,
             connections,
             deps,
             inv_deps,
