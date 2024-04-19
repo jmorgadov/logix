@@ -31,13 +31,13 @@ impl Simulation {
 
         let start = Instant::now();
         while self.upd_queue.len() > 0 {
-            println!("Comp to upd: {:?}", self.upd_queue.iter().map(|x| self.comp.components[*x].name.to_string()).collect::<Vec<String>>());
             let time = start.elapsed().as_nanos();
 
             let rand_idx = rand::random::<usize>() % self.upd_queue.len();
             let comp_idx = self.upd_queue[rand_idx];
             let comp = &mut self.comp.components[comp_idx];
             let c_type = &self.comp.c_types[comp_idx];
+
             update_comp(comp, c_type, time);
 
             if *c_type != Primitive::Clock {
@@ -52,7 +52,6 @@ impl Simulation {
                 .filter(|conn| conn.from.0 == comp_idx)
             {
                 let val = self.comp.components[comp_idx].outputs[conn.from.1];
-                println!("Val: {:?}", val);
 
                 // Do not update if the value is the same
                 if val == self.comp.components[conn.to.0].inputs[conn.to.1] {
@@ -113,7 +112,7 @@ fn update_comp(comp: &mut Component<Bit>, c_type: &Primitive, time: u128) {
             for bit in &comp.inputs[1..comp.inputs.len()] {
                 out = out ^ *bit;
             }
-            comp.inputs[0] = out;
+            comp.outputs[0] = out;
         }
         // No update needed
         Primitive::Clock => {
