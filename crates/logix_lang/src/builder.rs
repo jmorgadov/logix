@@ -149,7 +149,7 @@ fn get_connections(
                 }
 
                 in_addrs.push((in_idx, (subc_idx, idx)));
-                debug!("|    In addr created: {:?}", in_addrs[in_idx]);
+                debug!("|    In addr created: {:?}", in_addrs.last().unwrap());
             }
             //
             // From internal component to output pin
@@ -172,7 +172,7 @@ fn get_connections(
                 }
 
                 out_addrs[out_idx] = (subc_idx, idx);
-                debug!("|    Out addr created: {:?}", out_addrs[out_idx]);
+                debug!("|    Out addr created: {:?}", out_addrs.last().unwrap());
             }
             //
             // From internal to internal component
