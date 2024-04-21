@@ -1,10 +1,27 @@
-use crate::bit::Bit;
 use super::prelude::Primitive;
+use crate::bit::BitArray;
 use logix_core::prelude::*;
 
-fn base_component(name: &str, in_count: usize, out_count: usize) -> Component<Bit> {
+#[derive(Debug, Clone, Default)]
+pub enum BaseExtra {
+    #[default]
+    NoExtra,
+    Clock(u128),
+}
+
+fn base_component(name: &str, in_count: usize, out_count: usize) -> Component<BitArray, BaseExtra> {
+    base_component_extra(name, in_count, out_count, BaseExtra::NoExtra)
+}
+
+fn base_component_extra(
+    name: &str,
+    in_count: usize,
+    out_count: usize,
+    info: BaseExtra,
+) -> Component<BitArray, BaseExtra> {
     ComponentBuilder::new(name)
         .port_count(in_count, out_count)
+        .extra(info)
         .build()
 }
 
@@ -17,7 +34,7 @@ fn base_component(name: &str, in_count: usize, out_count: usize) -> Component<Bi
 /// #
 /// let comp = not_gate();
 /// ```
-pub fn not_gate() -> Component<Bit> {
+pub fn not_gate() -> Component<BitArray, BaseExtra> {
     base_component(&Primitive::NotGate.to_string(), 1, 1)
 }
 
@@ -34,7 +51,7 @@ pub fn not_gate() -> Component<Bit> {
 /// #
 /// let comp = and_gate(2);
 /// ```
-pub fn and_gate(in_count: usize) -> Component<Bit> {
+pub fn and_gate(in_count: usize) -> Component<BitArray, BaseExtra> {
     base_component(&Primitive::AndGate.to_string(), in_count, 1)
 }
 
@@ -51,7 +68,7 @@ pub fn and_gate(in_count: usize) -> Component<Bit> {
 /// #
 /// let comp = or_gate(2);
 /// ```
-pub fn or_gate(in_count: usize) -> Component<Bit> {
+pub fn or_gate(in_count: usize) -> Component<BitArray, BaseExtra> {
     base_component(&Primitive::OrGate.to_string(), in_count, 1)
 }
 
@@ -68,7 +85,7 @@ pub fn or_gate(in_count: usize) -> Component<Bit> {
 /// #
 /// let comp = nand_gate(2);
 /// ```
-pub fn nand_gate(in_count: usize) -> Component<Bit> {
+pub fn nand_gate(in_count: usize) -> Component<BitArray, BaseExtra> {
     base_component(&Primitive::NandGate.to_string(), in_count, 1)
 }
 
@@ -85,25 +102,24 @@ pub fn nand_gate(in_count: usize) -> Component<Bit> {
 /// #
 /// let comp = nor_gate(2);
 /// ```
-pub fn nor_gate(in_count: usize) -> Component<Bit> {
+pub fn nor_gate(in_count: usize) -> Component<BitArray, BaseExtra> {
     base_component(&Primitive::NorGate.to_string(), in_count, 1)
 }
 
-
 /// Creates a XOR gate component.
-/// 
+///
 /// # Arguments
-/// 
+///
 /// * `in_count` - Amount of input ports.
-/// 
+///
 /// # Example
-/// 
+///
 /// ```
 /// # use logix_sim::primitives::prelude::*;
 /// #
 /// let comp = xor_gate(2);
 /// ```
-pub fn xor_gate(in_count: usize) -> Component<Bit> {
+pub fn xor_gate(in_count: usize) -> Component<BitArray, BaseExtra> {
     base_component(&Primitive::XorGate.to_string(), in_count, 1)
 }
 
@@ -120,13 +136,15 @@ pub fn xor_gate(in_count: usize) -> Component<Bit> {
 /// #
 /// let comp = clock(4.0); // 4Hz - 250ms
 /// ```
-pub fn clock(frec: f64) -> Component<Bit> {
+pub fn clock(frec: f64) -> Component<BitArray, BaseExtra> {
     let frec_in_nano = (1e9 / frec) as u128;
-    let mut comp = ComponentBuilder::new(&Primitive::Clock.to_string())
-        .port_count(0, 1)
-        .info(frec_in_nano.to_ne_bytes().to_vec())
-        .build();
-    comp.outputs[0] = false;
+    let mut comp = base_component_extra(
+        &Primitive::Clock.to_string(),
+        0,
+        1,
+        BaseExtra::Clock(frec_in_nano),
+    );
+    comp.outputs[0].set(0);
     comp
 }
 
@@ -139,9 +157,9 @@ pub fn clock(frec: f64) -> Component<Bit> {
 /// #
 /// let comp = high_const();
 /// ```
-pub fn high_const() -> Component<Bit> {
+pub fn high_const() -> Component<BitArray, BaseExtra> {
     let mut comp = base_component(&Primitive::HighConst.to_string(), 0, 1);
-    comp.outputs[0] = true;
+    comp.outputs[0].set(1);
     comp
 }
 
@@ -154,8 +172,8 @@ pub fn high_const() -> Component<Bit> {
 /// #
 /// let comp = low_const();
 /// ```
-pub fn low_const() -> Component<Bit> {
+pub fn low_const() -> Component<BitArray, BaseExtra> {
     let mut comp = base_component(&Primitive::HighConst.to_string(), 0, 1);
-    comp.outputs[0] = false;
+    comp.outputs[0].set(0);
     comp
 }

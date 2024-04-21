@@ -66,7 +66,10 @@ impl Simulation {
                     continue;
                 }
 
-                debug!("New comp to update: {:?}", self.comp.components[conn.to.0].name);
+                debug!(
+                    "New comp to update: {:?}",
+                    self.comp.components[conn.to.0].name
+                );
 
                 // Update the value
                 self.comp.components[conn.to.0].inputs[conn.to.1] = val;
@@ -76,63 +79,46 @@ impl Simulation {
                 }
             }
 
+            let time2 = start.elapsed().as_nanos();
+
             print!("{}[2J", 27 as char);
             print!("{esc}[2J{esc}[1;1H", esc = 27 as char);
+
+            println!("Time: {}ms", (time2 - time) as f64 / 1_000_000.0);
             self.comp.show();
         }
     }
 }
 
-fn update_comp(comp: &mut Component<Bit>, c_type: &Primitive, time: u128) {
+fn update_comp(comp: &mut Component<BitArray, BaseExtra>, c_type: &Primitive, time: u128) {
     match c_type {
         Primitive::NotGate => comp.outputs[0] = !comp.inputs[0],
         Primitive::AndGate => {
-            let mut out = comp.inputs[0];
-            for bit in &comp.inputs[1..comp.inputs.len()] {
-                out = out & *bit;
-                if !out {
-                    break;
-                }
-            }
-            comp.outputs[0] = out;
+            comp.outputs[0].set_bits(comp.inputs.iter().fold(1, |acc, f| acc & f.get_bits()));
         }
         Primitive::NandGate => {
-            let mut out = comp.inputs[0];
-            for bit in &comp.inputs[1..comp.inputs.len()] {
-                out = out & *bit;
-            }
-            comp.outputs[0] = !out;
+            comp.outputs[0].set_bits(!comp.inputs.iter().fold(1, |acc, f| acc & f.get_bits()));
         }
         Primitive::OrGate => {
-            let mut out = comp.inputs[0];
-            for bit in &comp.inputs[1..comp.inputs.len()] {
-                out = out | *bit;
-            }
-            comp.outputs[0] = out;
+            comp.outputs[0].set_bits(comp.inputs.iter().fold(0, |acc, f| acc | f.get_bits()));
         }
         Primitive::NorGate => {
-            let mut out = comp.inputs[0];
-            for bit in &comp.inputs[1..comp.inputs.len()] {
-                out = out | *bit;
-            }
-            comp.outputs[0] = !out;
+            comp.outputs[0].set_bits(!comp.inputs.iter().fold(0, |acc, f| acc | f.get_bits()));
         }
         Primitive::XorGate => {
-            let mut out = comp.inputs[0];
-            for bit in &comp.inputs[1..comp.inputs.len()] {
-                out = out ^ *bit;
-            }
-            comp.outputs[0] = out;
+            comp.outputs[0].set_bits(comp.inputs.iter().fold(0, |acc, f| acc ^ f.get_bits()));
         }
         // No update needed
         Primitive::Clock => {
-            let interv =
-                u128::from_ne_bytes(comp.info.as_slice().try_into().expect("Wrong clock info"));
-            let val = (time % (interv * 2)) > interv;
-            comp.outputs[0] = val;
+            if let BaseExtra::Clock(frec) = comp.extra {
+                let val = (time % (frec * 2)) > frec;
+                comp.outputs[0].set_bit(0, val);
+            } else {
+                panic!("Clock component without frec information");
+            }
         }
         Primitive::HighConst => (),
         Primitive::LowConst => (),
-        Primitive::Unknown => panic!("Unreashable"),
+        Primitive::Unknown => unreachable!(),
     }
 }

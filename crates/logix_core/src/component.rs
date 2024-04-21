@@ -1,3 +1,5 @@
+use std::default::Default;
+
 /// Represents a location of a port inside a Component.
 ///
 /// The first item is the index of the component in the sub-components vector.
@@ -53,9 +55,9 @@ impl Conn {
 
 /// Holds all the information of the sub-components of a component.
 #[derive(Default, Debug)]
-pub struct SubComponent<T: Default + Clone> {
+pub struct SubComponent<T: Default + Clone, E: Default + Clone> {
     /// Vector of sub-components.
-    pub components: Vec<Component<T>>,
+    pub components: Vec<Component<T, E>>,
 
     /// Vector that holds the connections between the sub-components.
     pub connections: Vec<Conn>,
@@ -72,7 +74,7 @@ pub struct SubComponent<T: Default + Clone> {
 
 /// Represents a component.
 #[derive(Default, Debug)]
-pub struct Component<T: Default + Clone> {
+pub struct Component<T: Default + Clone, E: Default + Clone> {
     /// Name of the component.
     pub name: String,
 
@@ -85,11 +87,10 @@ pub struct Component<T: Default + Clone> {
     /// Option that holds the sub-component information.
     ///
     /// If None, then the component is consider a base component.
-    pub sub: Option<SubComponent<T>>,
+    pub sub: Option<SubComponent<T, E>>,
 
-    /// General info the component can hold as a byte array. It can be seen as
-    /// an internal memory.
-    pub info: Vec<u8>,
+    // Extra information
+    pub extra: E,
 }
 
 /// Component builder.
@@ -102,19 +103,19 @@ pub struct Component<T: Default + Clone> {
 /// let and_gate = ComponentBuilder::<bool>::new("AND").port_count(2, 1).build();
 /// ```
 #[derive(Default)]
-pub struct ComponentBuilder<T: Default + Clone> {
+pub struct ComponentBuilder<T: Default + Clone, E: Default + Clone> {
     name: String,
     inputs: Vec<T>,
     outputs: Vec<T>,
 
-    sub_comps: Option<Vec<Component<T>>>,
+    sub_comps: Option<Vec<Component<T, E>>>,
     connections: Option<Vec<Conn>>,
     in_addrs: Option<Vec<(usize, PortAddr)>>,
     out_addrs: Option<Vec<PortAddr>>,
-    info: Vec<u8>,
+    extra: E,
 }
 
-impl<T: Default + Clone> ComponentBuilder<T> {
+impl<T: Default + Clone, E: Default + Clone> ComponentBuilder<T, E> {
     /// Creates a new [`ComponentBuilder`]
     pub fn new(name: &str) -> Self {
         ComponentBuilder {
@@ -125,7 +126,7 @@ impl<T: Default + Clone> ComponentBuilder<T> {
             connections: None,
             in_addrs: None,
             out_addrs: None,
-            info: vec![],
+            extra: Default::default(),
         }
     }
 
@@ -166,7 +167,7 @@ impl<T: Default + Clone> ComponentBuilder<T> {
     /// # Arguments
     ///
     /// * `sub_comps`: Vector of [`Components`] that holds all the sub-components.
-    pub fn sub_comps(mut self, sub_comps: Vec<Component<T>>) -> Self {
+    pub fn sub_comps(mut self, sub_comps: Vec<Component<T, E>>) -> Self {
         self.sub_comps = Some(sub_comps);
         self
     }
@@ -202,18 +203,18 @@ impl<T: Default + Clone> ComponentBuilder<T> {
         self
     }
 
-    /// Sets the information the component will hold.
+    /// Sets the extra information the component will hold.
     ///
     /// # Arguments
     ///
-    /// * `info`: Vector of bytes that holds the component information.
-    pub fn info(mut self, info: Vec<u8>) -> Self {
-        self.info = info;
+    /// * `extra`: E
+    pub fn extra(mut self, extra: E) -> Self {
+        self.extra = extra;
         self
     }
 
     /// Builds the [`Component`].
-    pub fn build(self) -> Component<T> {
+    pub fn build(self) -> Component<T, E> {
         // Build dependency map
         let mut dep_map: Option<Vec<Vec<usize>>> = None;
         if let Some(sub_comps) = &self.sub_comps {
@@ -272,7 +273,7 @@ impl<T: Default + Clone> ComponentBuilder<T> {
             name: self.name,
             inputs: self.inputs,
             outputs: self.outputs,
-            info: self.info,
+            extra: self.extra,
             sub,
         }
     }

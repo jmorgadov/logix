@@ -4,9 +4,9 @@ use thiserror::Error;
 
 use logix_core::component::{Component, ComponentBuilder, Conn, PortAddr};
 use logix_sim::{
-    bit::Bit,
+    bit::BitArray,
     primitives::primitive_builders::{
-        and_gate, clock, high_const, low_const, nand_gate, not_gate, or_gate, xor_gate,
+        and_gate, clock, high_const, low_const, nand_gate, not_gate, or_gate, xor_gate, BaseExtra,
     },
 };
 
@@ -36,7 +36,7 @@ pub enum BuildError {
     InternalPinError(String, usize),
 }
 
-pub fn circuit_to_comp(circuit: Circuit) -> Result<Component<Bit>, BuildError> {
+pub fn circuit_to_comp(circuit: Circuit) -> Result<Component<BitArray, BaseExtra>, BuildError> {
     let main = circuit
         .comps
         .iter()
@@ -59,7 +59,7 @@ pub fn circuit_to_comp(circuit: Circuit) -> Result<Component<Bit>, BuildError> {
 fn comp_decl_to_comp(
     comp: &CompDecl,
     comp_map: &HashMap<String, &CompDecl>,
-) -> Result<Component<Bit>, BuildError> {
+) -> Result<Component<BitArray, BaseExtra>, BuildError> {
     let subc_map: HashMap<String, usize> = comp
         .subc
         .iter()
@@ -67,7 +67,7 @@ fn comp_decl_to_comp(
         .map(|(idx, (name, _))| (name.clone(), idx))
         .collect();
 
-    let subc: Vec<Component<Bit>> = comp
+    let subc: Vec<Component<BitArray, BaseExtra>> = comp
         .subc
         .iter()
         .map(|(_, sub_comp)| {
@@ -92,7 +92,7 @@ fn comp_decl_to_comp(
             };
             sub_c
         })
-        .collect::<Result<Vec<Component<Bit>>, BuildError>>()?;
+        .collect::<Result<Vec<Component<BitArray, BaseExtra>>, BuildError>>()?;
 
     let (in_addrs, out_addrs, conns) = get_connections(comp, &subc, &subc_map, comp_map)?;
 
@@ -107,7 +107,7 @@ fn comp_decl_to_comp(
 
 fn get_connections(
     comp: &CompDecl,
-    subc: &Vec<Component<Bit>>,
+    subc: &Vec<Component<BitArray, BaseExtra>>,
     subc_map: &HashMap<String, usize>,
     comp_map: &HashMap<String, &CompDecl>,
 ) -> Result<(Vec<(usize, PortAddr)>, Vec<PortAddr>, Vec<Conn>), BuildError> {
