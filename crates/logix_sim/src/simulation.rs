@@ -1,4 +1,5 @@
 use crate::{bit::*, flattener::FlattenComponent, primitives::prelude::*};
+use log::debug;
 use logix_core::prelude::*;
 use std::time::Instant;
 
@@ -7,7 +8,7 @@ pub struct Simulation {
     comp: FlattenComponent,
     running: bool,
 
-    upd_queue: Vec<usize>,
+    upd_list: Vec<usize>,
     needs_update: Vec<bool>,
 }
 
@@ -20,7 +21,7 @@ impl Simulation {
         Simulation {
             comp,
             running: false,
-            upd_queue: upd_queue,
+            upd_list: upd_queue,
             needs_update: needs_update,
         }
     }
@@ -30,18 +31,25 @@ impl Simulation {
         self.running = true;
 
         let start = Instant::now();
-        while self.upd_queue.len() > 0 {
+        while self.upd_list.len() > 0 {
             let time = start.elapsed().as_nanos();
 
-            let rand_idx = rand::random::<usize>() % self.upd_queue.len();
-            let comp_idx = self.upd_queue[rand_idx];
-            let comp = &mut self.comp.components[comp_idx];
-            let c_type = &self.comp.c_types[comp_idx];
+            debug!("Update list: {:?}", self.upd_list);
 
+            let rand_idx = rand::random::<usize>() % self.upd_list.len();
+            let comp_idx = self.upd_list[rand_idx];
+            let comp = &mut self.comp.components[comp_idx];
+
+            debug!("Updating component: {:?}", comp.name);
+            debug!("  Old outputs: {:?}", comp.outputs);
+
+            let c_type = &self.comp.c_types[comp_idx];
             update_comp(comp, c_type, time);
 
+            debug!("  New outputs: {:?}", comp.outputs);
+
             if *c_type != Primitive::Clock {
-                self.upd_queue.remove(rand_idx);
+                self.upd_list.remove(rand_idx);
                 self.needs_update[comp_idx] = false;
             }
 
@@ -58,10 +66,12 @@ impl Simulation {
                     continue;
                 }
 
+                debug!("New comp to update: {:?}", self.comp.components[conn.to.0].name);
+
                 // Update the value
                 self.comp.components[conn.to.0].inputs[conn.to.1] = val;
                 if !self.needs_update[conn.to.0] {
-                    self.upd_queue.push(conn.to.0);
+                    self.upd_list.push(conn.to.0);
                     self.needs_update[conn.to.0] = true;
                 }
             }
