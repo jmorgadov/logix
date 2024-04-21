@@ -320,6 +320,7 @@ dependencies = [
  "log",
  "logix_core",
  "rand",
+ "thiserror",
 ]
 
 [[package]]

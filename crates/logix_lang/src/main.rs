@@ -46,7 +46,14 @@ fn main() {
         }
     };
 
-    let flat = FlattenComponent::new(comp);
+    let flat = match FlattenComponent::new(comp) {
+        Ok(flat) => flat,
+        Err(e) => {
+            error!("Error: {}", e);
+            return;
+        }
+    };
+
     let mut sim = Simulation::new(flat);
     sim.start();
 }
