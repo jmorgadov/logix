@@ -1,4 +1,7 @@
-use std::{collections::HashMap, fmt::{Display, Formatter}};
+use std::{
+    collections::HashMap,
+    fmt::{Display, Formatter},
+};
 
 #[derive(Debug)]
 pub enum Primitive {
@@ -10,7 +13,7 @@ pub enum Primitive {
     Nor(usize),
     Clock(f64),
     HighConst,
-    LowConst
+    LowConst,
 }
 
 impl Display for Primitive {
@@ -22,7 +25,7 @@ impl Display for Primitive {
 #[derive(Debug)]
 pub enum Comp {
     Primitive(Primitive),
-    Composite(String)
+    Composite(String),
 }
 
 impl Comp {
@@ -37,13 +40,12 @@ impl Comp {
             "Clock" => Comp::Primitive(Primitive::Clock(clock_frec)),
             "High" => Comp::Primitive(Primitive::HighConst),
             "Low" => Comp::Primitive(Primitive::LowConst),
-            _ => Comp::Composite(name.to_string())
+            _ => Comp::Composite(name.to_string()),
         }
     }
-
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum PinAddr {
     External(String),
     InternalName(String, String),
@@ -53,7 +55,7 @@ pub enum PinAddr {
 #[derive(Debug)]
 pub struct ConnDecl {
     pub src: PinAddr,
-    pub dest: PinAddr
+    pub dest: PinAddr,
 }
 
 #[derive(Debug)]
@@ -62,20 +64,19 @@ pub struct CompDecl {
     pub subc: HashMap<String, Comp>,
     pub ins: Vec<String>,
     pub outs: Vec<String>,
-    pub design: Vec<ConnDecl>
+    pub design: Vec<ConnDecl>,
 }
 
 #[derive(Debug)]
 pub struct Circuit {
-    pub comps: Vec<CompDecl>
+    pub comps: Vec<CompDecl>,
 }
 
-
 pub mod prelude {
-    pub use super::Primitive;
+    pub use super::Circuit;
     pub use super::Comp;
     pub use super::CompDecl;
-    pub use super::Circuit;
-    pub use super::PinAddr;
     pub use super::ConnDecl;
+    pub use super::PinAddr;
+    pub use super::Primitive;
 }
