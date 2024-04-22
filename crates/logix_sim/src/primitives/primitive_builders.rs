@@ -1,5 +1,5 @@
 use super::prelude::Primitive;
-use crate::bit::BitArray;
+use crate::bit::Bit;
 use logix_core::prelude::*;
 
 #[derive(Debug, Clone, Default)]
@@ -9,7 +9,7 @@ pub enum BaseExtra {
     Clock(u128),
 }
 
-fn base_component(name: &str, in_count: usize, out_count: usize) -> Component<BitArray, BaseExtra> {
+fn base_component(name: &str, in_count: usize, out_count: usize) -> Component<Bit, BaseExtra> {
     base_component_extra(name, in_count, out_count, BaseExtra::NoExtra)
 }
 
@@ -18,7 +18,7 @@ fn base_component_extra(
     in_count: usize,
     out_count: usize,
     info: BaseExtra,
-) -> Component<BitArray, BaseExtra> {
+) -> Component<Bit, BaseExtra> {
     ComponentBuilder::new(name)
         .port_count(in_count, out_count)
         .extra(info)
@@ -34,7 +34,7 @@ fn base_component_extra(
 /// #
 /// let comp = not_gate();
 /// ```
-pub fn not_gate() -> Component<BitArray, BaseExtra> {
+pub fn not_gate() -> Component<Bit, BaseExtra> {
     base_component(&Primitive::NotGate.to_string(), 1, 1)
 }
 
@@ -51,7 +51,7 @@ pub fn not_gate() -> Component<BitArray, BaseExtra> {
 /// #
 /// let comp = and_gate(2);
 /// ```
-pub fn and_gate(in_count: usize) -> Component<BitArray, BaseExtra> {
+pub fn and_gate(in_count: usize) -> Component<Bit, BaseExtra> {
     base_component(&Primitive::AndGate.to_string(), in_count, 1)
 }
 
@@ -68,7 +68,7 @@ pub fn and_gate(in_count: usize) -> Component<BitArray, BaseExtra> {
 /// #
 /// let comp = or_gate(2);
 /// ```
-pub fn or_gate(in_count: usize) -> Component<BitArray, BaseExtra> {
+pub fn or_gate(in_count: usize) -> Component<Bit, BaseExtra> {
     base_component(&Primitive::OrGate.to_string(), in_count, 1)
 }
 
@@ -85,7 +85,7 @@ pub fn or_gate(in_count: usize) -> Component<BitArray, BaseExtra> {
 /// #
 /// let comp = nand_gate(2);
 /// ```
-pub fn nand_gate(in_count: usize) -> Component<BitArray, BaseExtra> {
+pub fn nand_gate(in_count: usize) -> Component<Bit, BaseExtra> {
     base_component(&Primitive::NandGate.to_string(), in_count, 1)
 }
 
@@ -102,7 +102,7 @@ pub fn nand_gate(in_count: usize) -> Component<BitArray, BaseExtra> {
 /// #
 /// let comp = nor_gate(2);
 /// ```
-pub fn nor_gate(in_count: usize) -> Component<BitArray, BaseExtra> {
+pub fn nor_gate(in_count: usize) -> Component<Bit, BaseExtra> {
     base_component(&Primitive::NorGate.to_string(), in_count, 1)
 }
 
@@ -119,7 +119,7 @@ pub fn nor_gate(in_count: usize) -> Component<BitArray, BaseExtra> {
 /// #
 /// let comp = xor_gate(2);
 /// ```
-pub fn xor_gate(in_count: usize) -> Component<BitArray, BaseExtra> {
+pub fn xor_gate(in_count: usize) -> Component<Bit, BaseExtra> {
     base_component(&Primitive::XorGate.to_string(), in_count, 1)
 }
 
@@ -136,7 +136,7 @@ pub fn xor_gate(in_count: usize) -> Component<BitArray, BaseExtra> {
 /// #
 /// let comp = clock(4.0); // 4Hz - 250ms
 /// ```
-pub fn clock(frec: f64) -> Component<BitArray, BaseExtra> {
+pub fn clock(frec: f64) -> Component<Bit, BaseExtra> {
     let frec_in_nano = (1e9 / frec) as u128;
     let mut comp = base_component_extra(
         &Primitive::Clock.to_string(),
@@ -144,7 +144,7 @@ pub fn clock(frec: f64) -> Component<BitArray, BaseExtra> {
         1,
         BaseExtra::Clock(frec_in_nano),
     );
-    comp.outputs[0].set(0);
+    comp.outputs[0] = false;
     comp
 }
 
@@ -157,9 +157,9 @@ pub fn clock(frec: f64) -> Component<BitArray, BaseExtra> {
 /// #
 /// let comp = high_const();
 /// ```
-pub fn high_const() -> Component<BitArray, BaseExtra> {
+pub fn high_const() -> Component<Bit, BaseExtra> {
     let mut comp = base_component(&Primitive::HighConst.to_string(), 0, 1);
-    comp.outputs[0].set(1);
+    comp.outputs[0] = true;
     comp
 }
 
@@ -172,8 +172,8 @@ pub fn high_const() -> Component<BitArray, BaseExtra> {
 /// #
 /// let comp = low_const();
 /// ```
-pub fn low_const() -> Component<BitArray, BaseExtra> {
+pub fn low_const() -> Component<Bit, BaseExtra> {
     let mut comp = base_component(&Primitive::HighConst.to_string(), 0, 1);
-    comp.outputs[0].set(0);
+    comp.outputs[0] = false;
     comp
 }

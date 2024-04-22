@@ -1,5 +1,5 @@
 use crate::{
-    bit::{fmt_bit_array, BitArray},
+    bit::{fmt_bit, Bit},
     primitives::{prelude::Primitive, primitive_builders::BaseExtra},
 };
 use logix_core::prelude::*;
@@ -16,7 +16,7 @@ pub enum FlattenError {}
 
 #[derive(Debug)]
 pub struct FlattenComponent {
-    pub components: Vec<Component<BitArray, BaseExtra>>,
+    pub components: Vec<Component<Bit, BaseExtra>>,
     pub c_types: Vec<Primitive>,
     pub connections: Vec<Conn>,
     pub deps: Vec<Vec<usize>>,
@@ -26,7 +26,7 @@ pub struct FlattenComponent {
 }
 
 impl FlattenComponent {
-    pub fn new(mut comp: Component<BitArray, BaseExtra>) -> Result<Self, FlattenError> {
+    pub fn new(mut comp: Component<Bit, BaseExtra>) -> Result<Self, FlattenError> {
         let (_, nested) = reindex_connections(&mut comp, 0)?;
         let (components, connections) = flat_comp(comp);
 
@@ -92,11 +92,11 @@ impl FlattenComponent {
                 s.push_str(n);
                 s.push(' ');
                 for addr in ins {
-                    s.push_str(&fmt_bit_array(&self.components[addr.0].inputs[addr.1]));
+                    s.push(fmt_bit(&self.components[addr.0].inputs[addr.1]));
                 }
                 s.push(' ');
                 for addr in outs {
-                    s.push_str(&fmt_bit_array(&self.components[addr.0].outputs[addr.1]));
+                    s.push(fmt_bit(&self.components[addr.0].outputs[addr.1]));
                 }
                 s.push('\n');
                 subs.iter().for_each(|c| {
@@ -111,11 +111,11 @@ impl FlattenComponent {
                 s.push_str(&comp.name);
                 s.push(' ');
                 for bit in &comp.inputs {
-                    s.push_str(&fmt_bit_array(bit));
+                    s.push(fmt_bit(bit));
                 }
                 s.push(' ');
                 for bit in &comp.outputs {
-                    s.push_str(&fmt_bit_array(bit));
+                    s.push(fmt_bit(bit));
                 }
                 s.push('\n');
             }
@@ -128,22 +128,20 @@ impl FlattenComponent {
     }
 }
 
-fn show_comp(comp: &Component<BitArray, BaseExtra>) {
+fn show_comp(comp: &Component<Bit, BaseExtra>) {
     let mut line = String::from(&comp.name);
     line.push(' ');
     for bits in &comp.inputs {
-        line.push_str(&fmt_bit_array(bits));
+        line.push(fmt_bit(bits));
     }
     line.push(' ');
     for bits in &comp.outputs {
-        line.push_str(&fmt_bit_array(bits));
+        line.push(fmt_bit(bits));
     }
     println!("{}", line);
 }
 
-fn flat_comp(
-    comp: Component<BitArray, BaseExtra>,
-) -> (Vec<Component<BitArray, BaseExtra>>, Vec<Conn>) {
+fn flat_comp(comp: Component<Bit, BaseExtra>) -> (Vec<Component<Bit, BaseExtra>>, Vec<Conn>) {
     let mut comps = vec![];
     let mut conns = vec![];
     if let Some(mut sub) = comp.sub {
@@ -158,7 +156,7 @@ fn flat_comp(
 }
 
 fn reindex_connections(
-    comp: &mut Component<BitArray, BaseExtra>,
+    comp: &mut Component<Bit, BaseExtra>,
     start_idx: usize,
 ) -> Result<(usize, NestedConfig), FlattenError> {
     if comp.sub.is_none() {

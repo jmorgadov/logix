@@ -1,7 +1,7 @@
 HalfAdder (
     subc (
-        and: And(2),
-        xor: Xor(2)
+        and = And(2),
+        xor = Xor(2)
     )
 
     ins (a, b)
@@ -20,11 +20,11 @@ HalfAdder (
 
 FullAdder (
     subc (
-        and1: And(2),
-        and2: And(2),
-        xor1: Xor(2),
-        xor2: Xor(2),
-        or: Or(2)
+        and1 = And(2),
+        and2 = And(2),
+        xor1 = Xor(2),
+        xor2 = Xor(2),
+        or = Or(2)
     )
 
     ins (a, b, old_carr)
@@ -51,42 +51,41 @@ FullAdder (
 
 Adder_2 (
     subc (
-        add1: HalfAdder,
-        add2: FullAdder
+        add1 = HalfAdder,
+        add2 = FullAdder
     )
 
-    ins (a0, a1, b0, b1)
-    outs (r0, r1, carr)
+    ins (a:2, b:2)
+    outs (res:2, carr)
 
     design (
-        a0 -> add1.a,
-        b0 -> add1.b,
-
+        a[0] -> add1.a,
+        b[0] -> add1.b,
         add1.carr -> add2.old_carr,
-        a1 -> add2.a,
-        b1 -> add2.b,
 
-        add1.res -> r0,
-        add2.res -> r1,
+        a[1] -> add2.a,
+        b[1] -> add2.b,
+        add2.new_carr -> carr,
 
-        add2.new_carr -> carr
+        add1.res -> res[0],
+        add2.res -> res[1]
     )
 )
 
 Main (
     subc (
-        adder: Adder_2,
-        clk: Clock(1.0),
-        c1: High,
-        c2: High
+        adder = Adder_2,
+        clk = Clock(1.0),
+        c1 = High,
+        c2 = High
     )
 
     ins ()
     outs ()
 
     design (
-        clk.0 -> adder.a0,
-        c1.0 -> adder.a1,
-        c2.0 -> adder.b0
+        clk.0 -> adder.a[0],
+        c1.0 -> adder.a[1],
+        c2.0 -> adder.b[0]
     )
 )

@@ -81,38 +81,41 @@ impl Simulation {
 
             let time2 = start.elapsed().as_nanos();
 
+            let delta_ms = (time2 - time) as f64 / 1_000_000.0;
+            let loops_per_sec = 1_000.0 / delta_ms;
+
             print!("{}[2J", 27 as char);
             print!("{esc}[2J{esc}[1;1H", esc = 27 as char);
 
-            println!("Time: {}ms", (time2 - time) as f64 / 1_000_000.0);
+            println!("Time: {}ms - Loops per second: {}", delta_ms, loops_per_sec);
             self.comp.show();
         }
     }
 }
 
-fn update_comp(comp: &mut Component<BitArray, BaseExtra>, c_type: &Primitive, time: u128) {
+fn update_comp(comp: &mut Component<Bit, BaseExtra>, c_type: &Primitive, time: u128) {
     match c_type {
         Primitive::NotGate => comp.outputs[0] = !comp.inputs[0],
         Primitive::AndGate => {
-            comp.outputs[0].set_bits(comp.inputs.iter().fold(1, |acc, f| acc & f.get_bits()));
+            comp.outputs[0] = comp.inputs.iter().fold(true, |acc, f| acc & f);
         }
         Primitive::NandGate => {
-            comp.outputs[0].set_bits(!comp.inputs.iter().fold(1, |acc, f| acc & f.get_bits()));
+            comp.outputs[0] = !comp.inputs.iter().fold(true, |acc, f| acc & f);
         }
         Primitive::OrGate => {
-            comp.outputs[0].set_bits(comp.inputs.iter().fold(0, |acc, f| acc | f.get_bits()));
+            comp.outputs[0] = comp.inputs.iter().fold(false, |acc, f| acc | f);
         }
         Primitive::NorGate => {
-            comp.outputs[0].set_bits(!comp.inputs.iter().fold(0, |acc, f| acc | f.get_bits()));
+            comp.outputs[0] = !comp.inputs.iter().fold(false, |acc, f| acc | f);
         }
         Primitive::XorGate => {
-            comp.outputs[0].set_bits(comp.inputs.iter().fold(0, |acc, f| acc ^ f.get_bits()));
+            comp.outputs[0] = comp.inputs.iter().fold(false, |acc, f| acc ^ f);
         }
         // No update needed
         Primitive::Clock => {
             if let BaseExtra::Clock(frec) = comp.extra {
                 let val = (time % (frec * 2)) > frec;
-                comp.outputs[0].set_bit(0, val);
+                comp.outputs[0] = val;
             } else {
                 panic!("Clock component without frec information");
             }

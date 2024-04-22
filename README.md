@@ -26,44 +26,8 @@ primitives.
 
 DSL that allows the creation of components easily.
 
-```
-Adder (
-    subc (
-        and: And(2),
-        xor: Xor(2)
-    )
-
-    ins (b0, b1)
-    outs (out, rest)
-
-    design (
-        b0 -> xor.0,
-        b1 -> xor.1,
-        xor.0 -> out,
-
-        b0 -> and.0,
-        b1 -> and.1,
-        and.0 -> rest
-    )
-)
-
-Main (
-    subc (
-        adder: Adder,
-        clk: Clock(1.0),
-        c2: High
-    )
-
-    ins ()
-    outs ()
-
-    design (
-        clk.0 -> adder.b0,
-        c2.0 -> adder.b1
-    )
-)
-
-```
+See example
+[here](https://github.com/jmorgadov/logix/blob/main/crates/logix_lang/examples/main.lgx).
 
 ## Possible future crates
 

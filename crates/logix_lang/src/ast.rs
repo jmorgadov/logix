@@ -45,11 +45,24 @@ impl Comp {
     }
 }
 
+#[derive(Debug, Eq, PartialEq, Hash, Clone)]
+pub struct PinDecl {
+    pub name: String,
+    pub len: u8,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum PinIndexing {
+    NoIndex,
+    Index(u8),
+    Range(u8, u8),
+}
+
 #[derive(Debug, Clone)]
 pub enum PinAddr {
-    External(String),
-    InternalName(String, String),
-    InternalIdx(String, usize),
+    External(String, PinIndexing),
+    InternalName(String, String, PinIndexing),
+    InternalIdx(String, usize, PinIndexing),
 }
 
 #[derive(Debug)]
@@ -62,8 +75,8 @@ pub struct ConnDecl {
 pub struct CompDecl {
     pub name: String,
     pub subc: HashMap<String, Comp>,
-    pub ins: Vec<String>,
-    pub outs: Vec<String>,
+    pub ins: HashMap<String, (usize, u8)>,
+    pub outs: HashMap<String, (usize, u8)>,
     pub design: Vec<ConnDecl>,
 }
 
@@ -78,5 +91,7 @@ pub mod prelude {
     pub use super::CompDecl;
     pub use super::ConnDecl;
     pub use super::PinAddr;
+    pub use super::PinDecl;
     pub use super::Primitive;
+    pub use super::PinIndexing;
 }

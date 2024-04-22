@@ -4,13 +4,13 @@ use thiserror::Error;
 
 use logix_core::component::{Component, ComponentBuilder, Conn, PortAddr};
 use logix_sim::{
-    bit::BitArray,
+    bit::Bit,
     primitives::primitive_builders::{
         and_gate, clock, high_const, low_const, nand_gate, not_gate, or_gate, xor_gate, BaseExtra,
     },
 };
 
-use crate::ast::prelude::*;
+use crate::ast::{prelude::*, PinIndexing};
 
 #[derive(Debug, Clone, Error)]
 pub enum BuildError {
@@ -34,9 +34,15 @@ pub enum BuildError {
 
     #[error("Internal pin not found: ({0}, {1})")]
     InternalPinError(String, usize),
+
+    #[error("Invalid pin range")]
+    InvalidPinRange,
+
+    #[error("Invalid range connection")]
+    InvalidRangeConection,
 }
 
-pub fn circuit_to_comp(circuit: Circuit) -> Result<Component<BitArray, BaseExtra>, BuildError> {
+pub fn circuit_to_comp(circuit: Circuit) -> Result<Component<Bit, BaseExtra>, BuildError> {
     let main = circuit
         .comps
         .iter()
@@ -59,7 +65,7 @@ pub fn circuit_to_comp(circuit: Circuit) -> Result<Component<BitArray, BaseExtra
 fn comp_decl_to_comp(
     comp: &CompDecl,
     comp_map: &HashMap<String, &CompDecl>,
-) -> Result<Component<BitArray, BaseExtra>, BuildError> {
+) -> Result<Component<Bit, BaseExtra>, BuildError> {
     let subc_map: HashMap<String, usize> = comp
         .subc
         .iter()
@@ -67,7 +73,7 @@ fn comp_decl_to_comp(
         .map(|(idx, (name, _))| (name.clone(), idx))
         .collect();
 
-    let subc: Vec<Component<BitArray, BaseExtra>> = comp
+    let subc: Vec<Component<Bit, BaseExtra>> = comp
         .subc
         .iter()
         .map(|(_, sub_comp)| {
@@ -92,12 +98,15 @@ fn comp_decl_to_comp(
             };
             sub_c
         })
-        .collect::<Result<Vec<Component<BitArray, BaseExtra>>, BuildError>>()?;
+        .collect::<Result<Vec<Component<Bit, BaseExtra>>, BuildError>>()?;
 
     let (in_addrs, out_addrs, conns) = get_connections(comp, &subc, &subc_map, comp_map)?;
 
+    let in_count: usize = comp.ins.values().map(|x| x.1).sum::<u8>() as usize;
+    let out_count: usize = comp.outs.values().map(|x| x.1).sum::<u8>() as usize;
+
     Ok(ComponentBuilder::new(comp.name.as_str())
-        .port_count(comp.ins.len(), comp.outs.len())
+        .port_count(in_count, out_count)
         .sub_comps(subc)
         .connections(conns)
         .in_addrs(in_addrs)
@@ -107,14 +116,14 @@ fn comp_decl_to_comp(
 
 fn get_connections(
     comp: &CompDecl,
-    subc: &Vec<Component<BitArray, BaseExtra>>,
+    subc: &Vec<Component<Bit, BaseExtra>>,
     subc_map: &HashMap<String, usize>,
     comp_map: &HashMap<String, &CompDecl>,
 ) -> Result<(Vec<(usize, PortAddr)>, Vec<PortAddr>, Vec<Conn>), BuildError> {
     debug!("Processing connections for: {}", comp.name);
 
     let mut in_addrs = vec![];
-    let mut out_addrs = vec![(0, 0); comp.outs.len()];
+    let mut out_addrs = vec![(0, 0); comp.outs.values().map(|x| x.1).sum::<u8>() as usize];
     let mut conns = vec![];
 
     let get_subc_idx = |name: &str| -> Result<usize, BuildError> {
@@ -125,74 +134,99 @@ fn get_connections(
     };
 
     for conn in &comp.design {
+        debug!("|  Processing connection: {:?}", conn);
+
         let src = internal_name_to_idx(&conn.src, comp, comp_map, false)?;
         let dest = internal_name_to_idx(&conn.dest, comp, comp_map, true)?;
+
+        debug!("|  Resolved connection: ({:?}, {:?})", src, dest);
+
+        let (src_bit_idx, dest_bit_idx, len) = preprocess_indexing_range(&src, &dest)?;
+
+        debug!(
+            "|  Preprocessed indexing range: ({}, {}, {})",
+            src_bit_idx, dest_bit_idx, len
+        );
 
         match (src, dest) {
             //
             // From input pin to internal component
-            (PinAddr::External(in_name), PinAddr::InternalIdx(dest_name, idx)) => {
+            (PinAddr::External(in_name, _), PinAddr::InternalIdx(dest_name, idx, _)) => {
                 debug!(
                     "|  Input pin to internal: ({}, ({}, {}))",
                     in_name, dest_name, idx
                 );
+
                 let in_idx = comp
                     .ins
-                    .iter()
-                    .position(|x| x == &in_name)
-                    .ok_or(BuildError::InputPinNotFoundError(in_name.to_string()))?;
-                let subc_idx = get_subc_idx(&dest_name)?;
+                    .get(&in_name)
+                    .ok_or(BuildError::InputPinNotFoundError(in_name.clone()))?
+                    .0;
 
-                // Check if the idx is in range
-                if subc[subc_idx].inputs.len() <= idx {
-                    return Err(BuildError::InternalPinError(dest_name.clone(), idx));
+                for i in 0..len {
+                    // Check if the idx is in range
+                    let subc_idx = get_subc_idx(&dest_name)?;
+                    if subc[subc_idx].inputs.len() <= idx + dest_bit_idx + i {
+                        return Err(BuildError::InternalPinError(
+                            dest_name.clone(),
+                            idx + dest_bit_idx + i,
+                        ));
+                    }
+                    in_addrs.push((in_idx + src_bit_idx + i, (subc_idx, idx + dest_bit_idx + i)));
+                    debug!("|    In addr created: {:?}", in_addrs.last().unwrap());
                 }
-
-                in_addrs.push((in_idx, (subc_idx, idx)));
-                debug!("|    In addr created: {:?}", in_addrs.last().unwrap());
             }
             //
             // From internal component to output pin
-            (PinAddr::InternalIdx(src_name, idx), PinAddr::External(out_name)) => {
+            (PinAddr::InternalIdx(src_name, idx, _), PinAddr::External(out_name, _)) => {
                 debug!(
                     "|  Internal to output pin: (({}, {}), {})",
                     src_name, idx, out_name
                 );
                 let out_idx = comp
                     .outs
-                    .iter()
-                    .position(|x| x == &out_name)
-                    .ok_or(BuildError::OutputPinNotFoundError(out_name.to_string()))?;
+                    .get(&out_name)
+                    .ok_or(BuildError::OutputPinNotFoundError(out_name.clone()))?
+                    .0;
 
                 let subc_idx = get_subc_idx(&src_name)?;
 
-                // Check if the idx is in range
-                if subc[subc_idx].outputs.len() <= idx {
-                    return Err(BuildError::InternalPinError(src_name.clone(), idx));
+                for i in 0..len {
+                    // Check if the idx is in range
+                    if subc[subc_idx].outputs.len() <= idx + src_bit_idx + i {
+                        return Err(BuildError::InternalPinError(
+                            src_name.clone(),
+                            idx + src_bit_idx + i,
+                        ));
+                    }
+                    out_addrs[out_idx + i] = (subc_idx, idx + src_bit_idx + i);
+                    debug!("|    Out addr created: {:?}", out_addrs.last().unwrap());
                 }
-
-                out_addrs[out_idx] = (subc_idx, idx);
-                debug!("|    Out addr created: {:?}", out_addrs.last().unwrap());
             }
             //
             // From internal to internal component
             (
-                PinAddr::InternalIdx(src_name, src_idx),
-                PinAddr::InternalIdx(dest_name, dest_idx),
+                PinAddr::InternalIdx(src_name, src_idx, _),
+                PinAddr::InternalIdx(dest_name, dest_idx, _),
             ) => {
-                conns.push(Conn::new(
-                    get_subc_idx(&src_name)?,
-                    src_idx,
-                    get_subc_idx(&dest_name)?,
-                    dest_idx,
-                ));
-                debug!(
-                    "|  Internal to internal: (({}, {}), ({}, {}))",
-                    src_name, src_idx, dest_name, dest_idx
-                );
-                debug!("|    Connection created: {:?}", conns.last().unwrap())
+                for i in 0..len {
+                    conns.push(Conn::new(
+                        get_subc_idx(&src_name)?,
+                        src_idx + src_bit_idx + i,
+                        get_subc_idx(&dest_name)?,
+                        dest_idx + dest_bit_idx + i,
+                    ));
+                    debug!(
+                        "|  Internal to internal: (({}, {}), ({}, {}))",
+                        src_name,
+                        src_idx + src_bit_idx + i,
+                        dest_name,
+                        dest_idx + dest_bit_idx + i
+                    );
+                    debug!("|    Connection created: {:?}", conns.last().unwrap())
+                }
             }
-            (PinAddr::External(_), PinAddr::External(_)) => {
+            (PinAddr::External(_, _), PinAddr::External(_, _)) => {
                 return Err(BuildError::ExternalToExternalConnectionError);
             }
             _ => unreachable!(),
@@ -202,32 +236,92 @@ fn get_connections(
     Ok((in_addrs, out_addrs, conns))
 }
 
+fn preprocess_indexing_range(
+    src: &PinAddr,
+    dest: &PinAddr,
+) -> Result<(usize, usize, usize), BuildError> {
+    let src_indexing = match src {
+        PinAddr::InternalIdx(_, _, idx) => idx,
+        PinAddr::External(_, idx) => idx,
+        _ => unreachable!(),
+    };
+    let dest_indexing = match dest {
+        PinAddr::InternalIdx(_, _, idx) => idx,
+        PinAddr::External(_, idx) => idx,
+        _ => unreachable!(),
+    };
+    if let (PinIndexing::Range(si, sj), PinIndexing::Range(di, dj)) =
+        (src_indexing.clone(), dest_indexing.clone())
+    {
+        if si > sj || di > dj {
+            return Err(BuildError::InvalidPinRange);
+        }
+    }
+    let (src_idx, dest_idx, len): (u8, u8, u8) = match (*src_indexing, *dest_indexing) {
+        (PinIndexing::Range(si, sj), PinIndexing::Range(di, dj)) => {
+            if sj - si != dj - di {
+                return Err(BuildError::InvalidRangeConection);
+            }
+            (si, di, (sj - si) + 1)
+        }
+        (PinIndexing::Range(si, sj), PinIndexing::Index(d)) => {
+            if sj != sj {
+                return Err(BuildError::InvalidRangeConection);
+            }
+            (si, d, 1)
+        }
+        (PinIndexing::Range(si, sj), PinIndexing::NoIndex) => {
+            if si != sj {
+                return Err(BuildError::InvalidRangeConection);
+            }
+            (si, 0, 1)
+        }
+        (PinIndexing::NoIndex, PinIndexing::NoIndex) => (0, 0, 1),
+        (PinIndexing::NoIndex, PinIndexing::Index(d)) => (0, d, 1),
+        (PinIndexing::NoIndex, PinIndexing::Range(di, dj)) => {
+            if di != dj {
+                return Err(BuildError::InvalidRangeConection);
+            }
+            (0, di, 1)
+        }
+        (PinIndexing::Index(s), PinIndexing::NoIndex) => (s, 0, 1),
+        (PinIndexing::Index(s), PinIndexing::Index(d)) => (s, d, 1),
+        (PinIndexing::Index(s), PinIndexing::Range(di, dj)) => {
+            if di != dj {
+                return Err(BuildError::InvalidRangeConection);
+            }
+            (s, di, 1)
+        }
+    };
+
+    Ok((src_idx as usize, dest_idx as usize, len as usize))
+}
+
 fn internal_name_to_idx(
     pin: &PinAddr,
     comp: &CompDecl,
     comp_map: &HashMap<String, &CompDecl>,
     from_inputs: bool,
 ) -> Result<PinAddr, BuildError> {
-    if let PinAddr::InternalName(name, pin) = pin {
+    if let PinAddr::InternalName(name, pin, bidxs) = pin {
         debug!("|  Resolving internal pin: ({}, {})", name, pin);
         let comp_decl = get_comp_decl(comp, name, comp_map)?;
 
         let idx = if from_inputs {
             comp_decl
                 .ins
-                .iter()
-                .position(|x| x == pin)
-                .ok_or_else(|| BuildError::InputPinNotFoundError(pin.clone()))
+                .get(pin)
+                .ok_or(BuildError::InputPinNotFoundError(pin.clone()))
         } else {
             comp_decl
                 .outs
-                .iter()
-                .position(|x| x == pin)
+                .get(pin)
                 .ok_or_else(|| BuildError::OutputPinNotFoundError(pin.clone()))
-        }?;
+        }?
+        .0;
 
         debug!("|    Internal ({}, {}) resolved to idx: {}", name, pin, idx);
-        Ok(PinAddr::InternalIdx(name.to_string(), idx))
+        Ok(PinAddr::InternalIdx(name.to_string(), idx, *bidxs))
     } else {
         Ok(pin.clone())
     }
