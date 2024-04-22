@@ -31,6 +31,15 @@ impl Simulation {
         self.running = true;
 
         let start = Instant::now();
+        let mut non_clocks_to_upd_count = self
+            .comp
+            .components
+            .iter()
+            .filter(|c| c.name != "Clock")
+            .count();
+        let mut last_cycle_upd = start;
+        let mut last_cycle_delta = 0.0;
+
         while self.upd_list.len() > 0 {
             let time = start.elapsed().as_nanos();
 
@@ -51,6 +60,7 @@ impl Simulation {
             if *c_type != Primitive::Clock {
                 self.upd_list.remove(rand_idx);
                 self.needs_update[comp_idx] = false;
+                non_clocks_to_upd_count -= 1;
             }
 
             for conn in self
@@ -76,18 +86,25 @@ impl Simulation {
                 if !self.needs_update[conn.to.0] {
                     self.upd_list.push(conn.to.0);
                     self.needs_update[conn.to.0] = true;
+                    non_clocks_to_upd_count += 1;
                 }
             }
 
-            let time2 = start.elapsed().as_nanos();
+            if non_clocks_to_upd_count == 0 {
+                last_cycle_delta = last_cycle_upd.elapsed().as_nanos() as f64 / 1_000_000.0;
+                last_cycle_upd = Instant::now();
+            }
 
+            let time2 = start.elapsed().as_nanos();
             let delta_ms = (time2 - time) as f64 / 1_000_000.0;
             let loops_per_sec = 1_000.0 / delta_ms;
 
             print!("{}[2J", 27 as char);
             print!("{esc}[2J{esc}[1;1H", esc = 27 as char);
 
-            println!("Time: {}ms - Loops per second: {}", delta_ms, loops_per_sec);
+            println!("Upd time: {}ms    ({} upd/sec)", delta_ms, loops_per_sec);
+            println!("Cycle time: {}ms", last_cycle_delta);
+
             self.comp.show();
         }
     }
