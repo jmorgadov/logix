@@ -10,19 +10,28 @@ pub struct Simulation {
 
     upd_list: Vec<usize>,
     needs_update: Vec<bool>,
+
+    on_upd: Box<dyn Fn(&FlattenComponent, &SimStats)>,
+}
+
+pub struct SimStats {
+    pub upd_time_ns: u128,
+    pub cycle_time_ns: u128,
 }
 
 impl Simulation {
-    pub fn new(comp: FlattenComponent) -> Self {
+    pub fn new(comp: FlattenComponent, on_upd: Box<dyn Fn(&FlattenComponent, &SimStats)>) -> Self {
         let count = comp.components.len();
 
         let upd_queue = (0..count).collect::<Vec<usize>>();
         let needs_update = vec![true; count];
+
         Simulation {
             comp,
             running: false,
             upd_list: upd_queue,
             needs_update: needs_update,
+            on_upd,
         }
     }
 
@@ -37,8 +46,12 @@ impl Simulation {
             .iter()
             .filter(|c| c.name != "Clock")
             .count();
+
+        let mut stats = SimStats {
+            upd_time_ns: 0,
+            cycle_time_ns: 0,
+        };
         let mut last_cycle_upd = start;
-        let mut last_cycle_delta = 0.0;
 
         while self.upd_list.len() > 0 {
             let time = start.elapsed().as_nanos();
@@ -91,21 +104,14 @@ impl Simulation {
             }
 
             if non_clocks_to_upd_count == 0 {
-                last_cycle_delta = last_cycle_upd.elapsed().as_nanos() as f64 / 1_000_000.0;
+                stats.cycle_time_ns = last_cycle_upd.elapsed().as_nanos();
                 last_cycle_upd = Instant::now();
             }
 
             let time2 = start.elapsed().as_nanos();
-            let delta_ms = (time2 - time) as f64 / 1_000_000.0;
-            let loops_per_sec = 1_000.0 / delta_ms;
+            stats.upd_time_ns = time2 - time;
 
-            print!("{}[2J", 27 as char);
-            print!("{esc}[2J{esc}[1;1H", esc = 27 as char);
-
-            println!("Upd time: {}ms    ({} upd/sec)", delta_ms, loops_per_sec);
-            println!("Cycle time: {}ms", last_cycle_delta);
-
-            self.comp.show();
+            (self.on_upd)(&self.comp, &stats);
         }
     }
 }

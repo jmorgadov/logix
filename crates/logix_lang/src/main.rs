@@ -36,6 +36,24 @@ fn main() {
         }
     };
 
-    let mut sim = Simulation::new(flat);
+    let mut sim = Simulation::new(
+        flat,
+        Box::new(|flat_comp, stats| {
+            print!("{}[2J", 27 as char);
+            print!("{esc}[2J{esc}[1;1H", esc = 27 as char);
+
+            let delta_ms = stats.upd_time_ns as f64 / 1_000_000.0;
+            let loops_per_sec = 1_000.0 / delta_ms;
+            let last_cycle_delta = stats.cycle_time_ns as f64 / 1_000_000.0;
+            let cycles_per_sec = 1_000.0 / last_cycle_delta;
+
+            println!("Upd time: {}ms", delta_ms);
+            println!("Upds/sec: {}", loops_per_sec);
+            println!("Cycle time: {}ms", last_cycle_delta);
+            println!("Cycles/sec: {}", cycles_per_sec);
+
+            flat_comp.show();
+        }),
+    );
     sim.start();
 }
