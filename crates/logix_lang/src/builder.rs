@@ -1,7 +1,7 @@
 use lalrpop_util::lalrpop_mod;
 use log::debug;
-use std::collections::HashMap;
 use std::path::Path;
+use std::collections::HashMap;
 use thiserror::Error;
 
 use logix_core::component::{Component, ComponentBuilder, Conn, PortAddr};
@@ -47,6 +47,9 @@ pub enum BuildError {
 
     #[error("Subcircuit module not found: {0}")]
     ImportError(String),
+
+    #[error("[{0}] Syntax error: {1}")]
+    ModuleSintaxError(String, String),
 }
 
 pub fn build_from_file(main_path: &str) -> Result<Component<Bit, BaseExtra>, BuildError> {
@@ -69,7 +72,7 @@ fn get_comp_map(lgx_path: String) -> Result<HashMap<String, Box<CompDecl>>, Buil
     debug!("Parsing file: {}", lgx_path);
     let circuit = grammar::CircuitParser::new()
         .parse(&text)
-        .map_err(|_| BuildError::ImportError(lgx_path.to_string()))?;
+        .map_err(|e| BuildError::ModuleSintaxError(lgx_path.to_string(), e.to_string()))?;
 
     debug!("Building component map");
     let mut comp_map: HashMap<String, Box<CompDecl>> = circuit
