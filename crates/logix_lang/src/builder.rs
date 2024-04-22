@@ -1,5 +1,7 @@
+use lalrpop_util::lalrpop_mod;
 use log::debug;
 use std::collections::HashMap;
+use std::path::Path;
 use thiserror::Error;
 
 use logix_core::component::{Component, ComponentBuilder, Conn, PortAddr};
@@ -11,6 +13,8 @@ use logix_sim::{
 };
 
 use crate::ast::{prelude::*, PinIndexing};
+
+lalrpop_mod!(pub grammar);
 
 #[derive(Debug, Clone, Error)]
 pub enum BuildError {
@@ -40,31 +44,67 @@ pub enum BuildError {
 
     #[error("Invalid range connection")]
     InvalidRangeConection,
+
+    #[error("Subcircuit module not found: {0}")]
+    ImportError(String),
 }
 
-pub fn circuit_to_comp(circuit: Circuit) -> Result<Component<Bit, BaseExtra>, BuildError> {
-    let main = circuit
-        .comps
-        .iter()
-        .find(|c| c.name == "Main")
+pub fn build_from_file(main_path: &str) -> Result<Component<Bit, BaseExtra>, BuildError> {
+    debug!("Building from file: {}", main_path);
+    let comp_map = get_comp_map(main_path.to_string())?;
+    let main = comp_map
+        .get("Main")
         .ok_or(BuildError::NoMainComponentError)?;
 
-    // Create a map of component names to component declarations
-    // This is used to resolve the sub-components of a composite component
-    let comp_map: HashMap<String, &CompDecl> = circuit
+    println!("{:?}", comp_map);
+    return comp_decl_to_comp(main, &comp_map);
+}
+
+fn get_comp_map(lgx_path: String) -> Result<HashMap<String, Box<CompDecl>>, BuildError> {
+    debug!("Getting component map from: {}", lgx_path);
+
+    let text = std::fs::read_to_string(lgx_path.to_string())
+        .map_err(|_| BuildError::ImportError(lgx_path.to_string()))?;
+
+    debug!("Parsing file: {}", lgx_path);
+    let circuit = grammar::CircuitParser::new()
+        .parse(&text)
+        .map_err(|_| BuildError::ImportError(lgx_path.to_string()))?;
+
+    debug!("Building component map");
+    let mut comp_map: HashMap<String, Box<CompDecl>> = circuit
         .comps
-        .iter()
-        .map(|comp| (comp.name.clone(), comp))
+        .into_iter()
+        .map(|comp| (comp.name.clone(), Box::new(comp)))
         .collect();
 
-    println!("{:?}", comp_map);
+    debug!(
+        "File comp_map: {:?}",
+        comp_map.keys().collect::<Vec<&String>>()
+    );
 
-    return comp_decl_to_comp(main, &comp_map);
+    if let Some(imports) = &circuit.imports {
+        debug!("Processing imports: {:?}", imports);
+        for import in imports {
+            let path = Path::new(&lgx_path)
+                .parent()
+                .unwrap()
+                .join(format!("{}.lgx", import))
+                .to_str()
+                .unwrap()
+                .to_string();
+            debug!("Importing: {}", path);
+            let imported_map = get_comp_map(path)?;
+            comp_map.extend(imported_map);
+        }
+    }
+
+    Ok(comp_map)
 }
 
 fn comp_decl_to_comp(
     comp: &CompDecl,
-    comp_map: &HashMap<String, &CompDecl>,
+    comp_map: &HashMap<String, Box<CompDecl>>,
 ) -> Result<Component<Bit, BaseExtra>, BuildError> {
     let subc_map: HashMap<String, usize> = comp
         .subc
@@ -118,7 +158,7 @@ fn get_connections(
     comp: &CompDecl,
     subc: &Vec<Component<Bit, BaseExtra>>,
     subc_map: &HashMap<String, usize>,
-    comp_map: &HashMap<String, &CompDecl>,
+    comp_map: &HashMap<String, Box<CompDecl>>,
 ) -> Result<(Vec<(usize, PortAddr)>, Vec<PortAddr>, Vec<Conn>), BuildError> {
     debug!("Processing connections for: {}", comp.name);
 
@@ -300,7 +340,7 @@ fn preprocess_indexing_range(
 fn internal_name_to_idx(
     pin: &PinAddr,
     comp: &CompDecl,
-    comp_map: &HashMap<String, &CompDecl>,
+    comp_map: &HashMap<String, Box<CompDecl>>,
     from_inputs: bool,
 ) -> Result<PinAddr, BuildError> {
     if let PinAddr::InternalName(name, pin, bidxs) = pin {
@@ -330,8 +370,8 @@ fn internal_name_to_idx(
 fn get_comp_decl<'a>(
     comp: &'a CompDecl,
     name: &'a String,
-    comp_map: &'a HashMap<String, &'a CompDecl>,
-) -> Result<&'a &'a CompDecl, BuildError> {
+    comp_map: &'a HashMap<String, Box<CompDecl>>,
+) -> Result<&'a CompDecl, BuildError> {
     let subc = comp
         .subc
         .get(name)

@@ -1,9 +1,8 @@
-lalrpop_mod!(pub grammar);
-
 mod ast;
 mod builder;
 
-use lalrpop_util::lalrpop_mod;
+use std::path::Path;
+
 use log::error;
 use logix_sim::{flattener::FlattenComponent, Simulation};
 
@@ -18,27 +17,10 @@ fn main() {
     }
 
     let file = &args[1];
+    let path = Path::new(file).canonicalize().unwrap();
+    let path_str = path.to_str().unwrap();
 
-    // Get file text
-    let text = match std::fs::read_to_string(file) {
-        Ok(text) => text,
-        Err(e) => {
-            error!("Error: {}", e);
-            return;
-        }
-    };
-
-    let comp = match grammar::CircuitParser::new().parse(&text) {
-        Ok(comp) => comp,
-        Err(e) => {
-            error!("Error: {}", e);
-            return;
-        }
-    };
-
-    // println!("{:?}", comp);
-
-    let comp = match builder::circuit_to_comp(comp) {
+    let comp = match builder::build_from_file(path_str) {
         Ok(comp) => comp,
         Err(e) => {
             error!("Error: {}", e);

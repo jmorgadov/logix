@@ -1,0 +1,73 @@
+HalfAdder (
+    subc (
+        and = And(2),
+        xor = Xor(2)
+    )
+
+    ins (a, b)
+    outs (res, carr)
+
+    design (
+        a -> xor.0,
+        b -> xor.1,
+        xor.0 -> res,
+
+        a -> and.0,
+        b -> and.1,
+        and.0 -> carr
+    )
+)
+
+FullAdder (
+    subc (
+        and1 = And(2),
+        and2 = And(2),
+        xor1 = Xor(2),
+        xor2 = Xor(2),
+        or = Or(2)
+    )
+
+    ins (a, b, old_carr)
+    outs (res, new_carr)
+
+    design (
+        a -> xor1.0,
+        b -> xor1.1,
+        xor1.0 -> xor2.0,
+        old_carr -> xor2.1,
+        xor2.0 -> res,
+
+        a -> and1.0,
+        b -> and1.1,
+        xor1.0 -> and2.0,
+        old_carr -> and2.1,
+
+        and1.0 -> or.0,
+        and2.0 -> or.1,
+
+        or.0 -> new_carr
+    )
+)
+
+Adder2 (
+    subc (
+        add1 = HalfAdder,
+        add2 = FullAdder
+    )
+
+    ins (a:2, b:2)
+    outs (res:2, carr)
+
+    design (
+        a[0] -> add1.a,
+        b[0] -> add1.b,
+        add1.carr -> add2.old_carr,
+
+        a[1] -> add2.a,
+        b[1] -> add2.b,
+        add2.new_carr -> carr,
+
+        add1.res -> res[0],
+        add2.res -> res[1]
+    )
+)

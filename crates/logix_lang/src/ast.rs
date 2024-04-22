@@ -82,6 +82,7 @@ pub struct CompDecl {
 
 #[derive(Debug)]
 pub struct Circuit {
+    pub imports: Option<Vec<String>>,
     pub comps: Vec<CompDecl>,
 }
 
