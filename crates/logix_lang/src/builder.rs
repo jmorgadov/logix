@@ -1,7 +1,7 @@
 use lalrpop_util::lalrpop_mod;
 use log::debug;
-use std::path::Path;
 use std::collections::HashMap;
+use std::path::Path;
 use thiserror::Error;
 
 use logix_core::component::{Component, ComponentBuilder, Conn, PortAddr};
@@ -63,6 +63,23 @@ pub fn build_from_file(main_path: &str) -> Result<Component<Bit, BaseExtra>, Bui
     return comp_decl_to_comp(main, &comp_map);
 }
 
+fn get_loc(loc: usize, text: &str) -> (usize, usize) {
+    let mut line = 1;
+    let mut col = 0;
+    for (i, c) in text.chars().enumerate() {
+        if i == loc {
+            break;
+        }
+        if c == '\n' {
+            line += 1;
+            col = 0;
+        } else {
+            col += 1;
+        }
+    }
+    (line, col)
+}
+
 fn get_comp_map(lgx_path: String) -> Result<HashMap<String, Box<CompDecl>>, BuildError> {
     debug!("Getting component map from: {}", lgx_path);
 
@@ -70,9 +87,24 @@ fn get_comp_map(lgx_path: String) -> Result<HashMap<String, Box<CompDecl>>, Buil
         .map_err(|_| BuildError::ImportError(lgx_path.to_string()))?;
 
     debug!("Parsing file: {}", lgx_path);
-    let circuit = grammar::CircuitParser::new()
-        .parse(&text)
-        .map_err(|e| BuildError::ModuleSintaxError(lgx_path.to_string(), e.to_string()))?;
+    let circuit = grammar::CircuitParser::new().parse(&text).map_err(|e| {
+        let (line, col) = match &e {
+            lalrpop_util::ParseError::InvalidToken { location } => get_loc(*location, &text),
+            lalrpop_util::ParseError::UnrecognizedEof {
+                location,
+                expected: _,
+            } => get_loc(*location, &text),
+            lalrpop_util::ParseError::UnrecognizedToken { token, expected: _ } => {
+                get_loc(token.0, &text)
+            }
+            lalrpop_util::ParseError::ExtraToken { token: _ } => todo!(),
+            lalrpop_util::ParseError::User { error: _ } => todo!(),
+        };
+        BuildError::ModuleSintaxError(
+            lgx_path.to_string(),
+            format!("[{}:{}] {}", line, col, e.to_string()),
+        )
+    })?;
 
     debug!("Building component map");
     let mut comp_map: HashMap<String, Box<CompDecl>> = circuit
