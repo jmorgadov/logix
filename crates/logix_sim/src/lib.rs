@@ -1,6 +1,6 @@
 pub mod primitives;
-pub mod simulation;
-pub mod flattener;
+pub mod simulator;
+pub mod flatten;
 pub mod bit;
 
-pub use simulation::Simulation;
+pub use simulator::Simulator;

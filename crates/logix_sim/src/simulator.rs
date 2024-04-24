@@ -1,10 +1,9 @@
-use crate::{bit::*, flattener::FlattenComponent, primitives::prelude::*};
+use crate::{flatten::FlattenComponent, primitives::primitives::Primitive};
 use log::debug;
-use logix_core::prelude::*;
 use std::time::Instant;
 
 /// Simulation.
-pub struct Simulation {
+pub struct Simulator {
     comp: FlattenComponent,
     running: bool,
 
@@ -19,14 +18,14 @@ pub struct SimStats {
     pub cycle_time_ns: u128,
 }
 
-impl Simulation {
+impl Simulator {
     pub fn new(comp: FlattenComponent, on_upd: Box<dyn Fn(&FlattenComponent, &SimStats)>) -> Self {
         let count = comp.components.len();
 
         let upd_queue = (0..count).collect::<Vec<usize>>();
         let needs_update = vec![true; count];
 
-        Simulation {
+        Simulator {
             comp,
             running: false,
             upd_list: upd_queue,
@@ -44,7 +43,13 @@ impl Simulation {
             .comp
             .components
             .iter()
-            .filter(|c| c.name != "Clock")
+            .filter(|c| {
+                if let Primitive::Clock { period: _p } = c.prim_type {
+                    false
+                } else {
+                    true
+                }
+            })
             .count();
 
         let mut stats = SimStats {
@@ -62,18 +67,20 @@ impl Simulation {
             let comp_idx = self.upd_list[rand_idx];
             let comp = &mut self.comp.components[comp_idx];
 
-            debug!("Updating component: {:?}", comp.name);
+            debug!("Updating component: {:?}", comp.prim_type);
             debug!("  Old outputs: {:?}", comp.outputs);
 
-            let c_type = &self.comp.c_types[comp_idx];
-            update_comp(comp, c_type, time);
+            comp.update(time);
 
             debug!("  New outputs: {:?}", comp.outputs);
 
-            if *c_type != Primitive::Clock {
-                self.upd_list.remove(rand_idx);
-                self.needs_update[comp_idx] = false;
-                non_clocks_to_upd_count -= 1;
+            match comp.prim_type {
+                Primitive::Clock { period: _p } => {}
+                _ => {
+                    self.upd_list.remove(rand_idx);
+                    self.needs_update[comp_idx] = false;
+                    non_clocks_to_upd_count -= 1;
+                }
             }
 
             for conn in self
@@ -91,7 +98,7 @@ impl Simulation {
 
                 debug!(
                     "New comp to update: {:?}",
-                    self.comp.components[conn.to.0].name
+                    self.comp.components[conn.to.0].prim_type
                 );
 
                 // Update the value
@@ -113,38 +120,5 @@ impl Simulation {
 
             (self.on_upd)(&self.comp, &stats);
         }
-    }
-}
-
-fn update_comp(comp: &mut Component<Bit, BaseExtra>, c_type: &Primitive, time: u128) {
-    match c_type {
-        Primitive::NotGate => comp.outputs[0] = !comp.inputs[0],
-        Primitive::AndGate => {
-            comp.outputs[0] = comp.inputs.iter().fold(true, |acc, f| acc & f);
-        }
-        Primitive::NandGate => {
-            comp.outputs[0] = !comp.inputs.iter().fold(true, |acc, f| acc & f);
-        }
-        Primitive::OrGate => {
-            comp.outputs[0] = comp.inputs.iter().fold(false, |acc, f| acc | f);
-        }
-        Primitive::NorGate => {
-            comp.outputs[0] = !comp.inputs.iter().fold(false, |acc, f| acc | f);
-        }
-        Primitive::XorGate => {
-            comp.outputs[0] = comp.inputs.iter().fold(false, |acc, f| acc ^ f);
-        }
-        // No update needed
-        Primitive::Clock => {
-            if let BaseExtra::Clock(frec) = comp.extra {
-                let val = (time % (frec * 2)) > frec;
-                comp.outputs[0] = val;
-            } else {
-                panic!("Clock component without frec information");
-            }
-        }
-        Primitive::HighConst => (),
-        Primitive::LowConst => (),
-        Primitive::Unknown => unreachable!(),
     }
 }

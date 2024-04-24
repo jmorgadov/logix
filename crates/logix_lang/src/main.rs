@@ -4,7 +4,7 @@ mod builder;
 use std::path::Path;
 
 use log::error;
-use logix_sim::{flattener::FlattenComponent, Simulation};
+use logix_sim::{flatten::FlattenComponent, simulator::Simulator};
 
 fn main() {
     env_logger::init();
@@ -28,6 +28,8 @@ fn main() {
         }
     };
 
+    println!("Component: {:?}", comp);
+
     let flat = match FlattenComponent::new(comp) {
         Ok(flat) => flat,
         Err(e) => {
@@ -36,7 +38,9 @@ fn main() {
         }
     };
 
-    let mut sim = Simulation::new(
+    println!("Flattened component: {:?}", flat);
+
+    let mut sim = Simulator::new(
         flat,
         Box::new(|flat_comp, stats| {
             print!("{}[2J", 27 as char);
@@ -52,7 +56,7 @@ fn main() {
             println!("Cycle time: {}ms", last_cycle_delta);
             println!("Cycles/sec: {}", cycles_per_sec);
 
-            flat_comp.show();
+            flat_comp.show_status_of(vec!["adder".to_string()])
         }),
     );
     sim.start();

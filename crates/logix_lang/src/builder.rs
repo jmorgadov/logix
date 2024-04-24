@@ -7,8 +7,11 @@ use thiserror::Error;
 use logix_core::component::{Component, ComponentBuilder, Conn, PortAddr};
 use logix_sim::{
     bit::Bit,
-    primitives::primitive_builders::{
-        and_gate, clock, high_const, low_const, nand_gate, not_gate, or_gate, xor_gate, BaseExtra,
+    primitives::{
+        primitive_builders::{
+            and_gate, clock, high_const, low_const, nand_gate, not_gate, or_gate, xor_gate,
+        },
+        primitives::ExtraInfo,
     },
 };
 
@@ -52,15 +55,14 @@ pub enum BuildError {
     ModuleSintaxError(String, String),
 }
 
-pub fn build_from_file(main_path: &str) -> Result<Component<Bit, BaseExtra>, BuildError> {
+pub fn build_from_file(main_path: &str) -> Result<Component<Bit, ExtraInfo>, BuildError> {
     debug!("Building from file: {}", main_path);
     let comp_map = get_comp_map(main_path.to_string())?;
     let main = comp_map
         .get("Main")
         .ok_or(BuildError::NoMainComponentError)?;
 
-    println!("{:?}", comp_map);
-    return comp_decl_to_comp(main, &comp_map);
+    return comp_decl_to_comp(main, "main", &comp_map);
 }
 
 fn get_loc(loc: usize, text: &str) -> (usize, usize) {
@@ -139,8 +141,9 @@ fn get_comp_map(lgx_path: String) -> Result<HashMap<String, Box<CompDecl>>, Buil
 
 fn comp_decl_to_comp(
     comp: &CompDecl,
+    id: &str,
     comp_map: &HashMap<String, Box<CompDecl>>,
-) -> Result<Component<Bit, BaseExtra>, BuildError> {
+) -> Result<Component<Bit, ExtraInfo>, BuildError> {
     let subc_map: HashMap<String, usize> = comp
         .subc
         .iter()
@@ -148,32 +151,32 @@ fn comp_decl_to_comp(
         .map(|(idx, (name, _))| (name.clone(), idx))
         .collect();
 
-    let subc: Vec<Component<Bit, BaseExtra>> = comp
+    let subc: Vec<Component<Bit, ExtraInfo>> = comp
         .subc
         .iter()
-        .map(|(_, sub_comp)| {
+        .map(|(id, sub_comp)| {
             let sub_c = match sub_comp {
                 Comp::Primitive(prim) => Ok(match prim {
-                    Primitive::And(ins_count) => and_gate(*ins_count),
-                    Primitive::Or(ins_count) => or_gate(*ins_count),
-                    Primitive::Not => not_gate(),
-                    Primitive::Nand(ins_count) => nand_gate(*ins_count),
-                    Primitive::Nor(ins_count) => nand_gate(*ins_count),
-                    Primitive::HighConst => high_const(),
-                    Primitive::LowConst => low_const(),
-                    Primitive::Clock(frec) => clock(*frec),
-                    Primitive::Xor(ins_count) => xor_gate(*ins_count),
+                    Primitive::And(ins_count) => and_gate(id.to_string(), *ins_count),
+                    Primitive::Or(ins_count) => or_gate(id.to_string(), *ins_count),
+                    Primitive::Not => not_gate(id.to_string()),
+                    Primitive::Nand(ins_count) => nand_gate(id.to_string(), *ins_count),
+                    Primitive::Nor(ins_count) => nand_gate(id.to_string(), *ins_count),
+                    Primitive::HighConst => high_const(id.to_string()),
+                    Primitive::LowConst => low_const(id.to_string()),
+                    Primitive::Clock(frec) => clock(id.to_string(), *frec),
+                    Primitive::Xor(ins_count) => xor_gate(id.to_string(), *ins_count),
                 }),
                 Comp::Composite(name) => {
                     let decl = comp_map
                         .get(name)
                         .ok_or(BuildError::ComponentDeclNotFoundError(name.to_string()))?;
-                    comp_decl_to_comp(decl, comp_map)
+                    comp_decl_to_comp(decl, id, comp_map)
                 }
             };
             sub_c
         })
-        .collect::<Result<Vec<Component<Bit, BaseExtra>>, BuildError>>()?;
+        .collect::<Result<Vec<Component<Bit, ExtraInfo>>, BuildError>>()?;
 
     let (in_addrs, out_addrs, conns) = get_connections(comp, &subc, &subc_map, comp_map)?;
 
@@ -186,12 +189,13 @@ fn comp_decl_to_comp(
         .connections(conns)
         .in_addrs(in_addrs)
         .out_addrs(out_addrs)
+        .extra(ExtraInfo::new(id.to_string()))
         .build())
 }
 
 fn get_connections(
     comp: &CompDecl,
-    subc: &Vec<Component<Bit, BaseExtra>>,
+    subc: &Vec<Component<Bit, ExtraInfo>>,
     subc_map: &HashMap<String, usize>,
     comp_map: &HashMap<String, Box<CompDecl>>,
 ) -> Result<(Vec<(usize, PortAddr)>, Vec<PortAddr>, Vec<Conn>), BuildError> {
