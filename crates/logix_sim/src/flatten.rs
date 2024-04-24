@@ -2,7 +2,10 @@ use std::collections::HashMap;
 
 use crate::{
     bit::{fmt_bit, Bit},
-    primitives::primitives::{ExtraInfo, PrimitiveComponent},
+    primitives::{
+        prelude::Primitive,
+        primitives::{ExtraInfo, PrimitiveComponent},
+    },
 };
 use logix_core::prelude::*;
 use thiserror::Error;
@@ -75,12 +78,12 @@ impl FlattenComponent {
         })
     }
 
-    pub fn get_status(&self, comp_path: Vec<String>) -> (Vec<bool>, Vec<bool>) {
+    pub fn get_status(&self, comp_path: &str) -> (Vec<bool>, Vec<bool>) {
         let mut comp = &self.nested_config;
-        for name in comp_path {
+        for name in comp_path.split('.') {
             match comp {
                 NestedConfig::Compose(_, subs, _, _) => {
-                    comp = subs.get(&name).unwrap();
+                    comp = subs.get(name).unwrap();
                 }
                 _ => panic!("Component not found"),
             }
@@ -105,7 +108,7 @@ impl FlattenComponent {
         }
     }
 
-    pub fn show_status_of(&self, comp_path: Vec<String>) {
+    pub fn show_status_of(&self, comp_path: &str) {
         println!("{:?}", comp_path);
         let (in_bits, out_bits) = self.get_status(comp_path);
         for bit in in_bits.iter() {
@@ -200,20 +203,14 @@ fn flat_comp(comp: Component<Bit, ExtraInfo>) -> (Vec<PrimitiveComponent>, Vec<C
 
     let in_count = comp.inputs.len();
     let new_comp = match comp.extra.primitive.unwrap() {
-        crate::primitives::primitives::Primitive::AndGate => PrimitiveComponent::and_gate(in_count),
-        crate::primitives::primitives::Primitive::OrGate => PrimitiveComponent::or_gate(in_count),
-        crate::primitives::primitives::Primitive::NotGate => PrimitiveComponent::not_gate(),
-        crate::primitives::primitives::Primitive::NandGate => {
-            PrimitiveComponent::nand_gate(in_count)
-        }
-        crate::primitives::primitives::Primitive::NorGate => PrimitiveComponent::nor_gate(in_count),
-        crate::primitives::primitives::Primitive::XorGate => PrimitiveComponent::xor_gate(in_count),
-        crate::primitives::primitives::Primitive::Clock { period } => {
-            PrimitiveComponent::clock(period)
-        }
-        crate::primitives::primitives::Primitive::Const { value } => {
-            PrimitiveComponent::const_gate(value)
-        }
+        Primitive::AndGate => PrimitiveComponent::and_gate(in_count),
+        Primitive::OrGate => PrimitiveComponent::or_gate(in_count),
+        Primitive::NotGate => PrimitiveComponent::not_gate(),
+        Primitive::NandGate => PrimitiveComponent::nand_gate(in_count),
+        Primitive::NorGate => PrimitiveComponent::nor_gate(in_count),
+        Primitive::XorGate => PrimitiveComponent::xor_gate(in_count),
+        Primitive::Clock { period } => PrimitiveComponent::clock(period),
+        Primitive::Const { value } => PrimitiveComponent::const_gate(value),
     };
 
     (vec![new_comp], vec![])

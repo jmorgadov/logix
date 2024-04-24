@@ -42,7 +42,7 @@ fn main() {
 
     let mut sim = Simulator::new(
         flat,
-        Box::new(|flat_comp, stats| {
+        Box::new(move |flat_comp, stats| {
             print!("{}[2J", 27 as char);
             print!("{esc}[2J{esc}[1;1H", esc = 27 as char);
 
@@ -56,7 +56,7 @@ fn main() {
             println!("Cycle time: {}ms", last_cycle_delta);
             println!("Cycles/sec: {}", cycles_per_sec);
 
-            flat_comp.show_status_of(vec!["adder".to_string()])
+            flat_comp.show_status_of("adder")
         }),
     );
     sim.start();

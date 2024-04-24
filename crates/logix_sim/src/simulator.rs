@@ -10,16 +10,17 @@ pub struct Simulator {
     upd_list: Vec<usize>,
     needs_update: Vec<bool>,
 
-    on_upd: Box<dyn Fn(&FlattenComponent, &SimStats)>,
+    on_upd: Box<dyn FnMut(&FlattenComponent, &SimStats)>,
 }
 
 pub struct SimStats {
     pub upd_time_ns: u128,
     pub cycle_time_ns: u128,
+    pub end_cycle: bool,
 }
 
 impl Simulator {
-    pub fn new(comp: FlattenComponent, on_upd: Box<dyn Fn(&FlattenComponent, &SimStats)>) -> Self {
+    pub fn new(comp: FlattenComponent, on_upd: Box<dyn FnMut(&FlattenComponent, &SimStats)>) -> Self {
         let count = comp.components.len();
 
         let upd_queue = (0..count).collect::<Vec<usize>>();
@@ -55,6 +56,7 @@ impl Simulator {
         let mut stats = SimStats {
             upd_time_ns: 0,
             cycle_time_ns: 0,
+            end_cycle: false,
         };
         let mut last_cycle_upd = start;
 
@@ -110,9 +112,11 @@ impl Simulator {
                 }
             }
 
+            stats.end_cycle = false;
             if non_clocks_to_upd_count == 0 {
                 stats.cycle_time_ns = last_cycle_upd.elapsed().as_nanos();
                 last_cycle_upd = Instant::now();
+                stats.end_cycle = true;
             }
 
             let time2 = start.elapsed().as_nanos();
