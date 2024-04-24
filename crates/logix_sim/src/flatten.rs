@@ -27,7 +27,7 @@ pub enum FlattenError {}
 #[derive(Debug)]
 pub struct FlattenComponent {
     pub components: Vec<PrimitiveComponent>,
-    pub connections: Vec<Conn>,
+    pub connections: Vec<Vec<Conn>>,
     pub deps: Vec<Vec<usize>>,
     pub inv_deps: Vec<Vec<usize>>,
 
@@ -37,14 +37,14 @@ pub struct FlattenComponent {
 impl FlattenComponent {
     pub fn new(mut comp: Component<Bit, ExtraInfo>) -> Result<Self, FlattenError> {
         let (_, nested_config) = reindex_connections(&mut comp, 0)?;
-        let (components, connections) = flat_comp(comp);
+        let (components, conns) = flat_comp(comp);
 
         // Build dependency map
         let mut deps_mat: Vec<Vec<bool>> = vec![vec![false; components.len()]; components.len()];
         let mut inv_deps_mat: Vec<Vec<bool>> =
             vec![vec![false; components.len()]; components.len()];
 
-        for conn in &connections {
+        for conn in &conns {
             let (from, to) = (idx_of(conn.from), idx_of(conn.to));
             deps_mat[to][from] = true;
             inv_deps_mat[from][to] = true;
@@ -68,6 +68,15 @@ impl FlattenComponent {
                     .collect()
             })
             .collect();
+
+        let mut connections = components
+            .iter()
+            .map(|_| vec![])
+            .collect::<Vec<Vec<Conn>>>();
+
+        for conn in conns.into_iter() {
+            connections[conn.from.0].push(conn);
+        }
 
         Ok(FlattenComponent {
             components,

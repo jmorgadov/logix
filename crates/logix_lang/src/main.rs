@@ -56,7 +56,7 @@ fn main() {
             println!("Cycle time: {}ms", last_cycle_delta);
             println!("Cycles/sec: {}", cycles_per_sec);
 
-            flat_comp.show_status_of("adder")
+            // flat_comp.show_status_of("adder")
         }),
     );
     sim.start();

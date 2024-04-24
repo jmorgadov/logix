@@ -87,9 +87,8 @@ impl Simulator {
 
             for conn in self
                 .comp
-                .connections
+                .connections[comp_idx]
                 .iter()
-                .filter(|conn| conn.from.0 == comp_idx)
             {
                 let val = self.comp.components[comp_idx].outputs[conn.from.1];
 
