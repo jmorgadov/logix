@@ -55,9 +55,9 @@ impl Conn {
 
 /// Holds all the information of the sub-components of a component.
 #[derive(Default, Debug)]
-pub struct SubComponent<T: Default + Clone, E: Default + Clone> {
+pub struct SubComponent<E: Default + Clone> {
     /// Vector of sub-components.
-    pub components: Vec<Component<T, E>>,
+    pub components: Vec<Component<E>>,
 
     /// Vector that holds the connections between the sub-components.
     pub connections: Vec<Conn>,
@@ -74,20 +74,20 @@ pub struct SubComponent<T: Default + Clone, E: Default + Clone> {
 
 /// Represents a component.
 #[derive(Default, Debug)]
-pub struct Component<T: Default + Clone, E: Default + Clone> {
+pub struct Component<E: Default + Clone> {
     /// Name of the component.
     pub name: String,
 
     /// Input ports of the component.
-    pub inputs: Vec<T>,
+    pub inputs: usize,
 
     /// Output ports of the component.
-    pub outputs: Vec<T>,
+    pub outputs: usize,
 
     /// Option that holds the sub-component information.
     ///
     /// If None, then the component is consider a base component.
-    pub sub: Option<SubComponent<T, E>>,
+    pub sub: Option<SubComponent<E>>,
 
     // Extra information
     pub extra: E,
@@ -103,25 +103,25 @@ pub struct Component<T: Default + Clone, E: Default + Clone> {
 /// let and_gate = ComponentBuilder::<bool>::new("AND").port_count(2, 1).build();
 /// ```
 #[derive(Default)]
-pub struct ComponentBuilder<T: Default + Clone, E: Default + Clone> {
+pub struct ComponentBuilder<E: Default + Clone> {
     name: String,
-    inputs: Vec<T>,
-    outputs: Vec<T>,
+    inputs: usize,
+    outputs: usize,
 
-    sub_comps: Option<Vec<Component<T, E>>>,
+    sub_comps: Option<Vec<Component<E>>>,
     connections: Option<Vec<Conn>>,
     in_addrs: Option<Vec<(usize, PortAddr)>>,
     out_addrs: Option<Vec<PortAddr>>,
     extra: E,
 }
 
-impl<T: Default + Clone, E: Default + Clone> ComponentBuilder<T, E> {
+impl <E: Default + Clone> ComponentBuilder<E> {
     /// Creates a new [`ComponentBuilder`]
     pub fn new(name: &str) -> Self {
         ComponentBuilder {
             name: name.to_string(),
-            inputs: vec![],
-            outputs: vec![],
+            inputs: 0,
+            outputs: 0,
             sub_comps: None,
             connections: None,
             in_addrs: None,
@@ -136,7 +136,7 @@ impl<T: Default + Clone, E: Default + Clone> ComponentBuilder<T, E> {
     ///
     /// * `n`: Integer that represents the amount of input ports.
     pub fn in_count(mut self, n: usize) -> Self {
-        self.inputs = vec![Default::default(); n];
+        self.inputs = n;
         self
     }
 
@@ -146,7 +146,7 @@ impl<T: Default + Clone, E: Default + Clone> ComponentBuilder<T, E> {
     ///
     /// * `n`: Integer that represents the amount of output ports.
     pub fn out_count(mut self, n: usize) -> Self {
-        self.outputs = vec![Default::default(); n];
+        self.outputs = n;
         self
     }
 
@@ -157,8 +157,8 @@ impl<T: Default + Clone, E: Default + Clone> ComponentBuilder<T, E> {
     /// * `in_count`: Integer that represents the amount of input ports.
     /// * `out_count`: Integer that represents the amount of output ports.
     pub fn port_count(mut self, in_count: usize, out_count: usize) -> Self {
-        self.inputs = vec![Default::default(); in_count];
-        self.outputs = vec![Default::default(); out_count];
+        self.inputs = in_count;
+        self.outputs = out_count;
         self
     }
 
@@ -167,7 +167,7 @@ impl<T: Default + Clone, E: Default + Clone> ComponentBuilder<T, E> {
     /// # Arguments
     ///
     /// * `sub_comps`: Vector of [`Components`] that holds all the sub-components.
-    pub fn sub_comps(mut self, sub_comps: Vec<Component<T, E>>) -> Self {
+    pub fn sub_comps(mut self, sub_comps: Vec<Component<E>>) -> Self {
         self.sub_comps = Some(sub_comps);
         self
     }
@@ -214,7 +214,7 @@ impl<T: Default + Clone, E: Default + Clone> ComponentBuilder<T, E> {
     }
 
     /// Builds the [`Component`].
-    pub fn build(self) -> Component<T, E> {
+    pub fn build(self) -> Component<E> {
         // Build dependency map
         let mut dep_map: Option<Vec<Vec<usize>>> = None;
         if let Some(sub_comps) = &self.sub_comps {
@@ -231,7 +231,7 @@ impl<T: Default + Clone, E: Default + Clone> ComponentBuilder<T, E> {
         if let Some(sub_comps) = self.sub_comps {
             let mut used_inputs: Vec<Vec<bool>> = sub_comps
                 .iter()
-                .map(|c| vec![false; c.inputs.len()])
+                .map(|c| vec![false; c.inputs])
                 .collect();
 
             let connections = self.connections.unwrap_or_default();

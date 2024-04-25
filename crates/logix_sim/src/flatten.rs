@@ -1,11 +1,8 @@
 use std::collections::HashMap;
 
-use crate::{
-    bit::{fmt_bit, Bit},
-    primitives::{
-        prelude::Primitive,
-        primitives::{ExtraInfo, PrimitiveComponent},
-    },
+use crate::primitives::{
+    prelude::Primitive,
+    primitives::{ExtraInfo, PrimitiveComponent},
 };
 use logix_core::prelude::*;
 use thiserror::Error;
@@ -35,7 +32,7 @@ pub struct FlattenComponent {
 }
 
 impl FlattenComponent {
-    pub fn new(mut comp: Component<Bit, ExtraInfo>) -> Result<Self, FlattenError> {
+    pub fn new(mut comp: Component<ExtraInfo>) -> Result<Self, FlattenError> {
         let (_, nested_config) = reindex_connections(&mut comp, 0)?;
         let (components, conns) = flat_comp(comp);
 
@@ -121,11 +118,11 @@ impl FlattenComponent {
         println!("{:?}", comp_path);
         let (in_bits, out_bits) = self.get_status(comp_path);
         for bit in in_bits.iter() {
-            print!("{}", fmt_bit(bit));
+            print!("{}", fmt_bool(bit));
         }
         print!(" -> ");
         for bit in out_bits.iter() {
-            print!("{}", fmt_bit(bit));
+            print!("{}", fmt_bool(bit));
         }
         println!();
     }
@@ -147,11 +144,11 @@ impl FlattenComponent {
                 s.push_str(n);
                 s.push(' ');
                 for addr in ins {
-                    s.push(fmt_bit(&self.components[addr.0].inputs[addr.1]));
+                    s.push(fmt_bool(&self.components[addr.0].inputs[addr.1]));
                 }
                 s.push(' ');
                 for addr in outs {
-                    s.push(fmt_bit(&self.components[addr.0].outputs[addr.1]));
+                    s.push(fmt_bool(&self.components[addr.0].outputs[addr.1]));
                 }
                 s.push('\n');
                 subs.iter().for_each(|c| {
@@ -166,11 +163,11 @@ impl FlattenComponent {
                 s.push_str(&comp.name);
                 s.push(' ');
                 for bit in &comp.inputs {
-                    s.push(fmt_bit(bit));
+                    s.push(fmt_bool(bit));
                 }
                 s.push(' ');
                 for bit in &comp.outputs {
-                    s.push(fmt_bit(bit));
+                    s.push(fmt_bool(bit));
                 }
                 s.push('\n');
             }
@@ -187,16 +184,16 @@ fn show_comp(comp: &PrimitiveComponent) {
     let mut line = String::from(&comp.name);
     line.push(' ');
     for bits in &comp.inputs {
-        line.push(fmt_bit(bits));
+        line.push(fmt_bool(bits));
     }
     line.push(' ');
     for bits in &comp.outputs {
-        line.push(fmt_bit(bits));
+        line.push(fmt_bool(bits));
     }
     println!("{}", line);
 }
 
-fn flat_comp(comp: Component<Bit, ExtraInfo>) -> (Vec<PrimitiveComponent>, Vec<Conn>) {
+fn flat_comp(comp: Component<ExtraInfo>) -> (Vec<PrimitiveComponent>, Vec<Conn>) {
     let mut comps = vec![];
     let mut conns = vec![];
     if let Some(mut sub) = comp.sub {
@@ -210,7 +207,7 @@ fn flat_comp(comp: Component<Bit, ExtraInfo>) -> (Vec<PrimitiveComponent>, Vec<C
 
     assert!(comp.extra.primitive.is_some());
 
-    let in_count = comp.inputs.len();
+    let in_count = comp.inputs;
     let new_comp = match comp.extra.primitive.unwrap() {
         Primitive::AndGate => PrimitiveComponent::and_gate(in_count),
         Primitive::OrGate => PrimitiveComponent::or_gate(in_count),
@@ -226,7 +223,7 @@ fn flat_comp(comp: Component<Bit, ExtraInfo>) -> (Vec<PrimitiveComponent>, Vec<C
 }
 
 fn reindex_connections(
-    comp: &mut Component<Bit, ExtraInfo>,
+    comp: &mut Component<ExtraInfo>,
     start_idx: usize,
 ) -> Result<(usize, NestedConfig), FlattenError> {
     if comp.sub.is_none() {
@@ -311,4 +308,11 @@ fn reindex_connections(
     let nested_out = sub.out_addrs.clone();
     let config = NestedConfig::Compose(comp.name.clone(), sub_configs, nested_in, nested_out);
     return Ok((*idx_starts.last().unwrap(), config));
+}
+
+pub fn fmt_bool(bit: &bool) -> char {
+    match bit {
+        true => '🟩',
+        false => '⬛',
+    }
 }

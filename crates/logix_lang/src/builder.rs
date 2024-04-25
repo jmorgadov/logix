@@ -5,14 +5,11 @@ use std::path::Path;
 use thiserror::Error;
 
 use logix_core::component::{Component, ComponentBuilder, Conn, PortAddr};
-use logix_sim::{
-    bit::Bit,
-    primitives::{
-        primitive_builders::{
-            and_gate, clock, high_const, low_const, nand_gate, not_gate, or_gate, xor_gate,
-        },
-        primitives::ExtraInfo,
+use logix_sim::primitives::{
+    primitive_builders::{
+        and_gate, clock, high_const, low_const, nand_gate, not_gate, or_gate, xor_gate,
     },
+    primitives::ExtraInfo,
 };
 
 use crate::ast::{prelude::*, PinIndexing};
@@ -55,7 +52,7 @@ pub enum BuildError {
     ModuleSintaxError(String, String),
 }
 
-pub fn build_from_file(main_path: &str) -> Result<Component<Bit, ExtraInfo>, BuildError> {
+pub fn build_from_file(main_path: &str) -> Result<Component<ExtraInfo>, BuildError> {
     debug!("Building from file: {}", main_path);
     let comp_map = get_comp_map(main_path.to_string())?;
     let main = comp_map
@@ -143,7 +140,7 @@ fn comp_decl_to_comp(
     comp: &CompDecl,
     id: &str,
     comp_map: &HashMap<String, Box<CompDecl>>,
-) -> Result<Component<Bit, ExtraInfo>, BuildError> {
+) -> Result<Component<ExtraInfo>, BuildError> {
     let subc_map: HashMap<String, usize> = comp
         .subc
         .iter()
@@ -151,7 +148,7 @@ fn comp_decl_to_comp(
         .map(|(idx, (name, _))| (name.clone(), idx))
         .collect();
 
-    let subc: Vec<Component<Bit, ExtraInfo>> = comp
+    let subc: Vec<Component<ExtraInfo>> = comp
         .subc
         .iter()
         .map(|(id, sub_comp)| {
@@ -176,7 +173,7 @@ fn comp_decl_to_comp(
             };
             sub_c
         })
-        .collect::<Result<Vec<Component<Bit, ExtraInfo>>, BuildError>>()?;
+        .collect::<Result<Vec<Component<ExtraInfo>>, BuildError>>()?;
 
     let (in_addrs, out_addrs, conns) = get_connections(comp, &subc, &subc_map, comp_map)?;
 
@@ -195,7 +192,7 @@ fn comp_decl_to_comp(
 
 fn get_connections(
     comp: &CompDecl,
-    subc: &Vec<Component<Bit, ExtraInfo>>,
+    subc: &Vec<Component<ExtraInfo>>,
     subc_map: &HashMap<String, usize>,
     comp_map: &HashMap<String, Box<CompDecl>>,
 ) -> Result<(Vec<(usize, PortAddr)>, Vec<PortAddr>, Vec<Conn>), BuildError> {
@@ -245,7 +242,7 @@ fn get_connections(
                 for i in 0..len {
                     // Check if the idx is in range
                     let subc_idx = get_subc_idx(&dest_name)?;
-                    if subc[subc_idx].inputs.len() <= idx + dest_bit_idx + i {
+                    if subc[subc_idx].inputs <= idx + dest_bit_idx + i {
                         return Err(BuildError::InternalPinError(
                             dest_name.clone(),
                             idx + dest_bit_idx + i,
@@ -272,7 +269,7 @@ fn get_connections(
 
                 for i in 0..len {
                     // Check if the idx is in range
-                    if subc[subc_idx].outputs.len() <= idx + src_bit_idx + i {
+                    if subc[subc_idx].outputs <= idx + src_bit_idx + i {
                         return Err(BuildError::InternalPinError(
                             src_name.clone(),
                             idx + src_bit_idx + i,
