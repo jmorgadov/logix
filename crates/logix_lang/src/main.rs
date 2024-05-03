@@ -97,7 +97,7 @@ fn main() {
         Box::new(move |flat_comp, stats| {
             let delta_ms = stats.upd_time_ns as f64 / 1_000_000.0;
             let loops_per_sec = 1_000.0 / delta_ms;
-            let last_cycle_delta = stats.cycle_time_ns as f64 / 1_000_000.0;
+            let last_cycle_delta = stats.clk_cycle_time_ns as f64 / 1_000_000.0;
             let cycles_per_sec = 1_000.0 / last_cycle_delta;
 
             print!("{}[2J", 27 as char);

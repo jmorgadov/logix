@@ -13,8 +13,8 @@ pub struct Simulator {
 
 pub struct SimStats {
     pub upd_time_ns: u128,
-    pub cycle_time_ns: u128,
-    pub end_cycle: bool,
+    pub clk_cycle_time_ns: u128,
+    pub clk_cycle_ended: bool,
 }
 
 impl Simulator {
@@ -59,16 +59,19 @@ impl Simulator {
         let start = Instant::now();
         let mut stats = SimStats {
             upd_time_ns: 0,
-            cycle_time_ns: 0,
-            end_cycle: false,
+            clk_cycle_time_ns: 0,
+            clk_cycle_ended: false,
         };
 
         let mut local_upd_queue: Vec<usize> = (0..self.comp.components.len()).collect();
         let mut local_next_upd_queue: Vec<usize> = self.to_upd.clone();
+        let mut last_cycle = start.elapsed().as_nanos();
 
         while self.to_upd.len() > 0 {
-            let time = start.elapsed().as_nanos();
             debug!("Update list: {:?}", self.to_upd);
+
+            let time = start.elapsed().as_nanos();
+            stats.clk_cycle_ended = true;
 
             for idx in local_upd_queue.iter() {
                 debug!(
@@ -90,7 +93,9 @@ impl Simulator {
                 debug!("  New outputs: {:?}", comp.outputs);
 
                 match comp.prim_type {
-                    Primitive::Clock { period: _p } => {}
+                    Primitive::Clock { period: _p } => {
+                        last_cycle = start.elapsed().as_nanos();
+                    }
                     _ => {
                         self.to_upd.retain(|&x| x != comp_idx);
                     }
@@ -121,12 +126,18 @@ impl Simulator {
                     self.comp.components[conn.to.0].inputs[conn.to.1] = val;
 
                     if !local_next_upd_queue.contains(&conn.to.0) {
+                        stats.clk_cycle_ended = false;
                         local_next_upd_queue.push(conn.to.0);
                     }
                 }
 
                 let time2 = start.elapsed().as_nanos();
                 stats.upd_time_ns = time2 - time;
+
+                if stats.clk_cycle_ended {
+                    stats.clk_cycle_time_ns = time2 - last_cycle;
+                    last_cycle = time2;
+                }
 
                 (self.on_upd)(&self.comp, &stats);
             }
