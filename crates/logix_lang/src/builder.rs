@@ -292,8 +292,12 @@ fn get_connections(
                             idx + src_bit_idx + i,
                         ));
                     }
-                    out_addrs[out_idx + i] = (subc_idx, idx + src_bit_idx + i);
-                    debug!("|    Out addr created: {:?}", out_addrs.last().unwrap());
+                    out_addrs[out_idx + dest_bit_idx + i] = (subc_idx, idx + src_bit_idx + i);
+                    debug!(
+                        "|    Out addr created: {:?} at {}",
+                        out_addrs[out_idx + i],
+                        out_idx + dest_bit_idx + i
+                    );
                 }
             }
             //

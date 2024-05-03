@@ -28,7 +28,7 @@ Async_Counter_2b (
   )
 
   ins (clk)
-  outs (o0, o1)
+  outs (out:2)
 
   design (
     hc1.0 -> ff1.j,
@@ -38,9 +38,9 @@ Async_Counter_2b (
 
     clk -> ff1.clk,
 
-    ff1.q -> o0,
+    ff1.q -> out[0],
     ff1.q -> ff2.clk,
 
-    ff2.q -> o1
+    ff2.q -> out[1]
   )
 )
