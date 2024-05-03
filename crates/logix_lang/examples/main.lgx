@@ -1,19 +1,15 @@
-use adders;
+use counters;
 
 Main (
     subc (
-        adder = Adder2,
         clk = Clock(1.0),
-        c1 = High,
-        c2 = High
+        counter = Async_Counter_2b
     )
 
     ins ()
     outs ()
 
     design (
-        clk.0 -> adder.a[0],
-        c1.0 -> adder.a[1],
-        c2.0 -> adder.b[0]
+        clk.0 -> counter.clk
     )
 )

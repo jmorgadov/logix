@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use crate::primitives::{
+    bit::Bit,
     prelude::Primitive,
     primitives::{ExtraInfo, PrimitiveComponent},
 };
@@ -11,8 +12,8 @@ use thiserror::Error;
 pub enum NestedConfig {
     Single(usize),
     Compose(
-        String,
-        HashMap<String, NestedConfig>,
+        usize,
+        HashMap<usize, NestedConfig>,
         Vec<PortAddr>,
         Vec<PortAddr>,
     ),
@@ -29,6 +30,8 @@ pub struct FlattenComponent {
     pub inv_deps: Vec<Vec<usize>>,
 
     pub nested_config: NestedConfig,
+
+    id_to_idx: HashMap<usize, usize>,
 }
 
 impl FlattenComponent {
@@ -75,21 +78,42 @@ impl FlattenComponent {
             connections[conn.from.0].push(conn);
         }
 
+        let id_to_idx = components
+            .iter()
+            .enumerate()
+            .map(|(i, comp)| (comp.id, i))
+            .collect();
+
         Ok(FlattenComponent {
             components,
             connections,
             deps,
             inv_deps,
             nested_config,
+            id_to_idx,
         })
     }
 
-    pub fn get_status(&self, comp_path: &str) -> (Vec<bool>, Vec<bool>) {
+    pub fn comp_by_id(&self, id: usize) -> &PrimitiveComponent {
+        &self.components[*self
+            .id_to_idx
+            .get(&id)
+            .expect(format!("Component {} not found", id).as_str())]
+    }
+
+    pub fn get_status_by_id(&self, id: usize) -> (&Vec<Bit>, &Vec<Bit>) {
+        let idx = *self.id_to_idx.get(&id).expect("Component not found");
+        (&self.components[idx].inputs, &self.components[idx].outputs)
+    }
+
+    pub fn get_status(&self, comp_path: &[usize]) -> (Vec<Bit>, Vec<Bit>) {
         let mut comp = &self.nested_config;
-        for name in comp_path.split('.') {
+        for id in comp_path {
             match comp {
                 NestedConfig::Compose(_, subs, _, _) => {
-                    comp = subs.get(name).unwrap();
+                    comp = subs
+                        .get(id)
+                        .expect(format!("Component {} not found", id).as_str());
                 }
                 _ => panic!("Component not found"),
             }
@@ -113,84 +137,6 @@ impl FlattenComponent {
             }
         }
     }
-
-    pub fn show_status_of(&self, comp_path: &str) {
-        println!("{:?}", comp_path);
-        let (in_bits, out_bits) = self.get_status(comp_path);
-        for bit in in_bits.iter() {
-            print!("{}", fmt_bool(bit));
-        }
-        print!(" -> ");
-        for bit in out_bits.iter() {
-            print!("{}", fmt_bool(bit));
-        }
-        println!();
-    }
-
-    pub fn show_flat(&self) {
-        for (i, comp) in self.components.iter().enumerate() {
-            print!("{} - ", i);
-            show_comp(comp);
-        }
-    }
-
-    fn show_config(&self, conf: &NestedConfig, level: usize) -> String {
-        let mut s = String::new();
-        match conf {
-            NestedConfig::Compose(n, subs, ins, outs) => {
-                for _ in 0..level {
-                    s.push_str("  ");
-                }
-                s.push_str(n);
-                s.push(' ');
-                for addr in ins {
-                    s.push(fmt_bool(&self.components[addr.0].inputs[addr.1]));
-                }
-                s.push(' ');
-                for addr in outs {
-                    s.push(fmt_bool(&self.components[addr.0].outputs[addr.1]));
-                }
-                s.push('\n');
-                subs.iter().for_each(|c| {
-                    s.push_str(&self.show_config(c.1, level + 1));
-                });
-            }
-            NestedConfig::Single(idx) => {
-                let comp = &self.components[*idx];
-                for _ in 0..level {
-                    s.push_str("  ");
-                }
-                s.push_str(&comp.name);
-                s.push(' ');
-                for bit in &comp.inputs {
-                    s.push(fmt_bool(bit));
-                }
-                s.push(' ');
-                for bit in &comp.outputs {
-                    s.push(fmt_bool(bit));
-                }
-                s.push('\n');
-            }
-        }
-        s
-    }
-
-    pub fn show(&self) {
-        println!("{}", self.show_config(&self.nested_config, 0));
-    }
-}
-
-fn show_comp(comp: &PrimitiveComponent) {
-    let mut line = String::from(&comp.name);
-    line.push(' ');
-    for bits in &comp.inputs {
-        line.push(fmt_bool(bits));
-    }
-    line.push(' ');
-    for bits in &comp.outputs {
-        line.push(fmt_bool(bits));
-    }
-    println!("{}", line);
 }
 
 fn flat_comp(comp: Component<ExtraInfo>) -> (Vec<PrimitiveComponent>, Vec<Conn>) {
@@ -208,15 +154,16 @@ fn flat_comp(comp: Component<ExtraInfo>) -> (Vec<PrimitiveComponent>, Vec<Conn>)
     assert!(comp.extra.primitive.is_some());
 
     let in_count = comp.inputs;
+    let id = comp.extra.id;
     let new_comp = match comp.extra.primitive.unwrap() {
-        Primitive::AndGate => PrimitiveComponent::and_gate(in_count),
-        Primitive::OrGate => PrimitiveComponent::or_gate(in_count),
-        Primitive::NotGate => PrimitiveComponent::not_gate(),
-        Primitive::NandGate => PrimitiveComponent::nand_gate(in_count),
-        Primitive::NorGate => PrimitiveComponent::nor_gate(in_count),
-        Primitive::XorGate => PrimitiveComponent::xor_gate(in_count),
-        Primitive::Clock { period } => PrimitiveComponent::clock(period),
-        Primitive::Const { value } => PrimitiveComponent::const_gate(value),
+        Primitive::AndGate => PrimitiveComponent::and_gate(id, in_count),
+        Primitive::OrGate => PrimitiveComponent::or_gate(id, in_count),
+        Primitive::NotGate => PrimitiveComponent::not_gate(id),
+        Primitive::NandGate => PrimitiveComponent::nand_gate(id, in_count),
+        Primitive::NorGate => PrimitiveComponent::nor_gate(id, in_count),
+        Primitive::XorGate => PrimitiveComponent::xor_gate(id, in_count),
+        Primitive::Clock { period } => PrimitiveComponent::clock(id, period),
+        Primitive::Const { value } => PrimitiveComponent::const_gate(id, value),
     };
 
     (vec![new_comp], vec![])
@@ -236,7 +183,7 @@ fn reindex_connections(
     for comp in sub.components.as_mut_slice() {
         let (new_start, config) = reindex_connections(comp, *idx_starts.last().unwrap())?;
         idx_starts.push(new_start);
-        sub_configs.insert(comp.extra.id.to_string(), config);
+        sub_configs.insert(comp.extra.id, config);
     }
 
     // change connections
@@ -306,13 +253,6 @@ fn reindex_connections(
     }
 
     let nested_out = sub.out_addrs.clone();
-    let config = NestedConfig::Compose(comp.name.clone(), sub_configs, nested_in, nested_out);
+    let config = NestedConfig::Compose(comp.id, sub_configs, nested_in, nested_out);
     return Ok((*idx_starts.last().unwrap(), config));
-}
-
-pub fn fmt_bool(bit: &bool) -> char {
-    match bit {
-        true => '🟩',
-        false => '⬛',
-    }
 }

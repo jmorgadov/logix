@@ -1,0 +1,46 @@
+use flip_flops;
+
+Async_Counter_1b (
+  subc (
+    ff = JK_FF,
+    hc = High
+  )
+
+  ins (clk)
+  outs (out)
+
+  design (
+    hc.0 -> ff.j,
+    hc.0 -> ff.k,
+
+    clk -> ff.clk,
+
+    ff.q -> out
+  )
+)
+
+Async_Counter_2b (
+  subc (
+    ff1 = JK_FF,
+    ff2 = JK_FF,
+    hc1 = High,
+    hc2 = High
+  )
+
+  ins (clk)
+  outs (o0, o1)
+
+  design (
+    hc1.0 -> ff1.j,
+    hc1.0 -> ff1.k,
+    hc2.0 -> ff2.j,
+    hc2.0 -> ff2.k,
+
+    clk -> ff1.clk,
+
+    ff1.q -> o0,
+    ff1.q -> ff2.clk,
+
+    ff2.q -> o1
+  )
+)

@@ -52,14 +52,18 @@ pub enum BuildError {
     ModuleSintaxError(String, String),
 }
 
-pub fn build_from_file(main_path: &str) -> Result<Component<ExtraInfo>, BuildError> {
+pub fn build_from_file(
+    main_path: &str,
+) -> Result<(Component<ExtraInfo>, HashMap<usize, String>), BuildError> {
     debug!("Building from file: {}", main_path);
     let comp_map = get_comp_map(main_path.to_string())?;
     let main = comp_map
         .get("Main")
         .ok_or(BuildError::NoMainComponentError)?;
-
-    return comp_decl_to_comp(main, "main", &comp_map);
+    let mut last_id: usize = 0;
+    let mut id_map: HashMap<usize, String> = HashMap::new();
+    let comp = comp_decl_to_comp(main, "main", &comp_map, &mut last_id, &mut id_map)?;
+    Ok((comp, id_map))
 }
 
 fn get_loc(loc: usize, text: &str) -> (usize, usize) {
@@ -138,8 +142,10 @@ fn get_comp_map(lgx_path: String) -> Result<HashMap<String, Box<CompDecl>>, Buil
 
 fn comp_decl_to_comp(
     comp: &CompDecl,
-    id: &str,
+    name: &str,
     comp_map: &HashMap<String, Box<CompDecl>>,
+    last_id: &mut usize,
+    id_map: &mut HashMap<usize, String>,
 ) -> Result<Component<ExtraInfo>, BuildError> {
     let subc_map: HashMap<String, usize> = comp
         .subc
@@ -151,24 +157,31 @@ fn comp_decl_to_comp(
     let subc: Vec<Component<ExtraInfo>> = comp
         .subc
         .iter()
-        .map(|(id, sub_comp)| {
+        .map(|(subc_name, sub_comp)| {
             let sub_c = match sub_comp {
-                Comp::Primitive(prim) => Ok(match prim {
-                    Primitive::And(ins_count) => and_gate(id.to_string(), *ins_count),
-                    Primitive::Or(ins_count) => or_gate(id.to_string(), *ins_count),
-                    Primitive::Not => not_gate(id.to_string()),
-                    Primitive::Nand(ins_count) => nand_gate(id.to_string(), *ins_count),
-                    Primitive::Nor(ins_count) => nand_gate(id.to_string(), *ins_count),
-                    Primitive::HighConst => high_const(id.to_string()),
-                    Primitive::LowConst => low_const(id.to_string()),
-                    Primitive::Clock(frec) => clock(id.to_string(), *frec),
-                    Primitive::Xor(ins_count) => xor_gate(id.to_string(), *ins_count),
-                }),
+                Comp::Primitive(prim) => {
+                    *last_id += 1;
+                    let prim = match prim {
+                        Primitive::And(ins_count) => and_gate(*last_id, *ins_count),
+                        Primitive::Or(ins_count) => or_gate(*last_id, *ins_count),
+                        Primitive::Not => not_gate(*last_id),
+                        Primitive::Nand(ins_count) => nand_gate(*last_id, *ins_count),
+                        Primitive::Nor(ins_count) => nand_gate(*last_id, *ins_count),
+                        Primitive::HighConst => high_const(*last_id),
+                        Primitive::LowConst => low_const(*last_id),
+                        Primitive::Clock(frec) => clock(*last_id, *frec),
+                        Primitive::Xor(ins_count) => xor_gate(*last_id, *ins_count),
+                    };
+                    id_map.insert(*last_id, subc_name.to_string());
+                    debug!("Creating primitive: {} with id {}", subc_name, *last_id);
+                    Ok(prim)
+                }
                 Comp::Composite(name) => {
                     let decl = comp_map
                         .get(name)
                         .ok_or(BuildError::ComponentDeclNotFoundError(name.to_string()))?;
-                    comp_decl_to_comp(decl, id, comp_map)
+                    let compose = comp_decl_to_comp(decl, subc_name, comp_map, last_id, id_map)?;
+                    Ok(compose)
                 }
             };
             sub_c
@@ -180,13 +193,17 @@ fn comp_decl_to_comp(
     let in_count: usize = comp.ins.values().map(|x| x.1).sum::<u8>() as usize;
     let out_count: usize = comp.outs.values().map(|x| x.1).sum::<u8>() as usize;
 
-    Ok(ComponentBuilder::new(comp.name.as_str())
+    *last_id += 1;
+    id_map.insert(*last_id, name.to_string());
+    debug!("Creating component: {} with id {}", name, *last_id);
+    Ok(ComponentBuilder::new(*last_id)
+        .name(name.to_string())
         .port_count(in_count, out_count)
         .sub_comps(subc)
         .connections(conns)
         .in_addrs(in_addrs)
         .out_addrs(out_addrs)
-        .extra(ExtraInfo::new(id.to_string()))
+        .extra(ExtraInfo::new(*last_id))
         .build())
 }
 

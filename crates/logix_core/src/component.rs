@@ -1,4 +1,4 @@
-use std::default::Default;
+use std::{default::Default, usize};
 
 /// Represents a location of a port inside a Component.
 ///
@@ -25,7 +25,7 @@ pub fn addr_of(port_addr: PortAddr) -> usize {
 /// The port index of the `from` part is taken from the outputs of the
 /// component it represents. The port index of the `to` part is taken from
 /// the inputs of the component it represents.
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Copy, Clone)]
 pub struct Conn {
     pub from: PortAddr,
     pub to: PortAddr,
@@ -75,8 +75,11 @@ pub struct SubComponent<E: Default + Clone> {
 /// Represents a component.
 #[derive(Default, Debug)]
 pub struct Component<E: Default + Clone> {
+    /// Unique identifier of the component.
+    pub id: usize,
+
     /// Name of the component.
-    pub name: String,
+    pub name: Option<String>,
 
     /// Input ports of the component.
     pub inputs: usize,
@@ -93,18 +96,10 @@ pub struct Component<E: Default + Clone> {
     pub extra: E,
 }
 
-/// Component builder.
-///
-/// # Example
-///
-/// ```
-/// # use logix_core::prelude::*;
-/// #
-/// let and_gate = ComponentBuilder::<bool>::new("AND").port_count(2, 1).build();
-/// ```
 #[derive(Default)]
 pub struct ComponentBuilder<E: Default + Clone> {
-    name: String,
+    id: usize,
+    name: Option<String>,
     inputs: usize,
     outputs: usize,
 
@@ -115,11 +110,12 @@ pub struct ComponentBuilder<E: Default + Clone> {
     extra: E,
 }
 
-impl <E: Default + Clone> ComponentBuilder<E> {
+impl<E: Default + Clone> ComponentBuilder<E> {
     /// Creates a new [`ComponentBuilder`]
-    pub fn new(name: &str) -> Self {
+    pub fn new(id: usize) -> Self {
         ComponentBuilder {
-            name: name.to_string(),
+            id,
+            name: None,
             inputs: 0,
             outputs: 0,
             sub_comps: None,
@@ -128,6 +124,16 @@ impl <E: Default + Clone> ComponentBuilder<E> {
             out_addrs: None,
             extra: Default::default(),
         }
+    }
+
+    /// Sets the name of the component.
+    ///
+    /// # Arguments
+    ///
+    /// * `name`: String that represents the name of the component.
+    pub fn name(mut self, name: String) -> Self {
+        self.name = Some(name);
+        self
     }
 
     /// Sets the amount of input ports.
@@ -229,17 +235,15 @@ impl <E: Default + Clone> ComponentBuilder<E> {
 
         let mut sub = None;
         if let Some(sub_comps) = self.sub_comps {
-            let mut used_inputs: Vec<Vec<bool>> = sub_comps
-                .iter()
-                .map(|c| vec![false; c.inputs])
-                .collect();
+            let mut used_inputs: Vec<Vec<bool>> =
+                sub_comps.iter().map(|c| vec![false; c.inputs]).collect();
 
             let connections = self.connections.unwrap_or_default();
             for conn in connections.iter() {
                 if used_inputs[idx_of(conn.to)][addr_of(conn.to)] {
                     panic!(
                         "[{0}] Input {1} of comp {2} has two entries (one from [{3}; {4}])",
-                        self.name,
+                        self.id,
                         addr_of(conn.to),
                         idx_of(conn.to),
                         idx_of(conn.from),
@@ -254,7 +258,7 @@ impl <E: Default + Clone> ComponentBuilder<E> {
                 if used_inputs[*comp_idx][*addr] {
                     panic!(
                         "[{0}] Input {1} of comp {2} has to entries (one from input {3})",
-                        self.name, addr, comp_idx, in_idx,
+                        self.id, addr, comp_idx, in_idx,
                     );
                 }
                 used_inputs[*comp_idx][*addr] = true;
@@ -270,6 +274,7 @@ impl <E: Default + Clone> ComponentBuilder<E> {
         }
 
         Component {
+            id: self.id,
             name: self.name,
             inputs: self.inputs,
             outputs: self.outputs,
