@@ -8,14 +8,14 @@ class BoardLine extends BoardItem {
   BoardLine({
     required this.points,
     this.color = Colors.black,
+    this.strokeWidth = 2.0,
   }) : super(
           position: _getPosistion(points),
           size: _getSize(points),
         );
 
   final Color color;
-
-  static const kLineStrokeWidth = 2.0;
+  final double strokeWidth;
 
   static Offset _getPosistion(List<Offset> points) {
     final minX =
@@ -57,6 +57,7 @@ class BoardLine extends BoardItem {
         painter: _BoardLinePainter(
           points: relPoints,
           color: color,
+          strokeWidth: strokeWidth,
         ),
       ),
     );
@@ -67,16 +68,18 @@ class _BoardLinePainter extends CustomPainter {
   _BoardLinePainter({
     required this.points,
     this.color = Colors.black,
+    this.strokeWidth = 2.0,
   });
 
   final List<Offset> points;
   final Color color;
+  final double strokeWidth;
 
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
       ..color = color
-      ..strokeWidth = BoardLine.kLineStrokeWidth
+      ..strokeWidth = strokeWidth
       ..strokeCap = StrokeCap.round;
 
     for (var i = 0; i < points.length - 1; i++) {

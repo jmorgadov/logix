@@ -24,13 +24,13 @@ class Circuit {
         ),
         Component(
           name: 'OR',
-          position: const Offset(2, 0),
+          position: const Offset(80, 0),
           inputs: 4,
           outputs: 1,
         ),
         Component(
           name: 'NOT',
-          position: const Offset(4, 0),
+          position: const Offset(320, 0),
           inputs: 1,
           outputs: 1,
         ),
@@ -66,7 +66,7 @@ class Component {
   final int inputs;
   final int outputs;
 
-  Size get size => Size(1, max(inputs, outputs) / 2);
+  Size get size => Size(40, max(inputs, outputs) * 40 / 2);
 
   Offset inputPinRelPosition(int idx) {
     final divisions = inputs + 1;

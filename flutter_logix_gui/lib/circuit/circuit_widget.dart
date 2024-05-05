@@ -4,7 +4,7 @@ import 'package:flutter_logix_gui/widgets/board/board.dart';
 import 'package:flutter_logix_gui/widgets/board/board_items/board_line.dart';
 import 'package:flutter_logix_gui/widgets/board/board_items/board_widget.dart';
 
-const int kGridSize = 40;
+const int kGridSize = 20;
 const double kCompPadding = .0;
 const double kPinRadius = 4;
 
@@ -36,7 +36,8 @@ class _CircuitWidgetState extends State<CircuitWidget> {
       children: [
         for (final connection in _circuit.connections)
           BoardLine(
-            color: Colors.lightGreen,
+            color: Colors.grey.shade500,
+            strokeWidth: 3,
             points: [
               _circuit.components[connection.fromCompIdx]
                   .outputPinPosition(connection.fromCompOutputIdx),
@@ -48,7 +49,6 @@ class _CircuitWidgetState extends State<CircuitWidget> {
           BoardWidget(
             position: component.position,
             size: component.size,
-            margin: const EdgeInsets.all(kCompPadding),
             onMove: (delta) {
               setState(() {
                 component.position += delta;
@@ -78,7 +78,7 @@ class _CircuitWidgetState extends State<CircuitWidget> {
                 for (var i = 0; i < component.inputs; i++)
                   Positioned(
                     left: -1,
-                    top: kGridSize * -component.inputPinRelPosition(i).dy -
+                    top: -component.inputPinRelPosition(i).dy -
                         2 -
                         kCompPadding * kGridSize,
                     child: Container(
@@ -93,7 +93,7 @@ class _CircuitWidgetState extends State<CircuitWidget> {
                 for (var i = 0; i < component.outputs; i++)
                   Positioned(
                     right: -1,
-                    top: kGridSize * -component.outputPinRelPosition(i).dy -
+                    top: -component.outputPinRelPosition(i).dy -
                         2 -
                         kCompPadding * kGridSize,
                     child: Container(

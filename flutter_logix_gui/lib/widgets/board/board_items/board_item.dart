@@ -5,28 +5,24 @@ abstract class BoardItem {
   const BoardItem({
     required this.position,
     required this.size,
-    this.margin = EdgeInsets.zero,
   });
 
   final Offset position;
   final Size size;
-  final EdgeInsets margin;
 
   Widget internalBuild(BuildContext context, BoardInfo info) {
-    final localPos = info.canvasToBoardFromInfo(
+    var localPos = info.canvasToBoard(
       position,
+      asDiscrete: true,
     );
     return Positioned(
       left: localPos.dx,
       top: localPos.dy,
-      width: size.width * info.pixelsPerUnit,
-      height: size.height * info.pixelsPerUnit,
+      width: size.width,
+      height: size.height,
       child: Transform(
         transform: Matrix4.identity()..scale(info.scale),
-        child: Padding(
-          padding: margin * info.pixelsPerUnit.toDouble(),
-          child: build(context, info),
-        ),
+        child: build(context, info),
       ),
     );
   }

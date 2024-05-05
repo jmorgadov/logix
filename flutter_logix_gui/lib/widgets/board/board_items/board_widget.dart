@@ -10,22 +10,20 @@ class BoardWidget extends BoardItem {
     this.onStartMoving,
     this.onMove,
     this.onEndMoving,
-    super.margin = EdgeInsets.zero,
   });
 
   final Widget child;
   final Function()? onStartMoving;
   final Function(Offset delta)? onMove;
-  final Function()? onEndMoving;
+  final Function(Offset position)? onEndMoving;
 
   @override
   Widget build(BuildContext context, BoardInfo info) {
     return Listener(
       behavior: HitTestBehavior.translucent,
       onPointerMove: (details) {
-        final pos = Offset(details.delta.dx, -details.delta.dy) /
-            (info.pixelsPerUnit.toDouble() * info.scale);
-        onMove?.call(pos);
+        final delta = Offset(details.delta.dx, -details.delta.dy) / info.scale;
+        onMove?.call(delta);
       },
       child: child,
     );

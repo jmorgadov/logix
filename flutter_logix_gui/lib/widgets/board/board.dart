@@ -4,7 +4,9 @@ import 'package:flutter_logix_gui/widgets/board/board_info.dart';
 import 'package:flutter_logix_gui/widgets/board/board_items/board_item.dart';
 
 typedef OnBoardDrag = void Function(BoardInfo);
-typedef OnBoardPointerMove = void Function(BoardInfo);
+typedef OnBoardPointerMove = void Function(BoardInfo, Offset);
+typedef OnBoardPointerDown = void Function(BoardInfo, Offset);
+typedef OnBoardPointerUp = void Function(BoardInfo, Offset);
 typedef OnBoardScale = void Function(BoardInfo);
 
 class Board extends StatelessWidget {
@@ -13,17 +15,23 @@ class Board extends StatelessWidget {
     this.pixelsPerUnit = 40,
     this.showGrid = true,
     this.onPointerMove,
-    this.onPinterDrag,
+    this.onPointerDown,
+    this.onPointerUp,
+    this.onPonterDrag,
     this.onPointerScale,
     this.children,
+    this.isDiscrete = false,
   });
 
   final int pixelsPerUnit;
   final bool showGrid;
   final OnBoardPointerMove? onPointerMove;
-  final OnBoardDrag? onPinterDrag;
+  final OnBoardDrag? onPonterDrag;
   final OnBoardScale? onPointerScale;
+  final OnBoardPointerDown? onPointerDown;
+  final OnBoardPointerUp? onPointerUp;
   final List<BoardItem>? children;
+  final bool isDiscrete;
 
   @override
   Widget build(BuildContext context) {
@@ -37,9 +45,12 @@ class Board extends StatelessWidget {
         pixelsPerUnit: pixelsPerUnit,
         showGrid: showGrid,
         onPointerMove: onPointerMove,
-        onPointerDrag: onPinterDrag,
+        onPointerDown: onPointerDown,
+        onPointerUp: onPointerUp,
+        onPointerDrag: onPonterDrag,
         onPointerScale: onPointerScale,
         children: children,
+        isDiscrete: isDiscrete,
       );
     });
   }
@@ -53,9 +64,12 @@ class SizedBoard extends StatefulWidget {
     this.pixelsPerUnit = 40,
     this.showGrid = true,
     this.onPointerMove,
+    this.onPointerDown,
+    this.onPointerUp,
     this.onPointerDrag,
     this.onPointerScale,
     this.children,
+    this.isDiscrete = false,
   });
 
   final double width;
@@ -64,8 +78,11 @@ class SizedBoard extends StatefulWidget {
   final bool showGrid;
   final List<BoardItem>? children;
   final OnBoardPointerMove? onPointerMove;
+  final OnBoardPointerDown? onPointerDown;
+  final OnBoardPointerUp? onPointerUp;
   final OnBoardDrag? onPointerDrag;
   final OnBoardScale? onPointerScale;
+  final bool isDiscrete;
 
   @override
   State<SizedBoard> createState() => _BoardState();
@@ -87,14 +104,33 @@ class _BoardState extends State<SizedBoard> {
   get height => widget.height;
   get width => widget.width;
 
-  get state => BoardInfo(
-        pixelsPerUnit: widget.pixelsPerUnit,
-        bounds: bounds,
-        offset: _offset,
-        scale: _scale,
-        selectionRect:
-            _isSelecting ? Rect.fromPoints(selectionStart, selectionEnd) : null,
-      );
+  late BoardInfo info;
+
+  @override
+  void initState() {
+    super.initState();
+    info = BoardInfo(
+      pixelsPerUnit: widget.pixelsPerUnit,
+      bounds: bounds,
+      offset: _offset,
+      scale: _scale,
+      selectionRect:
+          _isSelecting ? Rect.fromPoints(selectionStart, selectionEnd) : null,
+      isDiscrete: widget.isDiscrete,
+    );
+  }
+
+  void _updateInfo() {
+    info = BoardInfo(
+      pixelsPerUnit: widget.pixelsPerUnit,
+      bounds: bounds,
+      offset: _offset,
+      scale: _scale,
+      selectionRect:
+          _isSelecting ? Rect.fromPoints(selectionStart, selectionEnd) : null,
+      isDiscrete: widget.isDiscrete,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -135,7 +171,8 @@ class _BoardState extends State<SizedBoard> {
                     _offset += invPos * .1 * _scale;
                   }
 
-                  widget.onPointerScale?.call(state);
+                  _updateInfo();
+                  widget.onPointerScale?.call(info);
                 });
               }
             },
@@ -152,12 +189,15 @@ class _BoardState extends State<SizedBoard> {
                   selectionEnd = selectionStart;
                 });
               }
+              widget.onPointerDown
+                  ?.call(info, localToBoard(details.localPosition));
             },
             onPointerMove: (details) {
               if (_isDragging) {
                 setState(() {
                   _offset += details.delta;
-                  widget.onPointerDrag?.call(state);
+                  _updateInfo();
+                  widget.onPointerDrag?.call(info);
                 });
               }
               if (_isSelecting) {
@@ -165,6 +205,8 @@ class _BoardState extends State<SizedBoard> {
                   selectionEnd = localToBoard(details.localPosition);
                 });
               }
+              widget.onPointerMove
+                  ?.call(info, localToBoard(details.localPosition));
             },
             onPointerUp: (details) {
               if (_isDragging) {
@@ -177,17 +219,20 @@ class _BoardState extends State<SizedBoard> {
                   _isSelecting = false;
                 });
               }
+              widget.onPointerUp
+                  ?.call(info, localToBoard(details.localPosition));
             },
             child: MouseRegion(
               onHover: (details) {
-                widget.onPointerMove?.call(state);
+                widget.onPointerMove
+                    ?.call(info, localToBoard(details.localPosition));
               },
             ),
           ),
         ),
         if (widget.children != null)
           ...widget.children!.map((item) {
-            return item.internalBuild(context, state);
+            return item.internalBuild(context, info);
           }),
         Positioned.fill(
           child: IgnorePointer(
@@ -270,7 +315,7 @@ class BoardGridPainter extends CustomPainter {
 
   void _drawGrid(Canvas canvas) {
     final paint = Paint()
-      ..color = Colors.grey
+      ..color = Colors.grey.withOpacity(.3)
       ..strokeWidth = scale * 0.3;
 
     final gridSizePx = pixelsPerUnit * scale;

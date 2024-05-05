@@ -7,6 +7,7 @@ class BoardInfo {
     required this.offset,
     required this.scale,
     this.selectionRect,
+    this.isDiscrete = false,
   });
 
   final int pixelsPerUnit;
@@ -14,19 +15,27 @@ class BoardInfo {
   final Offset offset;
   final double scale;
   final Rect? selectionRect;
+  final bool isDiscrete;
 
   get isSelecting => selectionRect != null;
 
-  Offset canvasToBoardFromInfo(Offset canvasPos) {
+  Offset canvasToBoard(Offset canvasPos, {bool asDiscrete = false}) {
     canvasPos = Offset(
       canvasPos.dx,
       -canvasPos.dy,
     );
-    final globalPos = canvasPos * scale * pixelsPerUnit.toDouble() + offset;
+
+    if (asDiscrete && isDiscrete) {
+      canvasPos = Offset(
+        (canvasPos.dx / pixelsPerUnit).roundToDouble() * pixelsPerUnit,
+        (canvasPos.dy / pixelsPerUnit).roundToDouble() * pixelsPerUnit,
+      );
+    }
+    var globalPos = canvasPos * scale + offset;
     return globalPos + Offset(bounds.width / 2, bounds.height / 2);
   }
 
-  Offset localToBoardFromInfo(Offset localPos) {
+  Offset localToBoard(Offset localPos) {
     final globalPos = localPos - Offset(bounds.width / 2, bounds.height / 2);
     var pos = globalPos - offset;
 
