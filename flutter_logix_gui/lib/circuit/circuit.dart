@@ -66,7 +66,7 @@ class Component {
   final int inputs;
   final int outputs;
 
-  Size get size => Size(40, max(inputs, outputs) * 40 / 2);
+  Size get size => Size(50, max(max(inputs, outputs) * 40 / 2, 30));
 
   Offset inputPinRelPosition(int idx) {
     final divisions = inputs + 1;

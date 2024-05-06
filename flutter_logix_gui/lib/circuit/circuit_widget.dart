@@ -54,61 +54,137 @@ class _CircuitWidgetState extends State<CircuitWidget> {
                 component.position += delta;
               });
             },
-            child: Stack(
-              children: [
-                Positioned.fill(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      border: Border.all(
-                        color: Colors.black,
-                        width: 1,
+            child: Listener(
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: Padding(
+                      padding: const EdgeInsets.all(6.0),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          border: Border.all(
+                            color: Colors.black,
+                            width: 1,
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                ),
-                Positioned.fill(
-                  child: Center(
-                    child: Text(
-                      component.name ?? '',
-                      style: Theme.of(context).textTheme.labelSmall,
-                    ),
-                  ),
-                ),
-                for (var i = 0; i < component.inputs; i++)
-                  Positioned(
-                    left: -1,
-                    top: -component.inputPinRelPosition(i).dy -
-                        2 -
-                        kCompPadding * kGridSize,
-                    child: Container(
-                      width: 4,
-                      height: 4,
-                      decoration: const BoxDecoration(
-                        color: Colors.black,
-                        shape: BoxShape.circle,
+                  Positioned.fill(
+                    child: Center(
+                      child: Text(
+                        component.name ?? '',
+                        style: Theme.of(context).textTheme.labelSmall,
                       ),
                     ),
                   ),
-                for (var i = 0; i < component.outputs; i++)
-                  Positioned(
-                    right: -1,
-                    top: -component.outputPinRelPosition(i).dy -
-                        2 -
-                        kCompPadding * kGridSize,
-                    child: Container(
-                      width: 4,
-                      height: 4,
-                      decoration: const BoxDecoration(
-                        color: Colors.black,
-                        shape: BoxShape.circle,
+                  for (var i = 0; i < component.inputs; i++)
+                    Positioned(
+                      left: 0,
+                      top: -component.inputPinRelPosition(i).dy - (6 * .4),
+                      child: const Pin(
+                        direction: PinDirection.west,
+                        size: 6,
                       ),
                     ),
-                  ),
-              ],
+                  for (var i = 0; i < component.outputs; i++)
+                    Positioned(
+                      right: 0,
+                      top: -component.outputPinRelPosition(i).dy - (6 * .4),
+                      child: const Pin(
+                        size: 6,
+                        direction: PinDirection.east,
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
       ],
+    );
+  }
+}
+
+enum PinDirection {
+  north,
+  south,
+  east,
+  west,
+}
+
+class Pin extends StatelessWidget {
+  const Pin({
+    super.key,
+    required this.direction,
+    this.size = 4,
+  });
+
+  final PinDirection direction;
+  final double size;
+
+  get isVertical =>
+      direction == PinDirection.north || direction == PinDirection.south;
+
+  get isHorizontal =>
+      direction == PinDirection.east || direction == PinDirection.west;
+
+  @override
+  Widget build(BuildContext context) {
+    final width = isHorizontal ? size : size * .8;
+    final height = isVertical ? size : size * .8;
+    return SizedBox(
+      width: width,
+      height: height,
+      child: Stack(
+        children: [
+          Positioned(
+            left: isHorizontal ? 0 : width * .225,
+            top: isVertical ? 0 : height * .225,
+            child: Container(
+              width: isHorizontal ? width : width * .55,
+              height: isHorizontal ? height * .55 : height,
+              decoration: const BoxDecoration(
+                color: Colors.black,
+                borderRadius: BorderRadius.all(Radius.circular(4)),
+              ),
+            ),
+          ),
+          Positioned(
+            left: isVertical
+                ? 0
+                : direction == PinDirection.west
+                    ? size * .5
+                    : -size * .5,
+            top: isHorizontal
+                ? 0
+                : direction == PinDirection.north
+                    ? size / 2
+                    : -size / 2,
+            child: Container(
+              alignment: isVertical
+                  ? direction == PinDirection.north
+                      ? Alignment.bottomCenter
+                      : Alignment.topCenter
+                  : direction == PinDirection.west
+                      ? Alignment.centerRight
+                      : Alignment.centerLeft,
+              width: width,
+              height: height,
+              decoration: const BoxDecoration(
+                color: Colors.black,
+                shape: BoxShape.circle,
+                border: Border.fromBorderSide(
+                  BorderSide(
+                    color: Colors.black,
+                    width: 1,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
