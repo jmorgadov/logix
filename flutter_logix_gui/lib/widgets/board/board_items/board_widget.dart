@@ -20,7 +20,6 @@ class BoardWidget extends BoardItem {
   @override
   Widget build(BuildContext context, BoardInfo info) {
     return Listener(
-      behavior: HitTestBehavior.translucent,
       onPointerMove: (details) {
         final delta = Offset(details.delta.dx, -details.delta.dy) / info.scale;
         onMove?.call(delta);
