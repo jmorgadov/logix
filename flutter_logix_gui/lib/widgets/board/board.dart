@@ -152,25 +152,20 @@ class _BoardState extends State<SizedBoard> {
           child: Listener(
             onPointerSignal: (details) {
               if (details is PointerScrollEvent) {
+                final pos = localToBoard(details.localPosition);
+                final invPos = Offset(
+                  pos.dx,
+                  -pos.dy,
+                );
+
+                final newScale =
+                    details.scrollDelta.dy < 0 ? _scale * 1.1 : _scale * .9;
+                final newOffset = details.scrollDelta.dy < 0
+                    ? _offset - invPos * .1 * _scale
+                    : _offset + invPos * .1 * _scale;
                 setState(() {
-                  if (details.scrollDelta.dy < 0) {
-                    _scale *= 1.1;
-                  } else {
-                    _scale /= 1.1;
-                  }
-                  final pos = localToBoard(details.localPosition);
-
-                  final invPos = Offset(
-                    pos.dx,
-                    -pos.dy,
-                  );
-
-                  if (details.scrollDelta.dy < 0) {
-                    _offset -= invPos * .1 * _scale;
-                  } else {
-                    _offset += invPos * .1 * _scale;
-                  }
-
+                  _scale = newScale;
+                  _offset = newOffset;
                   _updateInfo();
                   widget.onPointerScale?.call(info);
                 });
