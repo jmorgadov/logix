@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_logix_gui/circuit/circuit.dart';
+import 'package:flutter_logix_gui/extensions.dart';
+import 'package:flutter_logix_gui/circuit/circuit_description.dart';
+import 'package:flutter_logix_gui/circuit/pin_direction.dart';
 import 'package:flutter_logix_gui/widgets/board/board.dart';
 import 'package:flutter_logix_gui/widgets/board/board_items/board_line.dart';
 import 'package:flutter_logix_gui/widgets/board/board_items/board_widget.dart';
 
 const int kGridSize = 20;
 const double kCompPadding = .0;
-const double kPinRadius = 4;
+const double kPinSize = 5.0;
 
-class CircuitWidget extends StatefulWidget {
-  const CircuitWidget({
+class CircuitBoardWidget extends StatefulWidget {
+  const CircuitBoardWidget({
     super.key,
     required this.circuit,
   });
@@ -17,16 +20,60 @@ class CircuitWidget extends StatefulWidget {
   final Circuit circuit;
 
   @override
-  State<CircuitWidget> createState() => _CircuitWidgetState();
+  State<CircuitBoardWidget> createState() => _CircuitBoardWidgetState();
 }
 
-class _CircuitWidgetState extends State<CircuitWidget> {
+class _CircuitBoardWidgetState extends State<CircuitBoardWidget> {
   late Circuit _circuit;
 
   @override
   void initState() {
     super.initState();
     _circuit = widget.circuit;
+  }
+
+  Pin _getInputPin(int compIdx, int pinIdx) {
+    final comp = _circuit.components[compIdx];
+    return comp.inputs[pinIdx];
+  }
+
+  Pin _getOutputPin(int compIdx, int pinIdx) {
+    final comp = _circuit.components[compIdx];
+    return comp.outputs[pinIdx];
+  }
+
+  Offset _getInputPinEdgePosition(int compIdx, int pinIdx) {
+    final pin = _getInputPin(compIdx, pinIdx);
+    final pinPos = _circuit.componentsPositions[compIdx] + pin.position.invY();
+    final edgeDelta = Offset(
+        pin.isVertical
+            ? 0
+            : pin.dir == PinDirection.east
+                ? kPinSize
+                : -kPinSize,
+        pin.isHorizontal
+            ? 0
+            : pin.dir == PinDirection.south
+                ? kPinSize
+                : -kPinSize);
+    return pinPos + edgeDelta;
+  }
+
+  Offset _getOutputPinEdgePosition(int compIdx, int pinIdx) {
+    final pin = _getOutputPin(compIdx, pinIdx);
+    final pinPos = _circuit.componentsPositions[compIdx] + pin.position.invY();
+    final edgeDelta = Offset(
+        pin.isVertical
+            ? 0
+            : pin.dir == PinDirection.east
+                ? kPinSize
+                : -kPinSize,
+        pin.isHorizontal
+            ? 0
+            : pin.dir == PinDirection.south
+                ? kPinSize
+                : -kPinSize);
+    return pinPos + edgeDelta;
   }
 
   @override
@@ -37,68 +84,27 @@ class _CircuitWidgetState extends State<CircuitWidget> {
         for (final connection in _circuit.connections)
           BoardLine(
             color: Colors.grey.shade500,
-            strokeWidth: 3,
+            strokeWidth: 2.5,
             points: [
-              _circuit.components[connection.fromCompIdx]
-                  .outputPinPosition(connection.fromCompOutputIdx),
-              _circuit.components[connection.toCompIdx]
-                  .inputPinPosition(connection.toCompInputIdx),
+              _getOutputPinEdgePosition(
+                  connection.fromCompIdx, connection.fromCompOutputIdx),
+              ...connection.path,
+              _getInputPinEdgePosition(
+                  connection.toCompIdx, connection.toCompInputIdx),
             ],
           ),
-        for (final component in _circuit.components)
+        for (final entry in _circuit.components.asMap().entries)
           BoardWidget(
-            position: component.position,
-            size: component.size,
+            position: _circuit.componentsPositions[entry.key],
+            size: entry.value.size,
             onMove: (delta) {
+              final idx = entry.key;
               setState(() {
-                component.position += delta;
+                _circuit.componentsPositions[idx] += delta;
               });
             },
-            child: Listener(
-              child: Stack(
-                children: [
-                  Positioned.fill(
-                    child: Padding(
-                      padding: const EdgeInsets.all(6.0),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          border: Border.all(
-                            color: Colors.black,
-                            width: 1,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned.fill(
-                    child: Center(
-                      child: Text(
-                        component.name ?? '',
-                        style: Theme.of(context).textTheme.labelSmall,
-                      ),
-                    ),
-                  ),
-                  for (var i = 0; i < component.inputs; i++)
-                    Positioned(
-                      left: 0,
-                      top: -component.inputPinRelPosition(i).dy - (6 * .4),
-                      child: const Pin(
-                        direction: PinDirection.west,
-                        size: 6,
-                      ),
-                    ),
-                  for (var i = 0; i < component.outputs; i++)
-                    Positioned(
-                      right: 0,
-                      top: -component.outputPinRelPosition(i).dy - (6 * .4),
-                      child: const Pin(
-                        size: 6,
-                        direction: PinDirection.east,
-                      ),
-                    ),
-                ],
-              ),
+            child: ComponentWidget(
+              component: entry.value,
             ),
           ),
       ],
@@ -106,15 +112,96 @@ class _CircuitWidgetState extends State<CircuitWidget> {
   }
 }
 
-enum PinDirection {
-  north,
-  south,
-  east,
-  west,
+class ComponentWidget extends StatelessWidget {
+  const ComponentWidget({
+    super.key,
+    required this.component,
+  });
+
+  final Component component;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        for (final drawInst in component.drawInstructions)
+          if (drawInst.type == DrawInstructionType.box)
+            Positioned.fill(
+              left: drawInst.x1!,
+              top: drawInst.y1!,
+              right: component.size.width - drawInst.x2!,
+              bottom: component.size.height - drawInst.y2!,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: drawInst.color?.toColor() ?? Colors.white,
+                  border: Border.all(
+                    color: drawInst.lineColor?.toColor() ?? Colors.black,
+                    width: drawInst.lineWidth ?? 1,
+                  ),
+                ),
+              ),
+            )
+          else if (drawInst.type == DrawInstructionType.text)
+            Positioned(
+              left: drawInst.x1!,
+              top: drawInst.y1!,
+              right: component.size.width - drawInst.x2!,
+              bottom: component.size.height - drawInst.y2!,
+              child: Center(
+                child: Text(
+                  drawInst.text!,
+                  style: TextStyle(
+                    color: drawInst.color?.toColor() ?? Colors.black,
+                    fontSize: drawInst.fontSize ?? 12,
+                  ),
+                ),
+              ),
+            ),
+        for (final pin in component.inputs)
+          Positioned(
+            left: pin.position.dx -
+                (pin.isVertical
+                    ? kPinSize / 2
+                    : pin.dir.isWest
+                        ? kPinSize
+                        : 0),
+            top: pin.position.dy -
+                (pin.isHorizontal
+                    ? kPinSize / 2
+                    : pin.dir.isNorth
+                        ? kPinSize
+                        : 0),
+            child: PinWidget(
+              direction: pin.dir,
+              size: kPinSize,
+            ),
+          ),
+        for (final pin in component.outputs)
+          Positioned(
+            left: pin.position.dx -
+                (pin.isVertical
+                    ? kPinSize / 2
+                    : pin.dir.isWest
+                        ? kPinSize
+                        : 0),
+            top: pin.position.dy -
+                (pin.isHorizontal
+                    ? kPinSize / 2
+                    : pin.dir.isNorth
+                        ? kPinSize
+                        : 0),
+            child: PinWidget(
+              direction: pin.dir,
+              size: kPinSize,
+            ),
+          ),
+      ],
+    );
+  }
 }
 
-class Pin extends StatelessWidget {
-  const Pin({
+class PinWidget extends StatelessWidget {
+  const PinWidget({
     super.key,
     required this.direction,
     this.size = 4,
@@ -123,16 +210,17 @@ class Pin extends StatelessWidget {
   final PinDirection direction;
   final double size;
 
-  get isVertical =>
-      direction == PinDirection.north || direction == PinDirection.south;
-
-  get isHorizontal =>
-      direction == PinDirection.east || direction == PinDirection.west;
+  get isVertical => direction.isVertical;
+  get isHorizontal => direction.isHorizontal;
+  get isNorth => direction.isNorth;
+  get isSouth => direction.isSouth;
+  get isEast => direction.isEast;
+  get isWest => direction.isWest;
 
   @override
   Widget build(BuildContext context) {
-    final width = isHorizontal ? size : size * .8;
-    final height = isVertical ? size : size * .8;
+    final width = isHorizontal ? size : size;
+    final height = isVertical ? size : size;
     return SizedBox(
       width: width,
       height: height,
@@ -144,42 +232,18 @@ class Pin extends StatelessWidget {
             child: Container(
               width: isHorizontal ? width : width * .55,
               height: isHorizontal ? height * .55 : height,
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 color: Colors.black,
-                borderRadius: BorderRadius.all(Radius.circular(4)),
-              ),
-            ),
-          ),
-          Positioned(
-            left: isVertical
-                ? 0
-                : direction == PinDirection.west
-                    ? size * .5
-                    : -size * .5,
-            top: isHorizontal
-                ? 0
-                : direction == PinDirection.north
-                    ? size / 2
-                    : -size / 2,
-            child: Container(
-              alignment: isVertical
-                  ? direction == PinDirection.north
-                      ? Alignment.bottomCenter
-                      : Alignment.topCenter
-                  : direction == PinDirection.west
-                      ? Alignment.centerRight
-                      : Alignment.centerLeft,
-              width: width,
-              height: height,
-              decoration: const BoxDecoration(
-                color: Colors.black,
-                shape: BoxShape.circle,
-                border: Border.fromBorderSide(
-                  BorderSide(
-                    color: Colors.black,
-                    width: 1,
-                  ),
-                ),
+                borderRadius: isVertical
+                    ? BorderRadius.vertical(
+                        top: isNorth ? const Radius.circular(5) : Radius.zero,
+                        bottom:
+                            isSouth ? const Radius.circular(5) : Radius.zero,
+                      )
+                    : BorderRadius.horizontal(
+                        left: isWest ? const Radius.circular(5) : Radius.zero,
+                        right: isEast ? const Radius.circular(5) : Radius.zero,
+                      ),
               ),
             ),
           ),

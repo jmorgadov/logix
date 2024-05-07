@@ -21,7 +21,7 @@ class Home extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: CircuitWidget(
+      body: CircuitBoardWidget(
         circuit: Circuit.mock(),
       ),
     );
