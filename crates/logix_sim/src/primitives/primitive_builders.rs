@@ -1,4 +1,4 @@
-use super::{bit::Bit, prelude::ExtraInfo, primitives::Primitive};
+use super::{bit::Data, prelude::ExtraInfo, primitives::Primitive};
 use logix_core::prelude::*;
 
 fn base_component_extra(
@@ -64,6 +64,16 @@ pub fn xor_gate(id: usize, in_count: usize) -> Component<ExtraInfo> {
     )
 }
 
+pub fn input(id: usize, bits: usize) -> Component<ExtraInfo> {
+    let prim = Primitive::Input { bits };
+    base_component_extra(id, 0, bits, ExtraInfo::from_primitive(id, prim))
+}
+
+pub fn output(id: usize, bits: usize) -> Component<ExtraInfo> {
+    let prim = Primitive::Output { bits };
+    base_component_extra(id, bits, 0, ExtraInfo::from_primitive(id, prim))
+}
+
 pub fn clock(id: usize, frec: f64) -> Component<ExtraInfo> {
     let frec_in_nano = (1e9 / frec) as u128;
     let prim = Primitive::Clock {
@@ -73,11 +83,13 @@ pub fn clock(id: usize, frec: f64) -> Component<ExtraInfo> {
 }
 
 pub fn high_const(id: usize) -> Component<ExtraInfo> {
-    let prim = Primitive::Const { value: Bit::High };
+    let prim = Primitive::Const {
+        value: Data::high(),
+    };
     base_component_extra(id, 0, 1, ExtraInfo::from_primitive(id, prim))
 }
 
 pub fn low_const(id: usize) -> Component<ExtraInfo> {
-    let prim = Primitive::Const { value: Bit::Low };
+    let prim = Primitive::Const { value: Data::low() };
     base_component_extra(id, 0, 1, ExtraInfo::from_primitive(id, prim))
 }

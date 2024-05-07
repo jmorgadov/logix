@@ -6,7 +6,7 @@ use std::{collections::HashMap, path::Path};
 use log::error;
 use logix_sim::{
     flatten::{FlattenComponent, NestedConfig},
-    primitives::bit::Bit,
+    primitives::bit::Data,
     simulator::Simulator,
 };
 
@@ -28,8 +28,8 @@ fn _show_full(
                 "  ".repeat(level),
                 idx,
                 id_to_name[&_comp.id],
-                Bit::show_vec(&_comp.inputs),
-                Bit::show_vec(&_comp.outputs)
+                Data::show_vec(&_comp.inputs),
+                Data::show_vec(&_comp.outputs)
             );
         }
         NestedConfig::Compose(id, comps, ins, outs) => {
@@ -47,8 +47,8 @@ fn _show_full(
                 "{}{}: {} {}",
                 "  ".repeat(level),
                 id_to_name[id],
-                Bit::show_vec(&inputs),
-                Bit::show_vec(&outputs)
+                Data::show_vec(&inputs),
+                Data::show_vec(&outputs)
             );
             for (_, nested) in comps {
                 _show_full(comp, nested, id_to_name, level + 1);

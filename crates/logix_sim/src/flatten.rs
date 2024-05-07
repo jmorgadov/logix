@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::primitives::{
-    bit::Bit,
+    bit::Data,
     prelude::Primitive,
     primitives::{ExtraInfo, PrimitiveComponent},
 };
@@ -101,12 +101,12 @@ impl FlattenComponent {
             .expect(format!("Component {} not found", id).as_str())]
     }
 
-    pub fn get_status_by_id(&self, id: usize) -> (&Vec<Bit>, &Vec<Bit>) {
+    pub fn get_status_by_id(&self, id: usize) -> (&Vec<Data>, &Vec<Data>) {
         let idx = *self.id_to_idx.get(&id).expect("Component not found");
         (&self.components[idx].inputs, &self.components[idx].outputs)
     }
 
-    pub fn get_status(&self, comp_path: &[usize]) -> (Vec<Bit>, Vec<Bit>) {
+    pub fn get_status(&self, comp_path: &[usize]) -> (Vec<Data>, Vec<Data>) {
         let mut comp = &self.nested_config;
         for id in comp_path {
             match comp {
@@ -162,6 +162,8 @@ fn flat_comp(comp: Component<ExtraInfo>) -> (Vec<PrimitiveComponent>, Vec<Conn>)
         Primitive::NandGate => PrimitiveComponent::nand_gate(id, in_count),
         Primitive::NorGate => PrimitiveComponent::nor_gate(id, in_count),
         Primitive::XorGate => PrimitiveComponent::xor_gate(id, in_count),
+        Primitive::Input { bits } => PrimitiveComponent::input(id, bits),
+        Primitive::Output { bits } => PrimitiveComponent::output(id, bits),
         Primitive::Clock { period } => PrimitiveComponent::clock(id, period),
         Primitive::Const { value } => PrimitiveComponent::const_gate(id, value),
     };

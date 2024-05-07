@@ -2,83 +2,148 @@ use std::fmt::Display;
 use std::ops as std_ops;
 
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
-pub enum Bit {
-    High,
-    #[default]
-    Low,
+pub struct Data {
+    pub value: usize,
+    pub size: u8,
 }
 
-impl Bit {
-    pub fn show_vec(bits: &Vec<Bit>) -> String {
-        bits.iter().map(|b| b.to_string()).collect()
+impl Data {
+    pub fn new(value: usize, size: u8) -> Self {
+        Data { value, size }
     }
 
-    pub fn from_bool(b: bool) -> Self {
-        if b {
-            Bit::High
-        } else {
-            Bit::Low
+    pub fn high() -> Self {
+        Data { value: 1, size: 1 }
+    }
+
+    pub fn low() -> Self {
+        Data { value: 0, size: 1 }
+    }
+
+    pub fn bit(value: bool) -> Self {
+        Data {
+            value: value as usize,
+            size: 1,
         }
     }
 
-    pub fn to_bool(&self) -> bool {
-        match self {
-            Bit::High => true,
-            Bit::Low => false,
+    pub fn as_bool(&self) -> bool {
+        self.value != 0
+    }
+
+    pub fn set_bit(&mut self, value: bool) {
+        self.value = value as usize;
+    }
+
+    pub fn set_from(&mut self, other: Data) {
+        if self.size != other.size {
+            panic!("Different sizes");
         }
+        self.value = other.value;
+    }
+
+    pub fn show_vec(values: &Vec<Data>) -> String {
+        values
+            .iter()
+            .map(|v| v.to_string())
+            .collect::<Vec<String>>()
+            .join("")
     }
 }
 
-impl Display for Bit {
+impl Display for Data {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            Bit::High => write!(f, "🟩"),
-            Bit::Low => write!(f, "⬛"),
+        for i in (0..self.size).rev() {
+            match (self.value >> i) & 1 {
+                1 => write!(f, "🟩")?,
+                0 => write!(f, "⬛")?,
+                _ => unreachable!(),
+            }
         }
+        Ok(())
     }
 }
 
-impl std_ops::BitAnd for Bit {
+impl std_ops::BitAnd for Data {
     type Output = Self;
 
     fn bitand(self, rhs: Self) -> Self {
-        match (self, rhs) {
-            (Bit::High, Bit::High) => Bit::High,
-            (Bit::Low, _) | (_, Bit::Low) => Bit::Low,
+        if self.size != rhs.size {
+            panic!("Bitwise and between different sizes");
         }
+        Data::new(
+            (self.value & rhs.value) & ((1 << self.size) - 1),
+            self.size.max(rhs.size),
+        )
     }
 }
 
-impl std_ops::BitOr for Bit {
+impl std_ops::BitOr for Data {
     type Output = Self;
 
     fn bitor(self, rhs: Self) -> Self {
-        match (self, rhs) {
-            (Bit::Low, Bit::Low) => Bit::Low,
-            (Bit::High, _) | (_, Bit::High) => Bit::High,
+        if self.size != rhs.size {
+            panic!("Bitwise or between different sizes");
         }
+        Data::new(
+            (self.value | rhs.value) & ((1 << self.size) - 1),
+            self.size.max(rhs.size),
+        )
     }
 }
 
-impl std_ops::BitXor for Bit {
+impl std_ops::BitXor for Data {
     type Output = Self;
 
     fn bitxor(self, rhs: Self) -> Self {
-        match (self, rhs) {
-            (Bit::High, Bit::Low) | (Bit::Low, Bit::High) => Bit::High,
-            (Bit::High, Bit::High) | (Bit::Low, Bit::Low) => Bit::Low,
+        if self.size != rhs.size {
+            panic!("Bitwise xor between different sizes");
         }
+        Data::new(
+            (self.value ^ rhs.value) & ((1 << self.size) - 1),
+            self.size.max(rhs.size),
+        )
     }
 }
 
-impl std_ops::Not for Bit {
+impl std_ops::Not for Data {
     type Output = Self;
 
     fn not(self) -> Self {
-        match self {
-            Bit::High => Bit::Low,
-            Bit::Low => Bit::High,
-            // _ => Bit::Und,
-        }
+        Data::new((!self.value) & ((1 << self.size) - 1), self.size)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_data() {
+        let d1 = Data::new(0b1010, 4);
+        let d2 = Data::new(0b1100, 4);
+
+        assert_eq!((d1 & d2).value, 0b1000);
+        assert_eq!((d1 | d2).value, 0b1110);
+        assert_eq!((d1 ^ d2).value, 0b0110);
+        assert_eq!((!d1).value, 0b0101);
+    }
+
+    #[test]
+    fn test_bool() {
+        let d1 = Data::bit(true);
+        let d2 = Data::bit(false);
+
+        assert_eq!(d1.as_bool(), true);
+        assert_eq!(d2.as_bool(), false);
+    }
+
+    #[test]
+    fn test_display() {
+        let d1 = Data::bit(true);
+        let d2 = Data::bit(false);
+
+        assert_eq!(format!("{}", d1), "🟩");
+        assert_eq!(format!("{}", d2), "⬛");
     }
 }
