@@ -6,6 +6,24 @@ part 'circuit_description.g.dart';
 typedef CircuitLibrary = Map<String, CircuitDescription>;
 typedef ComponentLibrary = Map<String, ComponentDescription>;
 
+class Library {
+  final CircuitLibrary circuits;
+  final ComponentLibrary components;
+
+  Library({
+    required this.circuits,
+    required this.components,
+  });
+
+  CircuitDescription? getCircuitDescriptionByComponent(String componentType) {
+    final component = components[componentType];
+    if (component == null) {
+      return null;
+    }
+    return circuits[component.type];
+  }
+}
+
 @JsonSerializable()
 class CircuitDescription {
   final String name;

@@ -127,14 +127,13 @@ class Circuit {
 
   static Circuit fromDescription(
     CircuitDescription circuitDescription,
-    CircuitLibrary circuitsLib,
-    ComponentLibrary componentsLib,
+    Library lib,
   ) {
     final components = circuitDescription.components
         .map(
           (e) => Component.fromDescription(
             e,
-            componentsLib,
+            lib.components,
           ),
         )
         .toList();
