@@ -17,29 +17,9 @@ Num: usize = <s:r"[0-9]+"> => s.parse::<usize>().unwrap();
 Float: f64 = <s:r"[0-9]+\.[0-9]+"> => f64::from_str(s).unwrap();
 
 pub PinAddr: PinAddr = {
-    <comp:ID> => PinAddr::External(comp, PinIndexing::NoIndex),
-    <comp:ID> "." <pin:Num> => PinAddr::InternalIdx(comp, pin, PinIndexing::NoIndex),
-    <comp:ID> "." <pin:ID> => PinAddr::InternalName(comp, pin, PinIndexing::NoIndex),
-
-    <comp:ID> "[" <idx:Num> "]" => PinAddr::External(comp, PinIndexing::Index(idx as u8)),
-    <comp:ID> "." <pin:Num> "[" <idx:Num> "]"=> PinAddr::InternalIdx(comp, pin, PinIndexing::Index(idx as u8)),
-    <comp:ID> "." <pin:ID> "[" <idx:Num> "]" => PinAddr::InternalName(comp, pin, PinIndexing::Index(idx as u8)),
-
-    <comp:ID> "[" <idx_i:Num> ".." <idx_j:Num> "]" => PinAddr::External(comp, PinIndexing::Range(idx_i as u8, idx_j as u8)),
-    <comp:ID> "." <pin:Num> "[" <idx_i:Num> ".." <idx_j:Num> "]"=> PinAddr::InternalIdx(comp, pin, PinIndexing::Range(idx_i as u8, idx_j as u8)),
-    <comp:ID> "." <pin:ID> "[" <idx_i:Num> ".." <idx_j:Num> "]"=> PinAddr::InternalName(comp, pin, PinIndexing::Range(idx_i as u8, idx_j as u8)),
-};
-
-pub PinDecl: PinDecl = {
-    <name:ID> => PinDecl { name, len: 1},
-    <name:ID> ":" <len:Num> => PinDecl { name, len: len as u8 },
-};
-
-pub PinDeclItems: Vec<PinDecl> = {
-    <p:PinDecl> => vec![p],
-    <p:PinDecl> "," <ps:PinDeclItems> => {
-        vec![p].into_iter().chain(ps.into_iter()).collect()
-    },
+    <comp:ID> => PinAddr::ByIdx(comp, 0),
+    <comp:ID> "." <pin:Num> => PinAddr::ByIdx(comp, pin),
+    <comp:ID> "." <pin:ID> => PinAddr::ByName(comp, pin),
 };
 
 pub Conn: ConnDecl = {
@@ -66,11 +46,13 @@ pub SubcItems: Vec<(String, Comp)> = {
     },
 }
 
-pub SubcDecl: HashMap<String, Comp> = {
+pub SubcDecl: HashMap<(String, usize), Comp> = {
     "subc" "(" <cs:SubcItems> ")" => {
         let mut map = HashMap::new();
+        let mut i: usize = cs.len();
         for (name, comp) in cs {
-            map.insert(name, comp);
+            i -= 1;
+            map.insert((name, i), comp);
         }
         map
     },
@@ -87,33 +69,9 @@ pub IDItems: Vec<String> = {
     },
 }
 
-pub InsDecl: Vec<PinDecl> = {
-    "ins" "(" ")" => vec![],
-    "ins" "(" <ins:PinDeclItems> ")" => ins,
-}
-
-pub OutsDecl: Vec<PinDecl> = {
-    "outs" "(" ")" => vec![],
-    "outs" "(" <outs:PinDeclItems> ")" => outs,
-}
-
 pub CompDecl: CompDecl = {
-    <name:ID> "(" <subc:SubcDecl> <ins_decl:InsDecl> <outs_decl:OutsDecl> <design:DesignDecl> ")" => {
-        let mut idx: usize = 0;
-        let ins: HashMap<String, (usize, u8)> = ins_decl.into_iter().map(|p| {
-            let entry = (p.name, (idx, p.len));
-            idx += p.len as usize;
-            entry
-        }).collect();
-
-        idx = 0;
-
-        let outs: HashMap<String, (usize, u8)> = outs_decl.into_iter().map(|p| {
-            let entry = (p.name, (idx, p.len));
-            idx += p.len as usize;
-            entry
-        }).collect();
-        CompDecl { name, subc, ins, outs, design }
+    <name:ID> "(" <subc:SubcDecl> <design:DesignDecl> ")" => {
+        CompDecl::new(name, subc, design)
     }
 }
 

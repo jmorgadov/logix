@@ -64,14 +64,14 @@ pub fn xor_gate(id: usize, in_count: usize) -> Component<ExtraInfo> {
     )
 }
 
-pub fn input(id: usize, bits: usize) -> Component<ExtraInfo> {
+pub fn input(id: usize, bits: u8) -> Component<ExtraInfo> {
     let prim = Primitive::Input { bits };
-    base_component_extra(id, 0, bits, ExtraInfo::from_primitive(id, prim))
+    base_component_extra(id, 1, 1, ExtraInfo::from_primitive(id, prim))
 }
 
-pub fn output(id: usize, bits: usize) -> Component<ExtraInfo> {
+pub fn output(id: usize, bits: u8) -> Component<ExtraInfo> {
     let prim = Primitive::Output { bits };
-    base_component_extra(id, bits, 0, ExtraInfo::from_primitive(id, prim))
+    base_component_extra(id, 1, 1, ExtraInfo::from_primitive(id, prim))
 }
 
 pub fn clock(id: usize, frec: f64) -> Component<ExtraInfo> {

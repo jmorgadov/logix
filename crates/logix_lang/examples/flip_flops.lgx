@@ -1,5 +1,12 @@
 JK_FF (
   subc (
+      j = In(1),
+      k = In(1),
+      clk = In(1),
+
+      q = Out(1),
+      nq = Out(1),
+
       n01 = Nand(3),
       n02 = Nand(3),
       n03 = Nand(2),
@@ -12,9 +19,6 @@ JK_FF (
 
       not = Not
   )
-
-  ins (j, k, clk)
-  outs (q, nq)
 
   design (
     j -> n01.1,

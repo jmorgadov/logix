@@ -14,6 +14,8 @@ pub enum Primitive {
     Clock(f64),
     HighConst,
     LowConst,
+    Input(u8),
+    Output(u8),
 }
 
 impl Display for Primitive {
@@ -40,29 +42,40 @@ impl Comp {
             "Clock" => Comp::Primitive(Primitive::Clock(clock_frec)),
             "High" => Comp::Primitive(Primitive::HighConst),
             "Low" => Comp::Primitive(Primitive::LowConst),
+            "In" => Comp::Primitive(Primitive::Input(ins_count as u8)),
+            "Out" => Comp::Primitive(Primitive::Output(ins_count as u8)),
             _ => Comp::Composite(name.to_string()),
+        }
+    }
+
+    pub fn is_input(&self) -> bool {
+        match self {
+            Comp::Primitive(Primitive::Input(_)) => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_output(&self) -> bool {
+        match self {
+            Comp::Primitive(Primitive::Output(_)) => true,
+            _ => false,
         }
     }
 }
 
-#[derive(Debug, Eq, PartialEq, Hash, Clone)]
-pub struct PinDecl {
-    pub name: String,
-    pub len: u8,
-}
-
-#[derive(Debug, Clone, Copy)]
-pub enum PinIndexing {
-    NoIndex,
-    Index(u8),
-    Range(u8, u8),
-}
-
 #[derive(Debug, Clone)]
 pub enum PinAddr {
-    External(String, PinIndexing),
-    InternalName(String, String, PinIndexing),
-    InternalIdx(String, usize, PinIndexing),
+    ByName(String, String),
+    ByIdx(String, usize),
+}
+
+impl PinAddr {
+    pub fn name(&self) -> &str {
+        match self {
+            PinAddr::ByName(n, _) => n,
+            PinAddr::ByIdx(n, _) => n,
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -74,10 +87,56 @@ pub struct ConnDecl {
 #[derive(Debug)]
 pub struct CompDecl {
     pub name: String,
-    pub subc: HashMap<String, Comp>,
-    pub ins: HashMap<String, (usize, u8)>,
-    pub outs: HashMap<String, (usize, u8)>,
+    pub subc: HashMap<(String, usize), Comp>,
     pub design: Vec<ConnDecl>,
+
+    pub ins: Vec<usize>,
+    pub outs: Vec<usize>,
+
+    pub in_idx_by_name: HashMap<String, usize>,
+    pub out_idx_by_name: HashMap<String, usize>,
+}
+
+impl CompDecl {
+    pub fn new(name: String, subc: HashMap<(String, usize), Comp>, design: Vec<ConnDecl>) -> Self {
+        let mut ins = subc
+            .iter()
+            .filter(|((_, _), c)| c.is_input())
+            .collect::<Vec<_>>();
+
+        let mut outs = subc
+            .iter()
+            .filter(|((_, _), c)| c.is_output())
+            .collect::<Vec<_>>();
+
+        ins.sort_by(|((_, a), _), ((_, b), _)| a.cmp(b));
+        outs.sort_by(|((_, a), _), ((_, b), _)| a.cmp(b));
+
+        let in_idx_by_name: HashMap<String, usize> = ins
+            .iter()
+            .enumerate()
+            .map(|(i, ((n, _), _))| (n.clone(), i))
+            .collect();
+
+        let out_idx_by_name: HashMap<String, usize> = outs
+            .iter()
+            .enumerate()
+            .map(|(i, ((n, _), _))| (n.clone(), i))
+            .collect();
+
+        let ins = ins.iter().map(|((_, i), _)| *i).collect();
+        let outs = outs.iter().map(|((_, i), _)| *i).collect();
+
+        CompDecl {
+            name,
+            subc,
+            design,
+            ins,
+            outs,
+            in_idx_by_name,
+            out_idx_by_name,
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -92,7 +151,5 @@ pub mod prelude {
     pub use super::CompDecl;
     pub use super::ConnDecl;
     pub use super::PinAddr;
-    pub use super::PinDecl;
     pub use super::Primitive;
-    pub use super::PinIndexing;
 }

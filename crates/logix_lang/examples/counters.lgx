@@ -2,16 +2,15 @@ use flip_flops;
 
 Async_Counter_1b (
   subc (
+    clk = In(1),
+    out = Out(1),
     ff = JK_FF,
     hc = High
   )
 
-  ins (clk)
-  outs (out)
-
   design (
-    hc.0 -> ff.j,
-    hc.0 -> ff.k,
+    hc -> ff.j,
+    hc -> ff.k,
 
     clk -> ff.clk,
 
@@ -21,14 +20,14 @@ Async_Counter_1b (
 
 Async_Counter_2b (
   subc (
+    clk = In(1),
+    out0 = Out(1),
+    out1 = Out(1),
     ff1 = JK_FF,
     ff2 = JK_FF,
     hc1 = High,
     hc2 = High
   )
-
-  ins (clk)
-  outs (out:2)
 
   design (
     hc1.0 -> ff1.j,
@@ -38,9 +37,9 @@ Async_Counter_2b (
 
     clk -> ff1.clk,
 
-    ff1.q -> out[0],
+    ff1.q -> out0,
     ff1.q -> ff2.clk,
 
-    ff2.q -> out[1]
+    ff2.q -> out1
   )
 )

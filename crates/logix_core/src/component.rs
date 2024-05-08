@@ -257,7 +257,7 @@ impl<E: Default + Clone> ComponentBuilder<E> {
             for (in_idx, (comp_idx, addr)) in in_addrs.iter() {
                 if used_inputs[*comp_idx][*addr] {
                     panic!(
-                        "[{0}] Input {1} of comp {2} has to entries (one from input {3})",
+                        "[{0}] Input {1} of comp {2} has two entries (one from input {3})",
                         self.id, addr, comp_idx, in_idx,
                     );
                 }

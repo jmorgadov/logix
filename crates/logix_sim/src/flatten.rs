@@ -5,6 +5,7 @@ use crate::primitives::{
     prelude::Primitive,
     primitives::{ExtraInfo, PrimitiveComponent},
 };
+use log::*;
 use logix_core::prelude::*;
 use thiserror::Error;
 
@@ -175,13 +176,21 @@ fn reindex_connections(
     comp: &mut Component<ExtraInfo>,
     start_idx: usize,
 ) -> Result<(usize, NestedConfig), FlattenError> {
+    debug!(
+        "Reindexing connections for component: {:?} statring from {}",
+        comp.name, start_idx
+    );
+
     if comp.sub.is_none() {
+        // is a primitive
         return Ok((start_idx + 1, NestedConfig::Single(start_idx)));
     }
+
     let sub = comp.sub.as_mut().unwrap();
     let mut idx_starts = vec![start_idx];
     let mut sub_configs = HashMap::new();
 
+    // reindex subcomponents
     for comp in sub.components.as_mut_slice() {
         let (new_start, config) = reindex_connections(comp, *idx_starts.last().unwrap())?;
         idx_starts.push(new_start);
@@ -189,8 +198,10 @@ fn reindex_connections(
     }
 
     // change connections
+    debug!("Changing connections for component: {:?}", comp.name);
     let mut new_conns = vec![];
     for i in 0..sub.connections.len() {
+        debug!("Changing connection: {:?}", sub.connections[i]);
         let conn = &sub.connections[i];
         let from_idx: usize;
         let from_addr: usize;
@@ -204,6 +215,8 @@ fn reindex_connections(
             from_addr = conn.from.1;
         }
 
+        debug!("New src idx: ({}, {})", from_idx, from_addr);
+
         // reindex to
         if let Some(subsub) = &sub.components[conn.to.0].sub {
             for (in_idx, (comp_idx, comp_addr)) in &subsub.in_addrs {
@@ -214,6 +227,9 @@ fn reindex_connections(
         } else {
             to_ports = vec![(idx_starts[conn.to.0], conn.to.1)];
         }
+
+        debug!("New dest idxs: {:?}", to_ports);
+
         for to_port in to_ports {
             new_conns.push(Conn::new(from_idx, from_addr, to_port.0, to_port.1));
         }

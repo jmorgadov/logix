@@ -6,9 +6,6 @@ Main (
         counter = Async_Counter_2b
     )
 
-    ins ()
-    outs ()
-
     design (
         clk.0 -> counter.clk
     )

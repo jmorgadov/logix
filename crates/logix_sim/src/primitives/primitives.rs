@@ -10,8 +10,8 @@ pub enum Primitive {
     NandGate,
     NorGate,
     XorGate,
-    Input { bits: usize },
-    Output { bits: usize },
+    Input { bits: u8 },
+    Output { bits: u8 },
     Clock { period: u128 },
     Const { value: Data },
 }
@@ -131,7 +131,7 @@ impl PrimitiveComponent {
         }
     }
 
-    pub fn input(id: usize, bits: usize) -> Self {
+    pub fn input(id: usize, bits: u8) -> Self {
         PrimitiveComponent {
             id,
             name: "Input".to_string(),
@@ -141,7 +141,7 @@ impl PrimitiveComponent {
         }
     }
 
-    pub fn output(id: usize, bits: usize) -> Self {
+    pub fn output(id: usize, bits: u8) -> Self {
         PrimitiveComponent {
             id,
             name: "Output".to_string(),
