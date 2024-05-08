@@ -25,12 +25,40 @@ class Circuit {
     return componentsPositions[compIdx] + Offset(pinPos.dx, -pinPos.dy);
   }
 
+  String generateLangRepresentation(Library lib, {bool isMain = true}) {
+    String lang = '\n';
+    lang += isMain ? 'Main (\n' : '$name (\n';
+
+    lang += '  subc (\n';
+    lang += components.map((e) => "    ${e.name} = ${e.type}").join(",\n");
+    lang += "\n  )\n\n";
+
+    lang += '  design (\n';
+    lang += connections.map((e) {
+      final fromComp = components[e.fromCompIdx];
+      final toComp = components[e.toCompIdx];
+      return '    ${fromComp.name}.${e.fromCompOutputIdx} -> ${toComp.name}.${e.toCompInputIdx}';
+    }).join(",\n");
+    lang += '\n  )\n';
+    lang += ")\n\n";
+
+    for (final c in components) {
+      final circDescr = lib.circuits[c.type];
+      if (circDescr != null) {
+        final circ = Circuit.fromDescription(circDescr, lib);
+        lang += circ.generateLangRepresentation(lib, isMain: false);
+      }
+    }
+
+    return lang;
+  }
+
   static Circuit mock() {
     return Circuit(
       name: 'Mock Circuit',
       components: [
         Component(
-          name: 'AND',
+          name: 'and1',
           type: 'And(2)',
           size: const Size(50, 40),
           inputs: [
@@ -70,7 +98,7 @@ class Circuit {
           ],
         ),
         Component(
-          name: 'OR',
+          name: 'or1',
           type: 'Or(2)',
           size: const Size(50, 40),
           inputs: [
