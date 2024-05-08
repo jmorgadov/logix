@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::primitives::{
-    bit::Data,
+    data::Data,
     prelude::Primitive,
     primitives::{ExtraInfo, PrimitiveComponent},
 };
@@ -165,6 +165,8 @@ fn flat_comp(comp: Component<ExtraInfo>) -> (Vec<PrimitiveComponent>, Vec<Conn>)
         Primitive::XorGate => PrimitiveComponent::xor_gate(id, in_count),
         Primitive::Input { bits } => PrimitiveComponent::input(id, bits),
         Primitive::Output { bits } => PrimitiveComponent::output(id, bits),
+        Primitive::Splitter { bits } => PrimitiveComponent::splitter(id, bits),
+        Primitive::Joiner { bits } => PrimitiveComponent::joiner(id, bits),
         Primitive::Clock { period } => PrimitiveComponent::clock(id, period),
         Primitive::Const { value } => PrimitiveComponent::const_gate(id, value),
     };

@@ -16,6 +16,8 @@ pub enum Primitive {
     LowConst,
     Input(u8),
     Output(u8),
+    Splitter(u8),
+    Joiner(u8),
 }
 
 impl Display for Primitive {
@@ -44,6 +46,8 @@ impl Comp {
             "Low" => Comp::Primitive(Primitive::LowConst),
             "In" => Comp::Primitive(Primitive::Input(ins_count as u8)),
             "Out" => Comp::Primitive(Primitive::Output(ins_count as u8)),
+            "Splitter" => Comp::Primitive(Primitive::Splitter(ins_count as u8)),
+            "Joiner" => Comp::Primitive(Primitive::Joiner(ins_count as u8)),
             _ => Comp::Composite(name.to_string()),
         }
     }

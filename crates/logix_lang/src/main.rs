@@ -6,7 +6,7 @@ use std::{collections::HashMap, path::Path};
 use log::error;
 use logix_sim::{
     flatten::{FlattenComponent, NestedConfig},
-    primitives::bit::Data,
+    primitives::data::Data,
     simulator::Simulator,
 };
 

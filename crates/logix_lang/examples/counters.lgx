@@ -21,8 +21,10 @@ Async_Counter_1b (
 Async_Counter_2b (
   subc (
     clk = In(1),
-    out0 = Out(1),
-    out1 = Out(1),
+    out = Out(2),
+
+    jn = Joiner(2),
+
     ff1 = JK_FF,
     ff2 = JK_FF,
     hc1 = High,
@@ -37,9 +39,11 @@ Async_Counter_2b (
 
     clk -> ff1.clk,
 
-    ff1.q -> out0,
+    ff1.q -> jn.0,
     ff1.q -> ff2.clk,
 
-    ff2.q -> out1
+    ff2.q -> jn.1,
+
+    jn.0 -> out
   )
 )

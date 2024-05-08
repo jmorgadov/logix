@@ -1,6 +1,6 @@
 use std::fmt::{Display, Formatter};
 
-use super::bit::Data;
+use super::data::Data;
 
 #[derive(Debug, Clone)]
 pub enum Primitive {
@@ -12,6 +12,8 @@ pub enum Primitive {
     XorGate,
     Input { bits: u8 },
     Output { bits: u8 },
+    Splitter { bits: u8 },
+    Joiner { bits: u8 },
     Clock { period: u128 },
     Const { value: Data },
 }
@@ -63,6 +65,19 @@ impl PrimitiveComponent {
             }
             Primitive::Output { bits: _b } => {
                 self.outputs[0].set_from(self.inputs[0]);
+            }
+            Primitive::Splitter { bits: b } => {
+                for bit_idx in (0..b).rev() {
+                    self.outputs[bit_idx as usize].set_bit(self.inputs[0].get_bit_at(bit_idx));
+                }
+            }
+            Primitive::Joiner { bits: _b } => {
+                self.outputs[0].set_data(
+                    self.inputs
+                        .iter()
+                        .enumerate()
+                        .fold(0, |acc, (i, x)| acc | ((x.as_bool() as usize) << i)),
+                );
             }
             Primitive::Clock { period } => {
                 self.outputs[0].set_bit((time % (period * 2)) > period);
@@ -151,6 +166,26 @@ impl PrimitiveComponent {
         }
     }
 
+    pub fn splitter(id: usize, bits: u8) -> Self {
+        PrimitiveComponent {
+            id,
+            name: "Splitter".to_string(),
+            prim_type: Primitive::Splitter { bits },
+            inputs: vec![Data::new(0, bits as u8)],
+            outputs: vec![Data::low(); bits as usize],
+        }
+    }
+
+    pub fn joiner(id: usize, bits: u8) -> Self {
+        PrimitiveComponent {
+            id,
+            name: "Joiner".to_string(),
+            prim_type: Primitive::Joiner { bits },
+            inputs: vec![Data::low(); bits as usize],
+            outputs: vec![Data::new(0, bits as u8)],
+        }
+    }
+
     pub fn clock(id: usize, period: u128) -> Self {
         PrimitiveComponent {
             id,
@@ -204,17 +239,19 @@ impl Display for Primitive {
 mod test {
     use super::*;
 
-    fn test_truth_table(mut comp: PrimitiveComponent, truth_table: Vec<(Vec<Data>, Data)>) {
-        for (inputs, output) in truth_table {
+    fn test_truth_table(mut comp: PrimitiveComponent, truth_table: Vec<(Vec<Data>, Vec<Data>)>) {
+        for (inputs, outputs) in truth_table {
             for (i, input) in inputs.iter().enumerate() {
                 comp.set_input(i, *input);
             }
             comp.update(0);
-            assert_eq!(
-                comp.outputs[0], output,
-                "Case: {:?} -> {:?}",
-                inputs, output
-            );
+            for (i, output) in outputs.iter().enumerate() {
+                assert_eq!(
+                    *output, comp.outputs[i],
+                    "Case: {:?} -> {:?}",
+                    inputs, output
+                );
+            }
         }
     }
 
@@ -222,10 +259,10 @@ mod test {
     fn test_and_gate() {
         let comp = PrimitiveComponent::and_gate(0, 2);
         let truth_table = vec![
-            (vec![Data::high(), Data::high()], Data::high()),
-            (vec![Data::high(), Data::low()], Data::low()),
-            (vec![Data::low(), Data::high()], Data::low()),
-            (vec![Data::low(), Data::low()], Data::low()),
+            (vec![Data::high(), Data::high()], vec![Data::high()]),
+            (vec![Data::high(), Data::low()], vec![Data::low()]),
+            (vec![Data::low(), Data::high()], vec![Data::low()]),
+            (vec![Data::low(), Data::low()], vec![Data::low()]),
         ];
         test_truth_table(comp, truth_table);
     }
@@ -234,10 +271,10 @@ mod test {
     fn test_or_gate() {
         let comp = PrimitiveComponent::or_gate(0, 2);
         let truth_table = vec![
-            (vec![Data::high(), Data::high()], Data::high()),
-            (vec![Data::high(), Data::low()], Data::high()),
-            (vec![Data::low(), Data::high()], Data::high()),
-            (vec![Data::low(), Data::low()], Data::low()),
+            (vec![Data::high(), Data::high()], vec![Data::high()]),
+            (vec![Data::high(), Data::low()], vec![Data::high()]),
+            (vec![Data::low(), Data::high()], vec![Data::high()]),
+            (vec![Data::low(), Data::low()], vec![Data::low()]),
         ];
         test_truth_table(comp, truth_table);
     }
@@ -246,8 +283,8 @@ mod test {
     fn test_not_gate() {
         let comp = PrimitiveComponent::not_gate(0);
         let truth_table = vec![
-            (vec![Data::high()], Data::low()),
-            (vec![Data::low()], Data::high()),
+            (vec![Data::high()], vec![Data::low()]),
+            (vec![Data::low()], vec![Data::high()]),
         ];
         test_truth_table(comp, truth_table);
     }
@@ -256,10 +293,10 @@ mod test {
     fn test_nand_gate() {
         let comp = PrimitiveComponent::nand_gate(0, 2);
         let truth_table = vec![
-            (vec![Data::high(), Data::high()], Data::low()),
-            (vec![Data::high(), Data::low()], Data::high()),
-            (vec![Data::low(), Data::high()], Data::high()),
-            (vec![Data::low(), Data::low()], Data::high()),
+            (vec![Data::high(), Data::high()], vec![Data::low()]),
+            (vec![Data::high(), Data::low()], vec![Data::high()]),
+            (vec![Data::low(), Data::high()], vec![Data::high()]),
+            (vec![Data::low(), Data::low()], vec![Data::high()]),
         ];
         test_truth_table(comp, truth_table);
     }
@@ -268,10 +305,10 @@ mod test {
     fn test_nor_gate() {
         let comp = PrimitiveComponent::nor_gate(0, 2);
         let truth_table = vec![
-            (vec![Data::high(), Data::high()], Data::low()),
-            (vec![Data::high(), Data::low()], Data::low()),
-            (vec![Data::low(), Data::high()], Data::low()),
-            (vec![Data::low(), Data::low()], Data::high()),
+            (vec![Data::high(), Data::high()], vec![Data::low()]),
+            (vec![Data::high(), Data::low()], vec![Data::low()]),
+            (vec![Data::low(), Data::high()], vec![Data::low()]),
+            (vec![Data::low(), Data::low()], vec![Data::high()]),
         ];
         test_truth_table(comp, truth_table);
     }
@@ -280,10 +317,109 @@ mod test {
     fn test_xor_gate() {
         let comp = PrimitiveComponent::xor_gate(0, 2);
         let truth_table = vec![
-            (vec![Data::high(), Data::high()], Data::low()),
-            (vec![Data::high(), Data::low()], Data::high()),
-            (vec![Data::low(), Data::high()], Data::high()),
-            (vec![Data::low(), Data::low()], Data::low()),
+            (vec![Data::high(), Data::high()], vec![Data::low()]),
+            (vec![Data::high(), Data::low()], vec![Data::high()]),
+            (vec![Data::low(), Data::high()], vec![Data::high()]),
+            (vec![Data::low(), Data::low()], vec![Data::low()]),
+        ];
+        test_truth_table(comp, truth_table);
+    }
+
+    #[test]
+    fn test_input() {
+        let comp = PrimitiveComponent::input(0, 1);
+        let truth_table = vec![
+            (vec![Data::high()], vec![Data::high()]),
+            (vec![Data::low()], vec![Data::low()]),
+        ];
+        test_truth_table(comp, truth_table);
+    }
+
+    #[test]
+    fn test_output() {
+        let comp = PrimitiveComponent::output(0, 1);
+        let truth_table = vec![
+            (vec![Data::high()], vec![Data::high()]),
+            (vec![Data::low()], vec![Data::low()]),
+        ];
+        test_truth_table(comp, truth_table);
+    }
+
+    #[test]
+    fn test_splitter() {
+        let comp = PrimitiveComponent::splitter(0, 4);
+        let truth_table = vec![
+            (
+                vec![Data::new(0b1110, 4)],
+                vec![
+                    Data::new(0b0, 1),
+                    Data::new(0b1, 1),
+                    Data::new(0b1, 1),
+                    Data::new(0b1, 1),
+                ],
+            ),
+            (
+                vec![Data::new(0b1111, 4)],
+                vec![
+                    Data::new(0b1, 1),
+                    Data::new(0b1, 1),
+                    Data::new(0b1, 1),
+                    Data::new(0b1, 1),
+                ],
+            ),
+            (
+                vec![Data::new(0b0000, 4)],
+                vec![
+                    Data::new(0b0, 1),
+                    Data::new(0b0, 1),
+                    Data::new(0b0, 1),
+                    Data::new(0b0, 1),
+                ],
+            ),
+        ];
+        test_truth_table(comp, truth_table);
+    }
+
+    #[test]
+    fn test_joiner() {
+        let comp = PrimitiveComponent::joiner(0, 4);
+        let truth_table = vec![
+            (
+                vec![
+                    Data::new(0b0, 1),
+                    Data::new(0b1, 1),
+                    Data::new(0b1, 1),
+                    Data::new(0b1, 1),
+                ],
+                vec![Data::new(14, 4)],
+            ),
+            (
+                vec![
+                    Data::new(0b1, 1),
+                    Data::new(0b1, 1),
+                    Data::new(0b1, 1),
+                    Data::new(0b1, 1),
+                ],
+                vec![Data::new(15, 4)],
+            ),
+            (
+                vec![
+                    Data::new(0b0, 1),
+                    Data::new(0b0, 1),
+                    Data::new(0b0, 1),
+                    Data::new(0b0, 1),
+                ],
+                vec![Data::new(0, 4)],
+            ),
+            (
+                vec![
+                    Data::new(0b1, 1),
+                    Data::new(0b0, 1),
+                    Data::new(0b1, 1),
+                    Data::new(0b0, 1),
+                ],
+                vec![Data::new(5, 4)],
+            ),
         ];
         test_truth_table(comp, truth_table);
     }

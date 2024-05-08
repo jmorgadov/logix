@@ -1,4 +1,4 @@
-use super::{bit::Data, prelude::ExtraInfo, primitives::Primitive};
+use super::{data::Data, prelude::ExtraInfo, primitives::Primitive};
 use logix_core::prelude::*;
 
 fn base_component_extra(
@@ -72,6 +72,16 @@ pub fn input(id: usize, bits: u8) -> Component<ExtraInfo> {
 pub fn output(id: usize, bits: u8) -> Component<ExtraInfo> {
     let prim = Primitive::Output { bits };
     base_component_extra(id, 1, 1, ExtraInfo::from_primitive(id, prim))
+}
+
+pub fn splitter(id: usize, bits: u8) -> Component<ExtraInfo> {
+    let prim = Primitive::Splitter { bits };
+    base_component_extra(id, 1, bits as usize, ExtraInfo::from_primitive(id, prim))
+}
+
+pub fn joiner(id: usize, bits: u8) -> Component<ExtraInfo> {
+    let prim = Primitive::Joiner { bits };
+    base_component_extra(id, bits as usize, 1, ExtraInfo::from_primitive(id, prim))
 }
 
 pub fn clock(id: usize, frec: f64) -> Component<ExtraInfo> {

@@ -35,6 +35,28 @@ impl Data {
         self.value = value as usize;
     }
 
+    pub fn set_bit_at(&mut self, index: u8, value: bool) {
+        if index >= self.size {
+            panic!("Index out of bounds");
+        }
+        if value {
+            self.value |= 1 << index;
+        } else {
+            self.value &= !(1 << index);
+        }
+    }
+
+    pub fn get_bit_at(&self, index: u8) -> bool {
+        if index >= self.size {
+            panic!("Index out of bounds");
+        }
+        (self.value >> index) & 1 != 0
+    }
+
+    pub fn set_data(&mut self, value: usize) {
+        self.value = value & ((1 << self.size) - 1);
+    }
+
     pub fn set_from(&mut self, other: Data) {
         if self.size != other.size {
             panic!("Different sizes");
@@ -53,7 +75,7 @@ impl Data {
 
 impl Display for Data {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        for i in (0..self.size).rev() {
+        for i in 0..self.size {
             match (self.value >> i) & 1 {
                 1 => write!(f, "🟩")?,
                 0 => write!(f, "⬛")?,

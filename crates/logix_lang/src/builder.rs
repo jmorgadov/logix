@@ -7,8 +7,8 @@ use thiserror::Error;
 use logix_core::component::{Component, ComponentBuilder, Conn, PortAddr};
 use logix_sim::primitives::{
     primitive_builders::{
-        and_gate, clock, high_const, input, low_const, nand_gate, nor_gate, not_gate, or_gate,
-        output, xor_gate,
+        and_gate, clock, high_const, input, joiner, low_const, nand_gate, nor_gate, not_gate,
+        or_gate, output, splitter, xor_gate,
     },
     primitives::ExtraInfo,
 };
@@ -166,6 +166,8 @@ fn comp_decl_to_comp(
                         Primitive::Xor(ins_count) => xor_gate(*last_id, *ins_count),
                         Primitive::Input(bits) => input(*last_id, *bits),
                         Primitive::Output(bits) => output(*last_id, *bits),
+                        Primitive::Splitter(bits) => splitter(*last_id, *bits),
+                        Primitive::Joiner(bits) => joiner(*last_id, *bits),
                     };
                     id_map.insert(*last_id, subc_name.to_string());
                     debug!("Creating primitive: {} with id {}", subc_name, *last_id);
