@@ -161,7 +161,7 @@ class Circuit {
         .map(
           (e) => Component.fromDescription(
             e,
-            lib.components,
+            // lib.components,
           ),
         )
         .toList();
@@ -208,7 +208,7 @@ class Component {
 
   static Component fromDescription(
     ComponentDescription componentDescription,
-    ComponentLibrary componentsLib,
+    // Library lib,
   ) {
     return Component(
       name: componentDescription.name,
@@ -244,7 +244,7 @@ class Pin {
   static Pin fromDescription(PinDescription pinDescription) {
     return Pin(
       name: pinDescription.name,
-      position: Offset(pinDescription.x, -pinDescription.y),
+      position: Offset(pinDescription.x, pinDescription.y),
       dir: pinDescription.direction,
     );
   }

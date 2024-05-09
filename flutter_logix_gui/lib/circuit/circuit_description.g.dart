@@ -87,7 +87,7 @@ Map<String, dynamic> _$ConnectionDescriptionToJson(
 PinDescription _$PinDescriptionFromJson(Map<String, dynamic> json) =>
     PinDescription(
       name: json['name'] as String,
-      direction: $enumDecode(_$PinDirectionEnumMap, json['direction']),
+      direction: $enumDecode(_$PinDirectionEnumMap, json['dir']),
       x: (json['x'] as num).toDouble(),
       y: (json['y'] as num).toDouble(),
     );
@@ -95,7 +95,7 @@ PinDescription _$PinDescriptionFromJson(Map<String, dynamic> json) =>
 Map<String, dynamic> _$PinDescriptionToJson(PinDescription instance) =>
     <String, dynamic>{
       'name': instance.name,
-      'direction': _$PinDirectionEnumMap[instance.direction]!,
+      'dir': _$PinDirectionEnumMap[instance.direction]!,
       'x': instance.x,
       'y': instance.y,
     };

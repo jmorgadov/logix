@@ -19,7 +19,7 @@ class Board extends StatelessWidget {
     this.onPointerUp,
     this.onPonterDrag,
     this.onPointerScale,
-    this.children,
+    this.children = const [],
     this.isDiscrete = false,
   });
 
@@ -30,7 +30,7 @@ class Board extends StatelessWidget {
   final OnBoardScale? onPointerScale;
   final OnBoardPointerDown? onPointerDown;
   final OnBoardPointerUp? onPointerUp;
-  final List<BoardItem>? children;
+  final List<BoardItem> children;
   final bool isDiscrete;
 
   @override
@@ -68,7 +68,7 @@ class SizedBoard extends StatefulWidget {
     this.onPointerUp,
     this.onPointerDrag,
     this.onPointerScale,
-    this.children,
+    this.children = const [],
     this.isDiscrete = false,
   });
 
@@ -76,7 +76,7 @@ class SizedBoard extends StatefulWidget {
   final double height;
   final int pixelsPerUnit;
   final bool showGrid;
-  final List<BoardItem>? children;
+  final List<BoardItem> children;
   final OnBoardPointerMove? onPointerMove;
   final OnBoardPointerDown? onPointerDown;
   final OnBoardPointerUp? onPointerUp;
@@ -109,15 +109,7 @@ class _BoardState extends State<SizedBoard> {
   @override
   void initState() {
     super.initState();
-    info = BoardInfo(
-      pixelsPerUnit: widget.pixelsPerUnit,
-      bounds: bounds,
-      offset: _offset,
-      scale: _scale,
-      selectionRect:
-          _isSelecting ? Rect.fromPoints(selectionStart, selectionEnd) : null,
-      isDiscrete: widget.isDiscrete,
-    );
+    _updateInfo();
   }
 
   void _updateInfo() {
@@ -136,6 +128,11 @@ class _BoardState extends State<SizedBoard> {
   Widget build(BuildContext context) {
     return Stack(
       children: [
+        Positioned.fill(
+          child: ColoredBox(
+            color: Colors.black.withOpacity(.05),
+          ),
+        ),
         Positioned.fill(
           child: CustomPaint(
             painter: BoardGridPainter(

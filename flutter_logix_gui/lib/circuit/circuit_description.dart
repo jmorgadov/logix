@@ -7,8 +7,8 @@ typedef CircuitLibrary = Map<String, CircuitDescription>;
 typedef ComponentLibrary = Map<String, ComponentDescription>;
 
 class Library {
-  final CircuitLibrary circuits;
-  final ComponentLibrary components;
+  CircuitLibrary circuits;
+  ComponentLibrary components;
 
   Library({
     required this.circuits,
@@ -26,11 +26,11 @@ class Library {
 
 @JsonSerializable()
 class CircuitDescription {
-  final String name;
-  final String type;
-  final List<ComponentDescription> components;
-  final List<List<double>> componentsPositions;
-  final List<ConnectionDescription> connections;
+  String name;
+  String type;
+  List<ComponentDescription> components;
+  List<List<double>> componentsPositions;
+  List<ConnectionDescription> connections;
 
   CircuitDescription({
     required this.name,
@@ -48,21 +48,21 @@ class CircuitDescription {
 
 @JsonSerializable()
 class ComponentDescription {
-  final String name;
-  final String type;
-  final double width;
-  final double height;
-  final List<PinDescription>? inputs;
-  final List<PinDescription>? outputs;
-  final List<DrawInstruction> drawInstructions;
+  String name;
+  String type;
+  double width;
+  double height;
+  List<PinDescription>? inputs;
+  List<PinDescription>? outputs;
+  List<DrawInstruction> drawInstructions;
 
   ComponentDescription({
     required this.name,
     required this.type,
     required this.width,
     required this.height,
-    required this.inputs,
-    required this.outputs,
+    this.inputs,
+    this.outputs,
     required this.drawInstructions,
   });
 
@@ -92,11 +92,11 @@ class ConnectionDescription {
     required this.path,
   });
 
-  final int fromCompIdx;
-  final int fromPin;
-  final int toCompIdx;
-  final int toPin;
-  final List<List<double>> path;
+  int fromCompIdx;
+  int fromPin;
+  int toCompIdx;
+  int toPin;
+  List<List<double>> path;
 
   factory ConnectionDescription.fromJson(Map<String, dynamic> json) =>
       _$ConnectionDescriptionFromJson(json);
@@ -106,10 +106,11 @@ class ConnectionDescription {
 
 @JsonSerializable()
 class PinDescription {
-  final String name;
-  final PinDirection direction;
-  final double x;
-  final double y;
+  String name;
+  @JsonKey(name: "dir")
+  PinDirection direction;
+  double x;
+  double y;
 
   PinDescription({
     required this.name,
@@ -132,25 +133,25 @@ enum DrawInstructionType {
 
 @JsonSerializable()
 class DrawInstruction {
-  final DrawInstructionType type;
+  DrawInstructionType type;
 
   // General
-  final String? color;
+  String? color;
 
   // Text
-  final String? text;
-  final double? fontSize;
+  String? text;
+  double? fontSize;
 
   // Line / Box / Text area
-  final double? x1;
-  final double? y1;
-  final double? x2;
-  final double? y2;
+  double? x1;
+  double? y1;
+  double? x2;
+  double? y2;
 
-  final double? lineWidth;
-  final String? lineColor;
+  double? lineWidth;
+  String? lineColor;
 
-  const DrawInstruction({
+  DrawInstruction({
     required this.type,
     this.color,
     this.text,
