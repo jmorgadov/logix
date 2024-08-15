@@ -1,8 +1,10 @@
 use std::fmt::{Display, Formatter};
 
+use serde::{Deserialize, Serialize};
+
 use super::data::Data;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Primitive {
     AndGate,
     OrGate,
@@ -207,7 +209,7 @@ impl PrimitiveComponent {
     }
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct ExtraInfo {
     pub id: usize,
     pub primitive: Option<Primitive>,

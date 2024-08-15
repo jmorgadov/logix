@@ -1,3 +1,4 @@
+use serde::{Deserialize, Serialize};
 use std::{default::Default, usize};
 
 /// Represents a location of a port inside a Component.
@@ -25,7 +26,7 @@ pub fn addr_of(port_addr: PortAddr) -> usize {
 /// The port index of the `from` part is taken from the outputs of the
 /// component it represents. The port index of the `to` part is taken from
 /// the inputs of the component it represents.
-#[derive(Default, Debug, Copy, Clone)]
+#[derive(Default, Debug, Copy, Clone, Serialize, Deserialize)]
 pub struct Conn {
     pub from: PortAddr,
     pub to: PortAddr,
@@ -54,8 +55,8 @@ impl Conn {
 }
 
 /// Holds all the information of the sub-components of a component.
-#[derive(Default, Debug)]
-pub struct SubComponent<E: Default + Clone> {
+#[derive(Default, Debug, Serialize, Deserialize)]
+pub struct SubComponent<E: Default + Clone + Serialize> {
     /// Vector of sub-components.
     pub components: Vec<Component<E>>,
 
@@ -67,14 +68,11 @@ pub struct SubComponent<E: Default + Clone> {
 
     /// Vector that maps the component outputs to outputs ports of the sub-components
     pub out_addrs: Vec<PortAddr>,
-
-    /// Vector that holds the indexes of each component dependencies.
-    pub dep_map: Vec<Vec<usize>>,
 }
 
 /// Represents a component.
-#[derive(Default, Debug)]
-pub struct Component<E: Default + Clone> {
+#[derive(Default, Debug, Serialize, Deserialize)]
+pub struct Component<E: Default + Clone + Serialize> {
     /// Unique identifier of the component.
     pub id: usize,
 
@@ -97,7 +95,7 @@ pub struct Component<E: Default + Clone> {
 }
 
 #[derive(Default)]
-pub struct ComponentBuilder<E: Default + Clone> {
+pub struct ComponentBuilder<E: Default + Clone + Serialize> {
     id: usize,
     name: Option<String>,
     inputs: usize,
@@ -110,7 +108,7 @@ pub struct ComponentBuilder<E: Default + Clone> {
     extra: E,
 }
 
-impl<E: Default + Clone> ComponentBuilder<E> {
+impl<E: Default + Clone + Serialize> ComponentBuilder<E> {
     /// Creates a new [`ComponentBuilder`]
     pub fn new(id: usize) -> Self {
         ComponentBuilder {
@@ -222,16 +220,16 @@ impl<E: Default + Clone> ComponentBuilder<E> {
     /// Builds the [`Component`].
     pub fn build(self) -> Component<E> {
         // Build dependency map
-        let mut dep_map: Option<Vec<Vec<usize>>> = None;
-        if let Some(sub_comps) = &self.sub_comps {
-            let mut map = vec![vec![]; sub_comps.len()];
-            if let Some(connections) = &self.connections {
-                for conn in connections {
-                    map[idx_of(conn.to)].push(idx_of(conn.from));
-                }
-            }
-            dep_map = Some(map);
-        }
+        // let mut dep_map: Option<Vec<Vec<usize>>> = None;
+        // if let Some(sub_comps) = &self.sub_comps {
+        //     let mut map = vec![vec![]; sub_comps.len()];
+        //     if let Some(connections) = &self.connections {
+        //         for conn in connections {
+        //             map[idx_of(conn.to)].push(idx_of(conn.from));
+        //         }
+        //     }
+        //     dep_map = Some(map);
+        // }
 
         let mut sub = None;
         if let Some(sub_comps) = self.sub_comps {
@@ -269,7 +267,6 @@ impl<E: Default + Clone> ComponentBuilder<E> {
                 connections,
                 in_addrs,
                 out_addrs: self.out_addrs.unwrap_or_default(),
-                dep_map: dep_map.unwrap_or_default(),
             });
         }
 

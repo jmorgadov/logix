@@ -1,7 +1,9 @@
 use std::fmt::Display;
 use std::ops as std_ops;
 
-#[derive(Debug, Clone, Copy, PartialEq, Default)]
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, Copy, PartialEq, Default, Serialize, Deserialize)]
 pub struct Data {
     pub value: usize,
     pub size: u8,
