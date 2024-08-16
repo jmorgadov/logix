@@ -1,6 +1,6 @@
 use egui::{
-    emath::TSTransform, epaint::PathShape, CollapsingHeader, Color32, Id, Pos2, Rect, Rounding,
-    Sense, Shape, Stroke, Ui, Vec2,
+    emath::TSTransform, epaint::PathShape, CollapsingHeader, Color32, Id, Pos2, Rangef, Rect,
+    Rounding, Sense, Shape, Stroke, Ui, Vec2,
 };
 use logix_core::component::{Component, PortAddr};
 use logix_sim::primitives::primitives::ExtraInfo;
@@ -12,7 +12,7 @@ use crate::{comp_board::ComponentBoard, folder_tree::Folder};
 const PIN_SIZE: f32 = 8.0;
 const PIN_MARGIN: f32 = 15.0;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 enum WireDir {
     Horizontal,
     Vertical,
@@ -35,7 +35,8 @@ pub struct LogixApp {
     saved: bool,
     last_id: usize,
     new_conn: Option<(PortAddr, Vec<(Pos2, WireDir)>)>,
-    menu_pos: Pos2,
+    last_click_pos: Pos2,
+    over_connection: Option<usize>,
 }
 
 impl Default for LogixApp {
@@ -48,8 +49,9 @@ impl Default for LogixApp {
             current_comp: Default::default(),
             saved: false,
             last_id: 0,
-            menu_pos: Pos2::ZERO,
+            last_click_pos: Pos2::ZERO,
             new_conn: None,
+            over_connection: None,
         }
     }
 }
@@ -193,7 +195,8 @@ impl LogixApp {
             }
 
             if response.hovered() && response.clicked_by(egui::PointerButton::Secondary) {
-                self.menu_pos = transform.inverse() * response.interact_pointer_pos().unwrap();
+                self.last_click_pos =
+                    transform.inverse() * response.interact_pointer_pos().unwrap();
             }
 
             if self.new_conn.is_some() {
@@ -218,13 +221,13 @@ impl LogixApp {
                     ui.label("Add Component");
                     if ui.button("And Gate").clicked() {
                         self.current_comp
-                            .add_and_gate(self.last_id, 2, self.menu_pos);
+                            .add_and_gate(self.last_id, 2, self.last_click_pos);
                         self.last_id += 1;
                         ui.close_menu();
                     }
                     if ui.button("Or Gate").clicked() {
                         self.current_comp
-                            .add_or_gate(self.last_id, 3, self.menu_pos);
+                            .add_or_gate(self.last_id, 3, self.last_click_pos);
                         self.last_id += 1;
                         ui.close_menu();
                     }
@@ -272,18 +275,20 @@ impl LogixApp {
 
     fn draw_subs(&mut self, ui: &mut Ui, transform: TSTransform, id: Id, rect: Rect) {
         let window_layer = ui.layer_id();
+        let mut over_conn: Option<usize> = None;
         for i in 0..self.current_comp.board.components.len() {
             let id = egui::Area::new(id.with(("subc", i)))
                 .fixed_pos(self.current_comp.subc_pos[i])
                 .show(ui.ctx(), |ui| {
                     ui.set_clip_rect(transform.inverse() * rect);
-                    self.draw_subc(ui, i, transform);
+                    self.draw_subc(ui, i, transform, &mut over_conn);
                 })
                 .response
                 .layer_id;
             ui.ctx().set_transform_layer(id, transform);
             ui.ctx().set_sublayer(window_layer, id);
         }
+        self.over_connection = over_conn;
     }
 
     fn get_ghost_point(last_point: (Pos2, WireDir), cursor_pos: Pos2) -> Pos2 {
@@ -322,7 +327,13 @@ impl LogixApp {
         }
     }
 
-    fn draw_subc(&mut self, ui: &mut Ui, idx: usize, transform: TSTransform) {
+    fn draw_subc(
+        &mut self,
+        ui: &mut Ui,
+        idx: usize,
+        transform: TSTransform,
+        over_conn: &mut Option<usize>,
+    ) {
         // -----------------------------------------------------------------------------
         // USE LOCAL COORDINATES IN THIS FUNCTION. The transform is applied
         // by the caller.
@@ -345,15 +356,112 @@ impl LogixApp {
         for i in 0..self.current_comp.board.connections.len() {
             let conn = &self.current_comp.board.connections[i];
             if conn.from.0 == idx {
-                let points = self.current_comp.subc_conns[i]
+                let mut to_add: Vec<(usize, Pos2, WireDir)> = vec![];
+                let mut to_remove: Vec<usize> = vec![];
+                let points: Vec<Pos2> = self.current_comp.subc_conns[i]
                     .points
                     .iter()
                     .map(|p| (*p))
                     .collect();
-                ui.painter().add(Shape::Path(PathShape::line(
-                    points,
-                    Stroke::new(2.0, Color32::WHITE),
-                )));
+
+                let mut c_orient = WireDir::Horizontal;
+                for j in 0..points.len() - 1 {
+                    let p1 = points[j];
+                    let p2 = points[j + 1];
+
+                    let min_x = p1.x.min(p2.x);
+                    let max_x = p1.x.max(p2.x);
+                    let min_y = p1.y.min(p2.y);
+                    let max_y = p1.y.max(p2.y);
+                    let sub_wire_rect = match c_orient {
+                        WireDir::Horizontal => Rect::from_x_y_ranges(
+                            Rangef::new(min_x, max_x),
+                            Rangef::new(min_y - 4.0, max_y + 4.0),
+                        ),
+                        WireDir::Vertical => Rect::from_x_y_ranges(
+                            Rangef::new(min_x - 4.0, max_x + 4.0),
+                            Rangef::new(min_y, max_y),
+                        ),
+                    };
+
+                    let resp = ui.interact(
+                        sub_wire_rect,
+                        ui.id().with(("wire", i, j)),
+                        Sense::click_and_drag(),
+                    );
+
+                    let is_midd_wire: bool = j != 0 && j != points.len() - 2;
+
+                    if resp.contains_pointer() {
+                        *over_conn = Some(i);
+                        if is_midd_wire {
+                            ui.ctx().set_cursor_icon(match c_orient {
+                                WireDir::Horizontal => egui::CursorIcon::ResizeVertical,
+                                WireDir::Vertical => egui::CursorIcon::ResizeHorizontal,
+                            });
+                        }
+                    }
+
+                    if is_midd_wire && resp.dragged() {
+                        let delta = resp.drag_delta();
+                        match c_orient {
+                            WireDir::Vertical => {
+                                self.current_comp.subc_conns[i].points[j].x += delta.x;
+                                self.current_comp.subc_conns[i].points[j + 1].x += delta.x;
+                            }
+                            WireDir::Horizontal => {
+                                self.current_comp.subc_conns[i].points[j].y += delta.y;
+                                self.current_comp.subc_conns[i].points[j + 1].y += delta.y;
+                            }
+                        }
+                    }
+
+                    if resp.hovered() && resp.clicked_by(egui::PointerButton::Secondary) {
+                        self.last_click_pos = resp.interact_pointer_pos().unwrap();
+                        match c_orient {
+                            WireDir::Horizontal => {
+                                self.last_click_pos.y = p1.y;
+                            }
+                            WireDir::Vertical => {
+                                self.last_click_pos.x = p1.x;
+                            }
+                        }
+                    }
+
+                    resp.context_menu(|ui| {
+                        if ui.button("Add point").clicked() {
+                            to_add.push((j + 1, self.last_click_pos, c_orient.opposite()));
+                            to_add.push((j + 1, self.last_click_pos, c_orient));
+                        }
+                        if ui.button("Remove Connection").clicked() {
+                            self.current_comp.remove_conn(i);
+                        }
+                    });
+
+                    let color = if self.over_connection.is_some_and(|k| k == i) {
+                        Color32::LIGHT_RED
+                    } else {
+                        Color32::WHITE
+                    };
+                    ui.painter().add(Shape::Path(PathShape::line(
+                        vec![p1, p2],
+                        Stroke::new(2.0, color),
+                    )));
+                    if j > 0 {
+                        ui.painter().add(Shape::circle_filled(p1, 3.0, color));
+                    }
+                    c_orient = c_orient.opposite();
+                }
+
+                for p in to_add {
+                    self.current_comp.subc_conns[i].points.insert(p.0, p.1);
+                }
+
+                to_remove.sort();
+                to_remove.reverse();
+                for idx in to_remove {
+                    self.current_comp.subc_conns[i].points.remove(idx);
+                }
             }
         }
 
@@ -475,7 +583,6 @@ impl LogixApp {
                 .add(Shape::circle_filled(pin_pos.clone(), PIN_SIZE / 2.0, color));
 
             if resp.clicked() {
-                println!("Dragging from output {} from {}", i, idx);
                 self.new_conn = Some(((idx, i), vec![(pin_pos.clone(), WireDir::Horizontal)]));
             }
         }
