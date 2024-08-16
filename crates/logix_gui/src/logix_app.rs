@@ -32,7 +32,6 @@ pub struct LogixApp {
     selected_file: Option<PathBuf>,
     transform: TSTransform,
     current_comp: ComponentBoard,
-    saved: bool,
     last_id: usize,
     new_conn: Option<(PortAddr, Vec<(Pos2, WireDir)>)>,
     last_click_pos: Pos2,
@@ -47,7 +46,6 @@ impl Default for LogixApp {
             selected_file: None,
             transform: TSTransform::default(),
             current_comp: Default::default(),
-            saved: false,
             last_id: 0,
             last_click_pos: Pos2::ZERO,
             new_conn: None,
@@ -97,10 +95,6 @@ impl Folder {
 }
 
 impl LogixApp {
-    fn mark_dirty(&mut self) {
-        self.saved = false;
-    }
-
     fn file_menu(&mut self, ui: &mut Ui) {
         ui.set_max_width(200.0); // To make sure we wrap long text
 
@@ -276,9 +270,10 @@ impl LogixApp {
     fn draw_subs(&mut self, ui: &mut Ui, transform: TSTransform, id: Id, rect: Rect) {
         let window_layer = ui.layer_id();
         let mut over_conn: Option<usize> = None;
-        for i in 0..self.current_comp.board.components.len() {
+        let mut i = 0;
+        while i < self.current_comp.components.len() {
             let id = egui::Area::new(id.with(("subc", i)))
-                .fixed_pos(self.current_comp.subc_pos[i])
+                .fixed_pos(self.current_comp.comp_pos[i])
                 .show(ui.ctx(), |ui| {
                     ui.set_clip_rect(transform.inverse() * rect);
                     self.draw_subc(ui, i, transform, &mut over_conn);
@@ -287,6 +282,7 @@ impl LogixApp {
                 .layer_id;
             ui.ctx().set_transform_layer(id, transform);
             ui.ctx().set_sublayer(window_layer, id);
+            i += 1;
         }
         self.over_connection = over_conn;
     }
@@ -300,15 +296,15 @@ impl LogixApp {
 
     fn update_subc_pos(&mut self, idx: usize, new_pos: Pos2) {
         // Update positions vector
-        self.current_comp.subc_pos[idx] = new_pos;
-        let sub = self.current_comp.board.components.get(idx).unwrap();
-        let (_, inputs, outputs) = Self::sub_draw_info(self.current_comp.subc_pos[idx], sub);
+        self.current_comp.comp_pos[idx] = new_pos;
+        let sub = self.current_comp.components.get(idx).unwrap();
+        let (_, inputs, outputs) = Self::sub_draw_info(self.current_comp.comp_pos[idx], sub);
 
         // Update connections related to the subcomponent
-        let conns_count = self.current_comp.board.connections.len();
+        let conns_count = self.current_comp.connections.len();
         for i in 0..conns_count {
-            let conn = &self.current_comp.board.connections[i];
-            let conn_info = &mut self.current_comp.subc_conns[i];
+            let conn = &self.current_comp.connections[i];
+            let conn_info = &mut self.current_comp.comp_conns[i];
 
             // If it is an output connection
             if conn.from.0 == idx {
@@ -339,10 +335,10 @@ impl LogixApp {
         // by the caller.
         // -----------------------------------------------------------------------------
 
-        let sub = self.current_comp.board.components.get(idx).unwrap();
+        let sub = self.current_comp.components.get(idx).unwrap();
         let sub_name = sub.name.as_ref().unwrap().clone();
 
-        let (s_rect, inputs, outputs) = Self::sub_draw_info(self.current_comp.subc_pos[idx], sub);
+        let (s_rect, inputs, outputs) = Self::sub_draw_info(self.current_comp.comp_pos[idx], sub);
 
         ui.painter().add(Shape::Vec(vec![Shape::rect_filled(
             s_rect,
@@ -353,12 +349,12 @@ impl LogixApp {
         // -----------------------------------------------------------------------------
         // Draw the connections comming from this subcomponent
         // -----------------------------------------------------------------------------
-        for i in 0..self.current_comp.board.connections.len() {
-            let conn = &self.current_comp.board.connections[i];
+        for i in 0..self.current_comp.connections.len() {
+            let conn = &self.current_comp.connections[i];
             if conn.from.0 == idx {
                 let mut to_add: Vec<(usize, Pos2, WireDir)> = vec![];
                 let mut to_remove: Vec<usize> = vec![];
-                let points: Vec<Pos2> = self.current_comp.subc_conns[i]
+                let points: Vec<Pos2> = self.current_comp.comp_conns[i]
                     .points
                     .iter()
                     .map(|p| (*p))
@@ -406,12 +402,12 @@ impl LogixApp {
                         let delta = resp.drag_delta();
                         match c_orient {
                             WireDir::Vertical => {
-                                self.current_comp.subc_conns[i].points[j].x += delta.x;
-                                self.current_comp.subc_conns[i].points[j + 1].x += delta.x;
+                                self.current_comp.comp_conns[i].points[j].x += delta.x;
+                                self.current_comp.comp_conns[i].points[j + 1].x += delta.x;
                             }
                             WireDir::Horizontal => {
-                                self.current_comp.subc_conns[i].points[j].y += delta.y;
-                                self.current_comp.subc_conns[i].points[j + 1].y += delta.y;
+                                self.current_comp.comp_conns[i].points[j].y += delta.y;
+                                self.current_comp.comp_conns[i].points[j + 1].y += delta.y;
                             }
                         }
                     }
@@ -454,13 +450,13 @@ impl LogixApp {
                 }
 
                 for p in to_add {
-                    self.current_comp.subc_conns[i].points.insert(p.0, p.1);
+                    self.current_comp.comp_conns[i].points.insert(p.0, p.1);
                 }
 
                 to_remove.sort();
                 to_remove.reverse();
                 for idx in to_remove {
-                    self.current_comp.subc_conns[i].points.remove(idx);
+                    self.current_comp.comp_conns[i].points.remove(idx);
                 }
             }
         }
@@ -503,19 +499,7 @@ impl LogixApp {
         // Handle dragging the subcomponent
         // -----------------------------------------------------------------------------
         if resp.dragged() && self.new_conn.is_none() {
-            self.update_subc_pos(idx, self.current_comp.subc_pos[idx] + resp.drag_delta());
-        }
-
-        // -----------------------------------------------------------------------------
-        // Handle context menu for the subcomponent
-        // -----------------------------------------------------------------------------
-        if resp.hovered() || resp.context_menu_opened() {
-            resp.context_menu(|ui| {
-                if ui.button("Remove").clicked() {
-                    self.current_comp.remove_subc(idx);
-                }
-                ui.close_menu();
-            });
+            self.update_subc_pos(idx, self.current_comp.comp_pos[idx] + resp.drag_delta());
         }
 
         // -----------------------------------------------------------------------------
@@ -586,13 +570,18 @@ impl LogixApp {
                 self.new_conn = Some(((idx, i), vec![(pin_pos.clone(), WireDir::Horizontal)]));
             }
         }
-    }
 
-    fn no_file_selected_canvas_ui(&mut self, ctx: &egui::Context) {
-        egui::CentralPanel::default().show(ctx, |ui| {
-            ui.allocate_space(ui.available_size());
-            ui.label("Select a board to start editing");
-        });
+        // -----------------------------------------------------------------------------
+        // Handle context menu for the subcomponent
+        // -----------------------------------------------------------------------------
+        if resp.hovered() || resp.context_menu_opened() {
+            resp.context_menu(|ui| {
+                if ui.button("Remove").clicked() {
+                    self.current_comp.remove_subc(idx);
+                    ui.close_menu();
+                }
+            });
+        }
     }
 }
 

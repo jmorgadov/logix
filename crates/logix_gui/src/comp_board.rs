@@ -1,5 +1,5 @@
 use egui::Pos2;
-use logix_core::component::{Component, Conn, SubComponent};
+use logix_core::component::{Component, Conn, PortAddr};
 use logix_sim::primitives::primitives::{ExtraInfo, Primitive};
 use serde::{Deserialize, Serialize};
 
@@ -13,62 +13,61 @@ pub struct ComponentBoard {
     pub name: String,
     pub inputs: usize,
     pub outputs: usize,
-    pub board: SubComponent<ExtraInfo>,
-    pub subc_pos: Vec<Pos2>,
-    pub subc_conns: Vec<ConnectionInfo>,
+    pub comp_pos: Vec<Pos2>,
+    pub comp_conns: Vec<ConnectionInfo>,
+
+    pub components: Vec<Component<ExtraInfo>>,
+    pub connections: Vec<Conn>,
+    pub in_addrs: Vec<(usize, PortAddr)>,
+    pub out_addrs: Vec<PortAddr>,
 }
 
 impl ComponentBoard {
-    pub fn new(name: String) -> Self {
-        Self {
-            name,
-            ..Default::default()
-        }
-    }
-
     pub fn add_subc(&mut self, subc: Component<ExtraInfo>, pos: Pos2) {
-        self.board.components.push(subc);
-        self.subc_pos.push(pos);
+        self.components.push(subc);
+        self.comp_pos.push(pos);
     }
 
     pub fn remove_subc(&mut self, idx: usize) {
-        self.board.components.remove(idx);
-        self.subc_pos.remove(idx);
+        self.components.remove(idx);
+        self.comp_pos.remove(idx);
 
         // Remove input connections to the subcomponent
-        for i in 0..self.board.in_addrs.len() {
-            if self.board.in_addrs[i].1 .0 == idx {
-                self.board.in_addrs.remove(i);
+        for i in 0..self.in_addrs.len() {
+            if self.in_addrs[i].1 .0 == idx {
+                self.in_addrs.remove(i);
                 self.inputs -= 1;
             }
         }
 
         // Remove output connections from the subcomponent
-        for i in 0..self.board.out_addrs.len() {
-            if self.board.out_addrs[i].0 == idx {
-                self.board.out_addrs.remove(i);
+        for i in 0..self.out_addrs.len() {
+            if self.out_addrs[i].0 == idx {
+                self.out_addrs.remove(i);
                 self.outputs -= 1;
             }
         }
 
         // Update connections
-        let l = self.board.connections.len();
-        let conns = &mut self.board.connections;
-        for i in 0..l {
-            let conn = conns[i];
+        let mut i = 0;
+        while i < self.connections.len() {
+            let conn = self.connections[i];
 
             // Remove connections related to the subcomponent
             if conn.from.0 == idx || conn.to.0 == idx {
-                conns.remove(i);
+                self.connections.remove(i);
+                self.comp_conns.remove(i);
+                continue;
             }
 
             // Update forward connections indices
             if conn.from.0 > idx {
-                conns[i].from.0 -= 1;
+                self.connections[i].from.0 -= 1;
             }
             if conn.to.0 > idx {
-                conns[i].to.0 -= 1;
+                self.connections[i].to.0 -= 1;
             }
+            i += 1;
         }
     }
 
@@ -80,16 +79,16 @@ impl ComponentBoard {
         to_port: usize,
         points: Vec<Pos2>,
     ) {
-        self.board.connections.push(Conn {
+        self.connections.push(Conn {
             from: (from, from_port),
             to: (to, to_port),
         });
-        self.subc_conns.push(ConnectionInfo { points });
+        self.comp_conns.push(ConnectionInfo { points });
     }
 
     pub fn remove_conn(&mut self, idx: usize) {
-        self.board.connections.remove(idx);
-        self.subc_conns.remove(idx);
+        self.connections.remove(idx);
+        self.comp_conns.remove(idx);
     }
 
     pub fn add_and_gate(&mut self, id: usize, in_count: usize, pos: Pos2) {
