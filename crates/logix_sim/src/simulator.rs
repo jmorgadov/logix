@@ -1,7 +1,6 @@
 use crate::{flatten::FlattenComponent, primitives::primitives::Primitive};
 use log::debug;
 use rand::seq::SliceRandom;
-use serde::de;
 use std::{
     sync::{Arc, Mutex},
     thread,
@@ -16,12 +15,6 @@ pub struct SimState {
 
 pub struct Simulator {
     state: Arc<Mutex<SimState>>,
-}
-
-pub struct SimStats {
-    pub upd_time_ns: u128,
-    pub clk_cycle_time_ns: u128,
-    pub clk_cycle_ended: bool,
 }
 
 impl Simulator {
@@ -77,12 +70,9 @@ impl Simulator {
         thread::spawn(move || {
             let mut state = state_arc.lock().unwrap();
             state.running = true;
-            // let to_upd = state.to_upd.clone();
-            // let comp = &mut state.comp;
             let start = Instant::now();
             let mut local_upd_list: Vec<usize> = (0..state.comp.components.len()).collect();
             let mut local_next_upd_list: Vec<usize> = state.to_upd.clone();
-            let mut last_cycle = start.elapsed().as_nanos();
             let mut to_upd_len = state.to_upd.len();
 
             {
@@ -121,9 +111,7 @@ impl Simulator {
                     debug!("  New outputs: {:?}", comp_i.outputs);
 
                     match comp_i.prim_type {
-                        Primitive::Clock { period: _p } => {
-                            last_cycle = start.elapsed().as_nanos();
-                        }
+                        Primitive::Clock { period: _p } => {}
                         _ => {
                             state.to_upd.retain(|&x| x != comp_idx);
                         }
@@ -157,16 +145,6 @@ impl Simulator {
                             local_next_upd_list.push(conn.to.0);
                         }
                     }
-
-                    let time2 = start.elapsed().as_nanos();
-                    // stats.upd_time_ns = time2 - time;
-
-                    // if stats.clk_cycle_ended {
-                    //     stats.clk_cycle_time_ns = time2 - last_cycle;
-                    //     last_cycle = time2;
-                    // }
-
-                    // (self.on_upd)(&mut self.comp, &stats);
                 }
 
                 local_upd_list = local_next_upd_list;

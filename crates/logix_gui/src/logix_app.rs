@@ -5,21 +5,13 @@ use egui::{
 use logix_core::component::{Component, PortAddr};
 use logix_sim::{
     flatten::FlattenComponent,
-    primitives::{data::Data, primitives::ExtraInfo},
-    simulator::SimStats,
+    primitives::primitives::{ExtraInfo, Primitive},
     Simulator,
 };
 use rfd::FileDialog;
-use std::{
-    path::PathBuf,
-    sync::{Arc, Mutex},
-    thread,
-};
+use std::{path::PathBuf, thread};
 
-use crate::{
-    comp_board::{ComponentBoard, ComponentsData},
-    folder_tree::Folder,
-};
+use crate::{comp_board::ComponentBoard, folder_tree::Folder};
 
 const PIN_SIZE: f32 = 8.0;
 const PIN_MARGIN: f32 = 15.0;
@@ -391,6 +383,39 @@ impl LogixApp {
         }
     }
 
+    fn specific_comp_context_menu(&mut self, ui: &mut Ui, idx: usize) {
+        let comp = self.current_comp.components.get_mut(idx).unwrap();
+        if let Some(prim) = &mut comp.extra.primitive {
+            match prim {
+                Primitive::Clock { period: current_p } => {
+                    ui.add(
+                        egui::Slider::from_get_set(1.0..=10000.0, |val| {
+                            println!("VAL: {:?}", val);
+                            if let Some(v) = val {
+                                let val_to_ns = v * 1_000_000.0;
+                                *current_p = val_to_ns as u128;
+                                return v;
+                            }
+                            *current_p as f64 / 1_000_000.0
+                        })
+                        .text("Frec (ms)"),
+                    );
+                }
+                Primitive::AndGate => {}
+                Primitive::OrGate => {}
+                Primitive::NotGate => {}
+                Primitive::NandGate => {}
+                Primitive::NorGate => {}
+                Primitive::XorGate => {}
+                Primitive::Input { bits: _ } => {}
+                Primitive::Output { bits: _ } => {}
+                Primitive::Splitter { bits: _ } => {}
+                Primitive::Joiner { bits: _ } => {}
+                Primitive::Const { value: _ } => {}
+            }
+        }
+    }
+
     fn draw_subc(
         &mut self,
         ui: &mut Ui,
@@ -662,6 +687,7 @@ impl LogixApp {
         // -----------------------------------------------------------------------------
         if resp.hovered() || resp.context_menu_opened() {
             resp.context_menu(|ui| {
+                self.specific_comp_context_menu(ui, idx);
                 if ui.button("Remove").clicked() {
                     self.current_comp.remove_subc(idx);
                     ui.close_menu();
