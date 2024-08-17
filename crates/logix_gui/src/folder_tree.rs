@@ -28,9 +28,4 @@ impl Folder {
             files,
         }
     }
-
-    pub fn from_str_path(path: &str) -> Self {
-        let current_path = PathBuf::from(path);
-        return Folder::from_pathbuf(&current_path);
-    }
 }

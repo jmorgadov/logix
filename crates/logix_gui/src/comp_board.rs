@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use egui::Pos2;
 use logix_core::component::{Component, Conn, PortAddr, SubComponent};
 use logix_sim::primitives::{
@@ -43,6 +45,29 @@ impl ComponentBoard {
                 out_addrs: self.out_addrs.clone(),
             }),
             ..Default::default()
+        }
+    }
+
+    pub fn save(&self, path: &PathBuf) -> Result<(), ()> {
+        let serialized = match serde_json::to_string(self) {
+            Ok(serialized) => serialized,
+            Err(_) => return Err(()),
+        };
+        match std::fs::write(path, serialized) {
+            Ok(_) => Ok(()),
+            Err(_) => Err(()),
+        }
+    }
+
+    pub fn load(path: &PathBuf) -> Result<Self, ()> {
+        let serialized = match std::fs::read_to_string(path) {
+            Ok(serialized) => serialized,
+            Err(_) => return Err(()),
+        };
+        println!("{}", serialized);
+        match serde_json::from_str(&serialized) {
+            Ok(board) => Ok(board),
+            Err(_) => Err(()),
         }
     }
 
@@ -155,6 +180,18 @@ impl ComponentBoard {
         self.add_subc(and_gate, pos);
     }
 
+    pub fn add_nand_gate(&mut self, id: usize, in_count: usize, pos: Pos2) {
+        let and_gate = Component {
+            id,
+            name: Some("NAND".to_string()),
+            inputs: in_count,
+            outputs: 1,
+            extra: ExtraInfo::from_primitive(id, Primitive::NandGate),
+            sub: None,
+        };
+        self.add_subc(and_gate, pos);
+    }
+
     pub fn add_or_gate(&mut self, id: usize, in_count: usize, pos: Pos2) {
         let or_gate = Component {
             id,
@@ -167,10 +204,46 @@ impl ComponentBoard {
         self.add_subc(or_gate, pos);
     }
 
+    pub fn add_nor_gate(&mut self, id: usize, in_count: usize, pos: Pos2) {
+        let nor_gate = Component {
+            id,
+            name: Some("NOR".to_string()),
+            inputs: in_count,
+            outputs: 1,
+            extra: ExtraInfo::from_primitive(id, Primitive::NorGate),
+            sub: None,
+        };
+        self.add_subc(nor_gate, pos);
+    }
+
+    pub fn add_xor_gate(&mut self, id: usize, in_count: usize, pos: Pos2) {
+        let xor_gate = Component {
+            id,
+            name: Some("XOR".to_string()),
+            inputs: in_count,
+            outputs: 1,
+            extra: ExtraInfo::from_primitive(id, Primitive::XorGate),
+            sub: None,
+        };
+        self.add_subc(xor_gate, pos);
+    }
+
+    pub fn add_not_gate(&mut self, id: usize, pos: Pos2) {
+        let xnor_gate = Component {
+            id,
+            name: Some("NOT".to_string()),
+            inputs: 0,
+            outputs: 1,
+            extra: ExtraInfo::from_primitive(id, Primitive::NotGate),
+            sub: None,
+        };
+        self.add_subc(xnor_gate, pos);
+    }
+
     pub fn add_const_high_gate(&mut self, id: usize, pos: Pos2) {
         let const_gate = Component {
             id,
-            name: Some("CONST".to_string()),
+            name: Some("HIGH".to_string()),
             inputs: 0,
             outputs: 1,
             extra: ExtraInfo::from_primitive(
@@ -187,7 +260,7 @@ impl ComponentBoard {
     pub fn add_const_low_gate(&mut self, id: usize, pos: Pos2) {
         let const_gate = Component {
             id,
-            name: Some("CONST".to_string()),
+            name: Some("LOW".to_string()),
             inputs: 0,
             outputs: 1,
             extra: ExtraInfo::from_primitive(id, Primitive::Const { value: Data::low() }),

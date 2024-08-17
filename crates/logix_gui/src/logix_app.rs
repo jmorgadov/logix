@@ -1,3 +1,4 @@
+use crate::{comp_board::ComponentBoard, folder_tree::Folder};
 use egui::{
     emath::TSTransform, epaint::PathShape, CollapsingHeader, Color32, Id, Pos2, Rangef, Rect,
     Rounding, Sense, Shape, Stroke, Ui, Vec2,
@@ -10,8 +11,6 @@ use logix_sim::{
 };
 use rfd::FileDialog;
 use std::{path::PathBuf, thread};
-
-use crate::{comp_board::ComponentBoard, folder_tree::Folder};
 
 const PIN_SIZE: f32 = 8.0;
 const PIN_MARGIN: f32 = 15.0;
@@ -35,7 +34,7 @@ impl WireDir {
 }
 
 pub struct LogixApp {
-    folder: Folder,
+    folder: Option<Folder>,
     selected_file: Option<PathBuf>,
     transform: TSTransform,
     current_comp: ComponentBoard,
@@ -48,9 +47,13 @@ pub struct LogixApp {
 
 impl Default for LogixApp {
     fn default() -> Self {
-        let current_folder = std::env::current_dir().unwrap().display().to_string();
+        let current_folder = std::env::current_dir();
+        let folder = match current_folder {
+            Ok(folder) => Some(Folder::from_pathbuf(&folder)),
+            Err(_) => None,
+        };
         Self {
-            folder: Folder::from_str_path(&current_folder),
+            folder,
             selected_file: None,
             transform: TSTransform::default(),
             current_comp: Default::default(),
@@ -104,6 +107,30 @@ impl Folder {
 }
 
 impl LogixApp {
+    fn reset_field(&mut self) {
+        self.transform = TSTransform::default();
+        self.new_conn = None;
+        self.last_click_pos = Pos2::ZERO;
+        self.over_connection = None;
+        self.sim = None;
+    }
+
+    fn load_board(&mut self, path: &PathBuf) {
+        let comp_res = ComponentBoard::load(path);
+        if let Ok(comp) = comp_res {
+            self.current_comp = comp;
+            self.last_id = self
+                .current_comp
+                .components
+                .iter()
+                .map(|c| c.id)
+                .max()
+                .unwrap()
+                + 1;
+            self.reset_field();
+        }
+    }
+
     fn file_menu(&mut self, ui: &mut Ui) {
         ui.set_max_width(200.0); // To make sure we wrap long text
 
@@ -113,7 +140,22 @@ impl LogixApp {
         ui.separator();
         if ui.button("Open folder").clicked() {
             let new_folder = FileDialog::new().pick_folder();
-            self.folder = Folder::from_pathbuf(&new_folder.unwrap());
+            self.folder = Some(Folder::from_pathbuf(&new_folder.unwrap()));
+            ui.close_menu();
+        }
+        ui.separator();
+        if ui.button("Save board").clicked() {
+            let file = FileDialog::new().save_file();
+            if let Some(new_folder) = file {
+                let _ = self.current_comp.save(&new_folder);
+            }
+            ui.close_menu();
+        }
+        if ui.button("Load board").clicked() {
+            let file = FileDialog::new().pick_file();
+            if let Some(new_folder) = file {
+                self.load_board(&new_folder);
+            }
             ui.close_menu();
         }
         ui.separator();
@@ -124,6 +166,7 @@ impl LogixApp {
 
     fn top_panel(&mut self, ctx: &egui::Context) {
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
+            ui.add_space(1.0);
             ui.horizontal(|ui| {
                 ui.menu_button("File", |ui| self.file_menu(ui));
                 ui.menu_button("Sim", |ui| {
@@ -139,15 +182,30 @@ impl LogixApp {
                     }
                 });
             });
+            ui.add_space(1.0);
         });
     }
 
     fn left_panel(&mut self, ctx: &egui::Context) {
         egui::SidePanel::left("side_panel")
-            .min_width(180.0)
+            .min_width(120.0)
             .show(ctx, |ui| {
+                if self.folder.is_none() {
+                    ui.add_space(20.0);
+                    ui.vertical_centered(|ui| {
+                        if ui.button("Open folder").clicked() {
+                            let new_folder = FileDialog::new().pick_folder();
+                            if let Some(new_folder) = new_folder {
+                                self.folder = Some(Folder::from_pathbuf(&new_folder));
+                            }
+                        }
+                    });
+                    return;
+                }
                 ui.heading(
                     self.folder
+                        .as_ref()
+                        .unwrap()
                         .current_path
                         .file_name()
                         .unwrap()
@@ -157,12 +215,15 @@ impl LogixApp {
                 egui::ScrollArea::vertical()
                     .max_width(180.0)
                     .show(ui, |ui| {
-                        let new_file = self.folder.ui_impl(ui, self.selected_file.as_ref());
+                        let new_file = self
+                            .folder
+                            .as_mut()
+                            .unwrap()
+                            .ui_impl(ui, self.selected_file.as_ref());
                         if new_file != self.selected_file {
-                            // Load the new file
-                            //
-                            // This is where we would load the file and parse it.
-                            //
+                            if let Some(file) = new_file.clone() {
+                                self.load_board(&file);
+                            }
                             self.selected_file = new_file;
                         }
                     });
@@ -252,10 +313,31 @@ impl LogixApp {
                         self.last_id += 1;
                         ui.close_menu();
                     }
+
+                    if ui.button("Not").clicked() {
+                        self.current_comp
+                            .add_not_gate(self.last_id, self.last_click_pos);
+                        self.last_id += 1;
+                        ui.close_menu();
+                    }
+
                     ui.menu_button("And Gate", |ui| {
                         for i in 2..=8 {
                             if ui.button(format!("{} Inputs", i)).clicked() {
                                 self.current_comp.add_and_gate(
+                                    self.last_id,
+                                    i,
+                                    self.last_click_pos,
+                                );
+                                self.last_id += 1;
+                                ui.close_menu();
+                            }
+                        }
+                    });
+                    ui.menu_button("Nand Gate", |ui| {
+                        for i in 2..=8 {
+                            if ui.button(format!("{} Inputs", i)).clicked() {
+                                self.current_comp.add_nand_gate(
                                     self.last_id,
                                     i,
                                     self.last_click_pos,
@@ -270,6 +352,34 @@ impl LogixApp {
                             if ui.button(format!("{} Inputs", i)).clicked() {
                                 self.current_comp
                                     .add_or_gate(self.last_id, i, self.last_click_pos);
+                                self.last_id += 1;
+                                ui.close_menu();
+                            }
+                        }
+                    });
+
+                    ui.menu_button("Nor Gate", |ui| {
+                        for i in 2..=8 {
+                            if ui.button(format!("{} Inputs", i)).clicked() {
+                                self.current_comp.add_nor_gate(
+                                    self.last_id,
+                                    i,
+                                    self.last_click_pos,
+                                );
+                                self.last_id += 1;
+                                ui.close_menu();
+                            }
+                        }
+                    });
+
+                    ui.menu_button("Xor Gate", |ui| {
+                        for i in 2..=8 {
+                            if ui.button(format!("{} Inputs", i)).clicked() {
+                                self.current_comp.add_xor_gate(
+                                    self.last_id,
+                                    i,
+                                    self.last_click_pos,
+                                );
                                 self.last_id += 1;
                                 ui.close_menu();
                             }
