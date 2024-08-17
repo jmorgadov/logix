@@ -29,21 +29,6 @@ DSL that allows the creation of components easily.
 See example
 [here](https://github.com/jmorgadov/logix/blob/main/crates/logix_lang/examples/main.lgx).
 
-## Possible future crates
+### `logix_gui`
 
-### `logix_io`
-
-Library crate that allows component serialization (and deserialization) in
-different formats.
-
-> Possible formats: JSON, binary...
-
-### `logix_vhdl`
-
-Library crate that allows to obtain the
-[VHDL](https://en.wikipedia.org/wiki/VHDL) code of a component.
-
-The inverse conversion may be implemented as well but taking into account
-that the behavior information of the components will be lost. Maybe the
-conversion could be made into `logix_lang` (if it allows specifying
-behaviors).
+GUI application for designing and simulating digital circuits.
