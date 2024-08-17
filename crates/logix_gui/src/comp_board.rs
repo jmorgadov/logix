@@ -46,27 +46,43 @@ impl ComponentBoard {
         }
     }
 
-    pub fn build_data_vals(&mut self) {
-        self.data_vals = self
-            .components
-            .iter()
-            .map(|comp| {
-                (
-                    (0..comp.inputs).map(|_| Data::low()).collect(),
-                    (0..comp.outputs).map(|_| Data::low()).collect(),
-                )
-            })
-            .collect();
+    fn get_default_data_vals(comp: &Component<ExtraInfo>) -> (Vec<Data>, Vec<Data>) {
+        (
+            (0..comp.inputs)
+                .map(|_| {
+                    if let Some(prim) = comp.extra.primitive.clone() {
+                        prim.input_default_data().expect("Invalid primitive")
+                    } else {
+                        // Use later for complex subcomponents
+                        Data::low()
+                    }
+                })
+                .collect(),
+            (0..comp.outputs)
+                .map(|_| {
+                    if let Some(prim) = comp.extra.primitive.clone() {
+                        prim.output_default_data().expect("Invalid primitive")
+                    } else {
+                        // Use later for complex subcomponents
+                        Data::low()
+                    }
+                })
+                .collect(),
+        )
     }
 
     pub fn add_subc(&mut self, subc: Component<ExtraInfo>, pos: Pos2) {
         self.components.push(subc);
         self.comp_pos.push(pos);
+        self.data_vals.push(Self::get_default_data_vals(
+            &self.components.last().unwrap(),
+        ));
     }
 
     pub fn remove_subc(&mut self, idx: usize) {
         self.components.remove(idx);
         self.comp_pos.remove(idx);
+        self.data_vals.remove(idx);
 
         // Remove input connections to the subcomponent
         for i in 0..self.in_addrs.len() {

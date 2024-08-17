@@ -128,7 +128,6 @@ impl LogixApp {
                 ui.menu_button("File", |ui| self.file_menu(ui));
                 ui.menu_button("Sim", |ui| {
                     if ui.button("Start").clicked() {
-                        self.current_comp.build_data_vals();
                         let flatten =
                             FlattenComponent::new(self.current_comp.build_component()).unwrap();
                         self.sim = Some(Simulator::new(flatten));
@@ -253,18 +252,29 @@ impl LogixApp {
                         self.last_id += 1;
                         ui.close_menu();
                     }
-                    if ui.button("And Gate").clicked() {
-                        self.current_comp
-                            .add_and_gate(self.last_id, 2, self.last_click_pos);
-                        self.last_id += 1;
-                        ui.close_menu();
-                    }
-                    if ui.button("Or Gate").clicked() {
-                        self.current_comp
-                            .add_or_gate(self.last_id, 2, self.last_click_pos);
-                        self.last_id += 1;
-                        ui.close_menu();
-                    }
+                    ui.menu_button("And Gate", |ui| {
+                        for i in 2..=8 {
+                            if ui.button(format!("{} Inputs", i)).clicked() {
+                                self.current_comp.add_and_gate(
+                                    self.last_id,
+                                    i,
+                                    self.last_click_pos,
+                                );
+                                self.last_id += 1;
+                                ui.close_menu();
+                            }
+                        }
+                    });
+                    ui.menu_button("Or Gate", |ui| {
+                        for i in 2..=8 {
+                            if ui.button(format!("{} Inputs", i)).clicked() {
+                                self.current_comp
+                                    .add_or_gate(self.last_id, i, self.last_click_pos);
+                                self.last_id += 1;
+                                ui.close_menu();
+                            }
+                        }
+                    });
                 });
             }
 
@@ -390,7 +400,6 @@ impl LogixApp {
                 Primitive::Clock { period: current_p } => {
                     ui.add(
                         egui::Slider::from_get_set(1.0..=10000.0, |val| {
-                            println!("VAL: {:?}", val);
                             if let Some(v) = val {
                                 let val_to_ns = v * 1_000_000.0;
                                 *current_p = val_to_ns as u128;
@@ -528,6 +537,13 @@ impl LogixApp {
                             self.current_comp.remove_conn(i);
                         }
                     });
+
+                    if self.sim.is_some() {
+                        let data = self.current_comp.data_vals[idx].1[from_port];
+                        let val_in_bits =
+                            format!("{:0width$b}", data.value, width = data.size as usize);
+                        resp.on_hover_text(format!("{} - {}", val_in_bits, data.value));
+                    }
 
                     let color = if self.sim.is_some() {
                         match self.current_comp.data_vals[idx].1[from_port].value {

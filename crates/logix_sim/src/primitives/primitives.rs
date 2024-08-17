@@ -20,6 +20,42 @@ pub enum Primitive {
     Const { value: Data },
 }
 
+impl Primitive {
+    pub fn input_default_data(self) -> Option<Data> {
+        match self {
+            Primitive::AndGate
+            | Primitive::OrGate
+            | Primitive::NotGate
+            | Primitive::NandGate
+            | Primitive::NorGate
+            | Primitive::Joiner { bits: _ }
+            | Primitive::XorGate => Some(Data::low()),
+            Primitive::Output { bits: b } => Some(Data::new(0, b)),
+            Primitive::Splitter { bits: b } => Some(Data::new(0, b)),
+            Primitive::Input { bits: _ } => None,
+            Primitive::Clock { period: _ } => None,
+            Primitive::Const { value: _ } => None,
+        }
+    }
+
+    pub fn output_default_data(self) -> Option<Data> {
+        match self {
+            Primitive::AndGate
+            | Primitive::OrGate
+            | Primitive::NotGate
+            | Primitive::NandGate
+            | Primitive::NorGate
+            | Primitive::Clock { period: _ }
+            | Primitive::Splitter { bits: _ }
+            | Primitive::XorGate => Some(Data::low()),
+            Primitive::Input { bits: b } => Some(Data::new(0, b)),
+            Primitive::Joiner { bits: b } => Some(Data::new(0, b)),
+            Primitive::Const { value: v } => Some(v),
+            Primitive::Output { bits: _ } => None,
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct PrimitiveComponent {
     pub id: usize,
