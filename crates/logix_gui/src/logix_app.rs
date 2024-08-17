@@ -275,6 +275,31 @@ impl LogixApp {
                             }
                         }
                     });
+
+                    ui.menu_button("Splitter", |ui| {
+                        for i in 2..=8 {
+                            if ui.button(format!("{} Outputs", i)).clicked() {
+                                self.current_comp.add_splitter(
+                                    self.last_id,
+                                    i,
+                                    self.last_click_pos,
+                                );
+                                self.last_id += 1;
+                                ui.close_menu();
+                            }
+                        }
+                    });
+
+                    ui.menu_button("Joiner", |ui| {
+                        for i in 2..=8 {
+                            if ui.button(format!("{} Outputs", i)).clicked() {
+                                self.current_comp
+                                    .add_joiner(self.last_id, i, self.last_click_pos);
+                                self.last_id += 1;
+                                ui.close_menu();
+                            }
+                        }
+                    });
                 });
             }
 
@@ -555,9 +580,13 @@ impl LogixApp {
                     } else {
                         Color32::WHITE
                     };
+
+                    let is_one_bit_data = self.current_comp.data_vals[idx].1[from_port].size == 1;
+                    let stroke_with = if is_one_bit_data { 2.0 } else { 4.0 };
+
                     ui.painter().add(Shape::Path(PathShape::line(
                         vec![p1, p2],
-                        Stroke::new(2.0, color),
+                        Stroke::new(stroke_with, color),
                     )));
                     if j > 0 {
                         ui.painter().add(Shape::circle_filled(p1, 3.0, color));

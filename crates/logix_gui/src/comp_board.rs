@@ -207,4 +207,28 @@ impl ComponentBoard {
         };
         self.add_subc(clock_gate, pos);
     }
+
+    pub fn add_splitter(&mut self, id: usize, bits: u8, pos: Pos2) {
+        let splitter = Component {
+            id,
+            name: Some("SPLIT".to_string()),
+            inputs: 1,
+            outputs: bits as usize,
+            extra: ExtraInfo::from_primitive(id, Primitive::Splitter { bits }),
+            sub: None,
+        };
+        self.add_subc(splitter, pos);
+    }
+
+    pub fn add_joiner(&mut self, id: usize, bits: u8, pos: Pos2) {
+        let joiner = Component {
+            id,
+            name: Some("JOIN".to_string()),
+            inputs: bits as usize,
+            outputs: 1,
+            extra: ExtraInfo::from_primitive(id, Primitive::Joiner { bits }),
+            sub: None,
+        };
+        self.add_subc(joiner, pos);
+    }
 }
