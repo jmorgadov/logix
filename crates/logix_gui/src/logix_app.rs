@@ -386,6 +386,17 @@ impl LogixApp {
                         }
                     });
 
+                    ui.menu_button("Joiner", |ui| {
+                        for i in 2..=8 {
+                            if ui.button(format!("{} Inputs", i)).clicked() {
+                                self.current_comp
+                                    .add_joiner(self.last_id, i, self.last_click_pos);
+                                self.last_id += 1;
+                                ui.close_menu();
+                            }
+                        }
+                    });
+
                     ui.menu_button("Splitter", |ui| {
                         for i in 2..=8 {
                             if ui.button(format!("{} Outputs", i)).clicked() {
@@ -394,17 +405,6 @@ impl LogixApp {
                                     i,
                                     self.last_click_pos,
                                 );
-                                self.last_id += 1;
-                                ui.close_menu();
-                            }
-                        }
-                    });
-
-                    ui.menu_button("Joiner", |ui| {
-                        for i in 2..=8 {
-                            if ui.button(format!("{} Outputs", i)).clicked() {
-                                self.current_comp
-                                    .add_joiner(self.last_id, i, self.last_click_pos);
                                 self.last_id += 1;
                                 ui.close_menu();
                             }
@@ -787,7 +787,10 @@ impl LogixApp {
             // then add the connection to the board
             let mut connection_added = false;
             if let Some((from, points)) = self.new_conn.as_mut() {
-                if resp.clicked() {
+                if resp.clicked()
+                    && self.current_comp.data_vals[from.0].1[from.1].size
+                        == self.current_comp.data_vals[idx].0[i].size
+                {
                     connection_added = true;
                     let last_point = points.last().unwrap().clone();
                     let next_orientation = last_point.1.opposite();

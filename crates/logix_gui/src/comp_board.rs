@@ -64,7 +64,6 @@ impl ComponentBoard {
             Ok(serialized) => serialized,
             Err(_) => return Err(()),
         };
-        println!("{}", serialized);
         match serde_json::from_str(&serialized) {
             Ok(board) => Ok(board),
             Err(_) => Err(()),
