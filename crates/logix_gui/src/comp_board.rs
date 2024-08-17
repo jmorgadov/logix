@@ -1,12 +1,17 @@
 use egui::Pos2;
-use logix_core::component::{Component, Conn, PortAddr};
-use logix_sim::primitives::primitives::{ExtraInfo, Primitive};
+use logix_core::component::{Component, Conn, PortAddr, SubComponent};
+use logix_sim::primitives::{
+    data::Data,
+    primitives::{ExtraInfo, Primitive},
+};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct ConnectionInfo {
     pub points: Vec<Pos2>,
 }
+
+pub type ComponentsData = Vec<(Vec<Data>, Vec<Data>)>;
 
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct ComponentBoard {
@@ -20,9 +25,40 @@ pub struct ComponentBoard {
     pub connections: Vec<Conn>,
     pub in_addrs: Vec<(usize, PortAddr)>,
     pub out_addrs: Vec<PortAddr>,
+
+    pub data_vals: ComponentsData,
 }
 
 impl ComponentBoard {
+    pub fn build_component(&mut self) -> Component<ExtraInfo> {
+        Component {
+            id: 0,
+            name: Some(self.name.clone()),
+            inputs: self.inputs,
+            outputs: self.outputs,
+            sub: Some(SubComponent {
+                components: self.components.clone(),
+                connections: self.connections.clone(),
+                in_addrs: self.in_addrs.clone(),
+                out_addrs: self.out_addrs.clone(),
+            }),
+            ..Default::default()
+        }
+    }
+
+    pub fn build_data_vals(&mut self) {
+        self.data_vals = self
+            .components
+            .iter()
+            .map(|comp| {
+                (
+                    (0..comp.inputs).map(|_| Data::low()).collect(),
+                    (0..comp.outputs).map(|_| Data::low()).collect(),
+                )
+            })
+            .collect();
+    }
+
     pub fn add_subc(&mut self, subc: Component<ExtraInfo>, pos: Pos2) {
         self.components.push(subc);
         self.comp_pos.push(pos);
@@ -113,5 +149,46 @@ impl ComponentBoard {
             sub: None,
         };
         self.add_subc(or_gate, pos);
+    }
+
+    pub fn add_const_high_gate(&mut self, id: usize, pos: Pos2) {
+        let const_gate = Component {
+            id,
+            name: Some("CONST".to_string()),
+            inputs: 0,
+            outputs: 1,
+            extra: ExtraInfo::from_primitive(
+                id,
+                Primitive::Const {
+                    value: Data::high(),
+                },
+            ),
+            sub: None,
+        };
+        self.add_subc(const_gate, pos);
+    }
+
+    pub fn add_const_low_gate(&mut self, id: usize, pos: Pos2) {
+        let const_gate = Component {
+            id,
+            name: Some("CONST".to_string()),
+            inputs: 0,
+            outputs: 1,
+            extra: ExtraInfo::from_primitive(id, Primitive::Const { value: Data::low() }),
+            sub: None,
+        };
+        self.add_subc(const_gate, pos);
+    }
+
+    pub fn add_clock_gate(&mut self, id: usize, pos: Pos2) {
+        let clock_gate = Component {
+            id,
+            name: Some("CLK".to_string()),
+            inputs: 0,
+            outputs: 1,
+            extra: ExtraInfo::from_primitive(id, Primitive::Clock { period: 1000000000 }),
+            sub: None,
+        };
+        self.add_subc(clock_gate, pos);
     }
 }

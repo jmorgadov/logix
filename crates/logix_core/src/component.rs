@@ -55,7 +55,7 @@ impl Conn {
 }
 
 /// Holds all the information of the sub-components of a component.
-#[derive(Default, Debug, Serialize, Deserialize)]
+#[derive(Default, Debug, Serialize, Deserialize, Clone)]
 pub struct SubComponent<E: Default + Clone + Serialize> {
     /// Vector of sub-components.
     pub components: Vec<Component<E>>,
@@ -71,7 +71,7 @@ pub struct SubComponent<E: Default + Clone + Serialize> {
 }
 
 /// Represents a component.
-#[derive(Default, Debug, Serialize, Deserialize)]
+#[derive(Default, Debug, Serialize, Deserialize, Clone)]
 pub struct Component<E: Default + Clone + Serialize> {
     /// Unique identifier of the component.
     pub id: usize,

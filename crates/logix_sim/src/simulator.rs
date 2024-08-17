@@ -1,14 +1,21 @@
 use crate::{flatten::FlattenComponent, primitives::primitives::Primitive};
 use log::debug;
 use rand::seq::SliceRandom;
-use std::time::Instant;
+use serde::de;
+use std::{
+    sync::{Arc, Mutex},
+    thread,
+    time::Instant,
+};
+
+pub struct SimState {
+    pub comp: FlattenComponent,
+    to_upd: Vec<usize>,
+    pub running: bool,
+}
 
 pub struct Simulator {
-    comp: FlattenComponent,
-    running: bool,
-
-    to_upd: Vec<usize>,
-    on_upd: Box<dyn FnMut(&FlattenComponent, &SimStats)>,
+    state: Arc<Mutex<SimState>>,
 }
 
 pub struct SimStats {
@@ -18,10 +25,7 @@ pub struct SimStats {
 }
 
 impl Simulator {
-    pub fn new(
-        comp: FlattenComponent,
-        on_upd: Box<dyn FnMut(&FlattenComponent, &SimStats)>,
-    ) -> Self {
+    pub fn new(comp: FlattenComponent) -> Self {
         let to_upd = comp
             .components
             .iter()
@@ -45,105 +49,134 @@ impl Simulator {
             .collect::<Vec<usize>>();
 
         Simulator {
-            comp,
-            running: false,
-            to_upd,
-            on_upd,
+            state: Arc::new(Mutex::new(SimState {
+                comp,
+                to_upd,
+                running: false,
+            })),
+            // on_upd,
+        }
+    }
+
+    pub fn component(&mut self, on_locked: impl FnOnce(&mut FlattenComponent)) {
+        let mut state = self.state.lock().unwrap();
+        on_locked(&mut state.comp);
+    }
+
+    pub fn try_component(&mut self, on_locked: impl FnOnce(&mut FlattenComponent)) {
+        let state = self.state.try_lock();
+        if let Ok(mut state) = state {
+            on_locked(&mut state.comp);
         }
     }
 
     /// Starts the simulation.
-    pub fn start(mut self) {
-        self.running = true;
+    pub fn start(&mut self, keep_running: bool) {
+        let state_arc = self.state.clone();
 
-        let start = Instant::now();
-        let mut stats = SimStats {
-            upd_time_ns: 0,
-            clk_cycle_time_ns: 0,
-            clk_cycle_ended: false,
-        };
+        thread::spawn(move || {
+            let mut state = state_arc.lock().unwrap();
+            state.running = true;
+            // let to_upd = state.to_upd.clone();
+            // let comp = &mut state.comp;
+            let start = Instant::now();
+            let mut local_upd_list: Vec<usize> = (0..state.comp.components.len()).collect();
+            let mut local_next_upd_list: Vec<usize> = state.to_upd.clone();
+            let mut last_cycle = start.elapsed().as_nanos();
+            let mut to_upd_len = state.to_upd.len();
 
-        let mut local_upd_queue: Vec<usize> = (0..self.comp.components.len()).collect();
-        let mut local_next_upd_queue: Vec<usize> = self.to_upd.clone();
-        let mut last_cycle = start.elapsed().as_nanos();
-
-        while self.to_upd.len() > 0 {
-            debug!("Update list: {:?}", self.to_upd);
-
-            let time = start.elapsed().as_nanos();
-            stats.clk_cycle_ended = true;
-
-            for idx in local_upd_queue.iter() {
-                debug!(
-                    "To Update: {:?}",
-                    local_upd_queue
-                        .iter()
-                        .map(|x| format!("{} {}", *x, self.comp.components[*x].name.clone()))
-                        .collect::<Vec<String>>()
-                );
-
-                let comp_idx = *idx;
-                let comp = &mut self.comp.components[comp_idx];
-                debug!("Updating component: {} {:?}", comp_idx, comp.prim_type);
-                debug!("  Old inputs: {:?}", comp.inputs);
-                debug!("  Old outputs: {:?}", comp.outputs);
-
-                comp.update(time);
-
-                debug!("  New outputs: {:?}", comp.outputs);
-
-                match comp.prim_type {
-                    Primitive::Clock { period: _p } => {
-                        last_cycle = start.elapsed().as_nanos();
-                    }
-                    _ => {
-                        self.to_upd.retain(|&x| x != comp_idx);
-                    }
-                }
-                //
-
-                let mut rand_conns =
-                    (0..self.comp.connections[comp_idx].len()).collect::<Vec<usize>>();
-
-                rand_conns.shuffle(&mut rand::thread_rng());
-
-                for idx in rand_conns.iter() {
-                    let conn = self.comp.connections[comp_idx][*idx];
-                    let val = self.comp.components[comp_idx].outputs[conn.from.1];
-
-                    // Do not update if the value is the same
-                    if val == self.comp.components[conn.to.0].inputs[conn.to.1] {
-                        continue;
-                    }
-
-                    debug!("  Connection: {:?}", conn);
-                    debug!(
-                        "New comp to update: {} {:?}",
-                        conn.to.0, self.comp.components[conn.to.0].prim_type
-                    );
-
-                    // Update the value
-                    self.comp.components[conn.to.0].inputs[conn.to.1] = val;
-
-                    if !local_next_upd_queue.contains(&conn.to.0) {
-                        stats.clk_cycle_ended = false;
-                        local_next_upd_queue.push(conn.to.0);
-                    }
-                }
-
-                let time2 = start.elapsed().as_nanos();
-                stats.upd_time_ns = time2 - time;
-
-                if stats.clk_cycle_ended {
-                    stats.clk_cycle_time_ns = time2 - last_cycle;
-                    last_cycle = time2;
-                }
-
-                (self.on_upd)(&self.comp, &stats);
+            {
+                let _x = state;
             }
 
-            local_upd_queue = local_next_upd_queue;
-            local_next_upd_queue = self.to_upd.clone();
-        }
+            while to_upd_len > 0 || keep_running {
+                // debug!("Update list: {:?}", self.to_upd);
+
+                let mut state = state_arc.lock().unwrap();
+                if state.running == false {
+                    {
+                        let _x = state;
+                    }
+                    break;
+                }
+                let time = start.elapsed().as_nanos();
+
+                for idx in local_upd_list.iter() {
+                    debug!(
+                        "To Update: {:?}",
+                        local_upd_list
+                            .iter()
+                            .map(|x| format!("{} {}", *x, state.comp.components[*x].name.clone()))
+                            .collect::<Vec<String>>()
+                    );
+
+                    let comp_idx = *idx;
+                    let comp_i = &mut state.comp.components[comp_idx];
+                    debug!("Updating component: {} {:?}", comp_idx, comp_i.prim_type);
+                    debug!("  Old inputs: {:?}", comp_i.inputs);
+                    debug!("  Old outputs: {:?}", comp_i.outputs);
+
+                    comp_i.update(time);
+
+                    debug!("  New outputs: {:?}", comp_i.outputs);
+
+                    match comp_i.prim_type {
+                        Primitive::Clock { period: _p } => {
+                            last_cycle = start.elapsed().as_nanos();
+                        }
+                        _ => {
+                            state.to_upd.retain(|&x| x != comp_idx);
+                        }
+                    }
+
+                    let mut rand_conns =
+                        (0..state.comp.connections[comp_idx].len()).collect::<Vec<usize>>();
+
+                    rand_conns.shuffle(&mut rand::thread_rng());
+
+                    for idx in rand_conns.iter() {
+                        let conn = state.comp.connections[comp_idx][*idx];
+                        let val = state.comp.components[comp_idx].outputs[conn.from.1];
+
+                        // Do not update if the value is the same
+                        if val == state.comp.components[conn.to.0].inputs[conn.to.1] {
+                            continue;
+                        }
+
+                        debug!("  Connection: {:?}", conn);
+                        debug!(
+                            "New comp to update: {} {:?}",
+                            conn.to.0, state.comp.components[conn.to.0].prim_type
+                        );
+
+                        // Update the value
+                        state.comp.components[conn.to.0].inputs[conn.to.1] = val;
+
+                        if !local_next_upd_list.contains(&conn.to.0) {
+                            // stats.clk_cycle_ended = false;
+                            local_next_upd_list.push(conn.to.0);
+                        }
+                    }
+
+                    let time2 = start.elapsed().as_nanos();
+                    // stats.upd_time_ns = time2 - time;
+
+                    // if stats.clk_cycle_ended {
+                    //     stats.clk_cycle_time_ns = time2 - last_cycle;
+                    //     last_cycle = time2;
+                    // }
+
+                    // (self.on_upd)(&mut self.comp, &stats);
+                }
+
+                local_upd_list = local_next_upd_list;
+                local_next_upd_list = state.to_upd.clone();
+
+                to_upd_len = state.to_upd.len();
+                {
+                    let _x = state;
+                }
+            }
+        });
     }
 }

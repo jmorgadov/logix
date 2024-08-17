@@ -3,14 +3,29 @@ use egui::{
     Rounding, Sense, Shape, Stroke, Ui, Vec2,
 };
 use logix_core::component::{Component, PortAddr};
-use logix_sim::primitives::primitives::ExtraInfo;
+use logix_sim::{
+    flatten::FlattenComponent,
+    primitives::{data::Data, primitives::ExtraInfo},
+    simulator::SimStats,
+    Simulator,
+};
 use rfd::FileDialog;
-use std::path::PathBuf;
+use std::{
+    path::PathBuf,
+    sync::{Arc, Mutex},
+    thread,
+};
 
-use crate::{comp_board::ComponentBoard, folder_tree::Folder};
+use crate::{
+    comp_board::{ComponentBoard, ComponentsData},
+    folder_tree::Folder,
+};
 
 const PIN_SIZE: f32 = 8.0;
 const PIN_MARGIN: f32 = 15.0;
+
+const HIGH_COLOR: Color32 = Color32::LIGHT_GREEN;
+const LOW_COLOR: Color32 = Color32::GRAY;
 
 #[derive(Debug, Clone, Copy)]
 enum WireDir {
@@ -36,6 +51,7 @@ pub struct LogixApp {
     new_conn: Option<(PortAddr, Vec<(Pos2, WireDir)>)>,
     last_click_pos: Pos2,
     over_connection: Option<usize>,
+    sim: Option<Simulator>,
 }
 
 impl Default for LogixApp {
@@ -50,6 +66,7 @@ impl Default for LogixApp {
             last_click_pos: Pos2::ZERO,
             new_conn: None,
             over_connection: None,
+            sim: None,
         }
     }
 }
@@ -117,6 +134,19 @@ impl LogixApp {
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             ui.horizontal(|ui| {
                 ui.menu_button("File", |ui| self.file_menu(ui));
+                ui.menu_button("Sim", |ui| {
+                    if ui.button("Start").clicked() {
+                        self.current_comp.build_data_vals();
+                        let flatten =
+                            FlattenComponent::new(self.current_comp.build_component()).unwrap();
+                        self.sim = Some(Simulator::new(flatten));
+                        self.sim.as_mut().unwrap().start(true);
+                        ui.close_menu();
+                    }
+                    if ui.button("Stop").clicked() {
+                        self.sim = None;
+                    }
+                });
             });
         });
     }
@@ -213,6 +243,24 @@ impl LogixApp {
             if response.hovered() || response.context_menu_opened() {
                 response.context_menu(|ui| {
                     ui.label("Add Component");
+                    if ui.button("Clock").clicked() {
+                        self.current_comp
+                            .add_clock_gate(self.last_id, self.last_click_pos);
+                        self.last_id += 1;
+                        ui.close_menu();
+                    }
+                    if ui.button("High Const").clicked() {
+                        self.current_comp
+                            .add_const_high_gate(self.last_id, self.last_click_pos);
+                        self.last_id += 1;
+                        ui.close_menu();
+                    }
+                    if ui.button("Low Const").clicked() {
+                        self.current_comp
+                            .add_const_low_gate(self.last_id, self.last_click_pos);
+                        self.last_id += 1;
+                        ui.close_menu();
+                    }
                     if ui.button("And Gate").clicked() {
                         self.current_comp
                             .add_and_gate(self.last_id, 2, self.last_click_pos);
@@ -221,7 +269,7 @@ impl LogixApp {
                     }
                     if ui.button("Or Gate").clicked() {
                         self.current_comp
-                            .add_or_gate(self.last_id, 3, self.last_click_pos);
+                            .add_or_gate(self.last_id, 2, self.last_click_pos);
                         self.last_id += 1;
                         ui.close_menu();
                     }
@@ -229,6 +277,9 @@ impl LogixApp {
             }
 
             self.draw_subs(ui, transform, id, rect);
+            if self.sim.is_some() {
+                ui.ctx().request_repaint();
+            }
         });
     }
 
@@ -267,7 +318,24 @@ impl LogixApp {
         (s_rect, inputs, outputs)
     }
 
+    fn update_comp_vals(&mut self) {
+        if let None = self.sim {
+            return;
+        }
+
+        let sim = self.sim.as_mut().unwrap();
+        sim.component(|comp| {
+            for i in 0..self.current_comp.components.len() {
+                let id = self.current_comp.components[i].id;
+                let (in_vals, out_vals) = comp.get_status(&[id]);
+                self.current_comp.data_vals[i] = (in_vals, out_vals);
+            }
+        });
+        thread::sleep(std::time::Duration::from_millis(5));
+    }
+
     fn draw_subs(&mut self, ui: &mut Ui, transform: TSTransform, id: Id, rect: Rect) {
+        self.update_comp_vals();
         let window_layer = ui.layer_id();
         let mut over_conn: Option<usize> = None;
         let mut i = 0;
@@ -349,9 +417,11 @@ impl LogixApp {
         // -----------------------------------------------------------------------------
         // Draw the connections comming from this subcomponent
         // -----------------------------------------------------------------------------
-        for i in 0..self.current_comp.connections.len() {
+        let mut i = 0;
+        while i < self.current_comp.connections.len() {
             let conn = &self.current_comp.connections[i];
             if conn.from.0 == idx {
+                let from_port = conn.from.1;
                 let mut to_add: Vec<(usize, Pos2, WireDir)> = vec![];
                 let mut to_remove: Vec<usize> = vec![];
                 let points: Vec<Pos2> = self.current_comp.comp_conns[i]
@@ -434,8 +504,13 @@ impl LogixApp {
                         }
                     });
 
-                    let color = if self.over_connection.is_some_and(|k| k == i) {
-                        Color32::LIGHT_RED
+                    let color = if self.sim.is_some() {
+                        match self.current_comp.data_vals[idx].1[from_port].value {
+                            0 => LOW_COLOR,
+                            _ => HIGH_COLOR,
+                        }
+                    } else if self.over_connection.is_some_and(|k| k == i) {
+                        Color32::LIGHT_BLUE
                     } else {
                         Color32::WHITE
                     };
@@ -459,6 +534,7 @@ impl LogixApp {
                     self.current_comp.comp_conns[i].points.remove(idx);
                 }
             }
+            i += 1;
         }
 
         // -----------------------------------------------------------------------------
@@ -514,8 +590,13 @@ impl LogixApp {
             ui.painter()
                 .add(Shape::circle_filled(pin_pos, PIN_SIZE / 2.0, Color32::GRAY));
 
-            let color = if resp.hovered() {
-                Color32::LIGHT_RED
+            let color = if self.sim.is_some() {
+                match self.current_comp.data_vals[idx].0[i].value {
+                    0 => LOW_COLOR,
+                    _ => HIGH_COLOR,
+                }
+            } else if resp.hovered() {
+                Color32::LIGHT_BLUE
             } else {
                 Color32::LIGHT_GRAY
             };
@@ -558,8 +639,13 @@ impl LogixApp {
                 ui.id().with(("output", i, idx)),
                 Sense::click(),
             );
-            let color = if resp.hovered() {
-                Color32::LIGHT_RED
+            let color = if self.sim.is_some() {
+                match self.current_comp.data_vals[idx].1[i].value {
+                    0 => LOW_COLOR,
+                    _ => HIGH_COLOR,
+                }
+            } else if resp.hovered() {
+                Color32::LIGHT_BLUE
             } else {
                 Color32::LIGHT_GRAY
             };
