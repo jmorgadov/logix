@@ -232,7 +232,7 @@ impl ComponentBoard {
         let xnor_gate = Component {
             id,
             name: Some("NOT".to_string()),
-            inputs: 0,
+            inputs: 1,
             outputs: 1,
             extra: ExtraInfo::from_primitive(id, Primitive::NotGate),
             sub: None,
