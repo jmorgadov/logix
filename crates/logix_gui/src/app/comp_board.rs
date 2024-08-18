@@ -23,16 +23,26 @@ pub struct ComponentInfo {
     pub outputs_name: Vec<String>,
     pub inputs_data: Vec<Data>,
     pub outputs_data: Vec<Data>,
+
+    pub inputs_data_idx: Vec<(usize, usize)>,
+    pub outputs_data_idx: Vec<(usize, usize)>,
 }
 
 impl ComponentInfo {
-    pub fn build_primitive(&self) -> Result<Component<ExtraInfo>, ()> {
+    pub fn build_primitive(&mut self, last_id: &mut usize) -> Result<Component<ExtraInfo>, ()> {
         if self.primitive.is_none() {
             return Err(());
         }
 
+        let id = *last_id;
+        *last_id += 1;
+        self.id = id;
+
+        self.inputs_data_idx = (0..self.inputs_name.len()).map(|i| (id, i)).collect();
+        self.outputs_data_idx = (0..self.outputs_name.len()).map(|i| (id, i)).collect();
+
         Ok(Component {
-            id: self.id,
+            id,
             name: Some(self.name.clone()),
             inputs: self.inputs_data.len(),
             outputs: self.outputs_data.len(),
@@ -44,9 +54,9 @@ impl ComponentInfo {
         })
     }
 
-    pub fn build_component(&self) -> Result<Component<ExtraInfo>, ()> {
+    pub fn build_component(&mut self, last_id: &mut usize) -> Result<Component<ExtraInfo>, ()> {
         if self.primitive.is_some() {
-            return self.build_primitive();
+            return self.build_primitive(last_id);
         }
 
         assert!(self.source.is_some());
@@ -56,12 +66,22 @@ impl ComponentInfo {
             Err(_) => return Err(()),
         };
 
-        let board: ComponentBoard = match serde_json::from_str(&serialized) {
+        let mut board: ComponentBoard = match serde_json::from_str(&serialized) {
             Ok(board) => board,
             Err(_) => return Err(()),
         };
 
-        board.build_component()
+        let res = board.build_component(last_id);
+
+        for (idx, (to, to_port)) in board.in_addrs.iter() {
+            self.inputs_data_idx[*idx] = board.components[*to].inputs_data_idx[*to_port];
+        }
+
+        for (i, (from, from_port)) in board.out_addrs.iter().enumerate() {
+            self.outputs_data_idx[i] = board.components[*from].outputs_data_idx[*from_port];
+        }
+
+        res
     }
 
     // pub fn from_source(id: usize, source: PathBuf) -> Result<Self, ()> {
@@ -95,6 +115,8 @@ impl ComponentInfo {
             outputs_name: vec![Default::default()],
             inputs_data: vec![Data::low(); in_count],
             outputs_data: vec![Data::low()],
+            inputs_data_idx: vec![(id, 0); in_count],
+            outputs_data_idx: vec![(0, 0)],
         }
     }
 
@@ -108,6 +130,8 @@ impl ComponentInfo {
             outputs_name: vec![Default::default()],
             inputs_data: vec![Data::low(); in_count],
             outputs_data: vec![Data::low()],
+            inputs_data_idx: vec![(0, 0); in_count],
+            outputs_data_idx: vec![(0, 0)],
         }
     }
 
@@ -121,6 +145,8 @@ impl ComponentInfo {
             outputs_name: vec![Default::default()],
             inputs_data: vec![Data::low(); in_count],
             outputs_data: vec![Data::low()],
+            inputs_data_idx: vec![(0, 0); in_count],
+            outputs_data_idx: vec![(0, 0)],
         }
     }
 
@@ -134,6 +160,8 @@ impl ComponentInfo {
             outputs_name: vec![Default::default()],
             inputs_data: vec![Data::low(); in_count],
             outputs_data: vec![Data::low()],
+            inputs_data_idx: vec![(0, 0); in_count],
+            outputs_data_idx: vec![(0, 0)],
         }
     }
 
@@ -147,6 +175,8 @@ impl ComponentInfo {
             outputs_name: vec![Default::default()],
             inputs_data: vec![Data::low(); in_count],
             outputs_data: vec![Data::low()],
+            inputs_data_idx: vec![(0, 0); in_count],
+            outputs_data_idx: vec![(0, 0)],
         }
     }
 
@@ -160,6 +190,8 @@ impl ComponentInfo {
             outputs_name: vec![Default::default()],
             inputs_data: vec![Data::low()],
             outputs_data: vec![Data::low()],
+            inputs_data_idx: vec![(0, 0)],
+            outputs_data_idx: vec![(0, 0)],
         }
     }
 
@@ -175,6 +207,8 @@ impl ComponentInfo {
             outputs_name: vec![Default::default()],
             inputs_data: vec![],
             outputs_data: vec![Data::high()],
+            inputs_data_idx: vec![],
+            outputs_data_idx: vec![(0, 0)],
         }
     }
 
@@ -188,6 +222,8 @@ impl ComponentInfo {
             outputs_name: vec![Default::default()],
             inputs_data: vec![],
             outputs_data: vec![Data::low()],
+            inputs_data_idx: vec![],
+            outputs_data_idx: vec![(0, 0)],
         }
     }
 
@@ -201,6 +237,8 @@ impl ComponentInfo {
             outputs_name: vec![Default::default()],
             inputs_data: vec![],
             outputs_data: vec![Data::low()],
+            inputs_data_idx: vec![],
+            outputs_data_idx: vec![(0, 0)],
         }
     }
 
@@ -214,6 +252,8 @@ impl ComponentInfo {
             outputs_name: (0..bits).map(|b| b.to_string()).collect(),
             inputs_data: vec![Data::low()],
             outputs_data: vec![Data::low(); bits as usize],
+            inputs_data_idx: vec![(0, 0)],
+            outputs_data_idx: vec![(0, 0); bits as usize],
         }
     }
 
@@ -227,6 +267,8 @@ impl ComponentInfo {
             outputs_name: vec![Default::default()],
             inputs_data: vec![Data::low(); bits as usize],
             outputs_data: vec![Data::low()],
+            inputs_data_idx: vec![(0, 0); bits as usize],
+            outputs_data_idx: vec![(0, 0)],
         }
     }
 
@@ -240,6 +282,8 @@ impl ComponentInfo {
             outputs_name: vec![Default::default()],
             inputs_data: vec![],
             outputs_data: vec![Data::low()],
+            inputs_data_idx: vec![],
+            outputs_data_idx: vec![(0, 0)],
         }
     }
 
@@ -253,6 +297,8 @@ impl ComponentInfo {
             outputs_name: vec![],
             inputs_data: vec![Data::low()],
             outputs_data: vec![],
+            inputs_data_idx: vec![(0, 0)],
+            outputs_data_idx: vec![],
         }
     }
 }
@@ -278,11 +324,14 @@ pub struct ComponentBoard {
 }
 
 impl ComponentBoard {
-    pub fn build_component(&self) -> Result<Component<ExtraInfo>, ()> {
+    pub fn build_component(&mut self, last_id: &mut usize) -> Result<Component<ExtraInfo>, ()> {
         let sub_comps: Result<Vec<Component<ExtraInfo>>, ()> = self
             .components
-            .iter()
-            .map(|c| c.build_component())
+            .iter_mut()
+            .map(|c| {
+                //
+                c.build_component(last_id)
+            })
             .collect();
 
         let sub: SubComponent<ExtraInfo> = match sub_comps {
@@ -295,8 +344,10 @@ impl ComponentBoard {
             Err(_) => return Err(()),
         };
 
+        let id = *last_id;
+        *last_id += 1;
         Ok(Component {
-            id: 0,
+            id: id,
             name: Some(self.name.clone()),
             inputs: self.inputs,
             outputs: self.outputs,
@@ -319,13 +370,27 @@ impl ComponentBoard {
             inputs_data: self
                 .inputs_idx
                 .iter()
-                .map(|i| self.components[*i].outputs_data[0])
+                .map(|i| {
+                    assert!(self.components[*i]
+                        .primitive
+                        .clone()
+                        .is_some_and(|p| p.is_input()));
+                    self.components[*i].outputs_data[0]
+                })
                 .collect(),
             outputs_data: self
                 .outputs_idx
                 .iter()
-                .map(|i| self.components[*i].inputs_data[0])
+                .map(|i| {
+                    assert!(self.components[*i]
+                        .primitive
+                        .clone()
+                        .is_some_and(|p| p.is_output()));
+                    self.components[*i].inputs_data[0]
+                })
                 .collect(),
+            inputs_data_idx: self.inputs_idx.iter().map(|_| (0, 0)).collect(),
+            outputs_data_idx: self.outputs_idx.iter().map(|_| (0, 0)).collect(),
         }
     }
 
@@ -405,6 +470,18 @@ impl ComponentBoard {
             if self.out_addrs[i].0 == idx {
                 self.out_addrs.remove(i);
                 self.outputs -= 1;
+            }
+        }
+
+        // Update inputs/outputs indices
+        for i in 0..self.inputs_idx.len() {
+            if self.inputs_idx[i] > idx {
+                self.inputs_idx[i] -= 1;
+            }
+        }
+        for i in 0..self.outputs_idx.len() {
+            if self.outputs_idx[i] > idx {
+                self.outputs_idx[i] -= 1;
             }
         }
 

@@ -102,6 +102,16 @@ impl FlattenComponent {
             .expect(format!("Component {} not found", id).as_str())]
     }
 
+    pub fn get_input_status_at(&self, id: usize, idx: usize) -> Data {
+        let c_idx = *self.id_to_idx.get(&id).expect("Component not found");
+        self.components[c_idx].inputs[idx]
+    }
+
+    pub fn get_output_status_at(&self, id: usize, idx: usize) -> Data {
+        let c_idx = *self.id_to_idx.get(&id).expect("Component not found");
+        self.components[c_idx].outputs[idx]
+    }
+
     pub fn get_status_by_id(&self, id: usize) -> (&Vec<Data>, &Vec<Data>) {
         let idx = *self.id_to_idx.get(&id).expect("Component not found");
         (&self.components[idx].inputs, &self.components[idx].outputs)

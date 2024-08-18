@@ -50,7 +50,14 @@ impl LogixApp {
         let in_offset: f32 = (height - in_height) / 2.0;
         let out_offset: f32 = (height - out_height) / 2.0;
 
-        let comp_size = Vec2::new(75.0, height);
+        let mut width = 45.0;
+        if comp.inputs_name.iter().any(|n| n.len() > 0) {
+            width += 5.0;
+        }
+        if comp.outputs_name.iter().any(|n| n.len() > 0) {
+            width += 5.0;
+        }
+        let comp_size = Vec2::new(width, height);
         // let local_pos = self.current_comp.subc_pos[idx];
         let s_rect = Rect::from_min_size(local_pos, comp_size);
 

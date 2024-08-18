@@ -85,10 +85,17 @@ impl LogixApp {
         let sim = self.sim.as_mut().unwrap();
         sim.component(|comp| {
             for i in 0..self.current_comp.components.len() {
-                let id = self.current_comp.components[i].id;
-                let (in_vals, out_vals) = comp.get_status(&[id]);
-                self.current_comp.components[i].inputs_data = in_vals;
-                self.current_comp.components[i].outputs_data = out_vals;
+                for j in 0..self.current_comp.components[i].input_count() {
+                    let (id, idx) = self.current_comp.components[i].inputs_data_idx[j];
+                    let data = comp.get_input_status_at(id, idx);
+                    self.current_comp.components[i].inputs_data[j] = data;
+                }
+
+                for j in 0..self.current_comp.components[i].output_count() {
+                    let (id, idx) = self.current_comp.components[i].outputs_data_idx[j];
+                    let data = comp.get_output_status_at(id, idx);
+                    self.current_comp.components[i].outputs_data[j] = data;
+                }
             }
         });
         thread::sleep(std::time::Duration::from_millis(5));
