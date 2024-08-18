@@ -24,6 +24,8 @@ pub struct ComponentBoard {
     pub comp_conns: Vec<ConnectionInfo>,
 
     pub components: Vec<Component<ExtraInfo>>,
+    pub components_source: Vec<PathBuf>,
+
     pub connections: Vec<Conn>,
     pub in_addrs: Vec<(usize, PortAddr)>,
     pub out_addrs: Vec<PortAddr>,
@@ -77,7 +79,7 @@ impl ComponentBoard {
                     if let Some(prim) = comp.extra.primitive.clone() {
                         prim.input_default_data().expect("Invalid primitive")
                     } else {
-                        // Use later for complex subcomponents
+                        // Use later for complex components
                         Data::low()
                     }
                 })
@@ -87,7 +89,7 @@ impl ComponentBoard {
                     if let Some(prim) = comp.extra.primitive.clone() {
                         prim.output_default_data().expect("Invalid primitive")
                     } else {
-                        // Use later for complex subcomponents
+                        // Use later for complex components
                         Data::low()
                     }
                 })
@@ -95,7 +97,7 @@ impl ComponentBoard {
         )
     }
 
-    pub fn add_subc(&mut self, subc: Component<ExtraInfo>, pos: Pos2) {
+    pub fn add_comp(&mut self, subc: Component<ExtraInfo>, pos: Pos2) {
         self.components.push(subc);
         self.comp_pos.push(pos);
         self.data_vals.push(Self::get_default_data_vals(
@@ -103,12 +105,12 @@ impl ComponentBoard {
         ));
     }
 
-    pub fn remove_subc(&mut self, idx: usize) {
+    pub fn remove_comp(&mut self, idx: usize) {
         self.components.remove(idx);
         self.comp_pos.remove(idx);
         self.data_vals.remove(idx);
 
-        // Remove input connections to the subcomponent
+        // Remove input connections to the component
         for i in 0..self.in_addrs.len() {
             if self.in_addrs[i].1 .0 == idx {
                 self.in_addrs.remove(i);
@@ -116,7 +118,7 @@ impl ComponentBoard {
             }
         }
 
-        // Remove output connections from the subcomponent
+        // Remove output connections from the component
         for i in 0..self.out_addrs.len() {
             if self.out_addrs[i].0 == idx {
                 self.out_addrs.remove(i);
@@ -129,7 +131,7 @@ impl ComponentBoard {
         while i < self.connections.len() {
             let conn = self.connections[i];
 
-            // Remove connections related to the subcomponent
+            // Remove connections related to the component
             if conn.from.0 == idx || conn.to.0 == idx {
                 self.connections.remove(i);
                 self.comp_conns.remove(i);
@@ -176,7 +178,7 @@ impl ComponentBoard {
             extra: ExtraInfo::from_primitive(id, Primitive::AndGate),
             sub: None,
         };
-        self.add_subc(and_gate, pos);
+        self.add_comp(and_gate, pos);
     }
 
     pub fn add_nand_gate(&mut self, id: usize, in_count: usize, pos: Pos2) {
@@ -188,7 +190,7 @@ impl ComponentBoard {
             extra: ExtraInfo::from_primitive(id, Primitive::NandGate),
             sub: None,
         };
-        self.add_subc(and_gate, pos);
+        self.add_comp(and_gate, pos);
     }
 
     pub fn add_or_gate(&mut self, id: usize, in_count: usize, pos: Pos2) {
@@ -200,7 +202,7 @@ impl ComponentBoard {
             extra: ExtraInfo::from_primitive(id, Primitive::OrGate),
             sub: None,
         };
-        self.add_subc(or_gate, pos);
+        self.add_comp(or_gate, pos);
     }
 
     pub fn add_nor_gate(&mut self, id: usize, in_count: usize, pos: Pos2) {
@@ -212,7 +214,7 @@ impl ComponentBoard {
             extra: ExtraInfo::from_primitive(id, Primitive::NorGate),
             sub: None,
         };
-        self.add_subc(nor_gate, pos);
+        self.add_comp(nor_gate, pos);
     }
 
     pub fn add_xor_gate(&mut self, id: usize, in_count: usize, pos: Pos2) {
@@ -224,7 +226,7 @@ impl ComponentBoard {
             extra: ExtraInfo::from_primitive(id, Primitive::XorGate),
             sub: None,
         };
-        self.add_subc(xor_gate, pos);
+        self.add_comp(xor_gate, pos);
     }
 
     pub fn add_not_gate(&mut self, id: usize, pos: Pos2) {
@@ -236,7 +238,7 @@ impl ComponentBoard {
             extra: ExtraInfo::from_primitive(id, Primitive::NotGate),
             sub: None,
         };
-        self.add_subc(xnor_gate, pos);
+        self.add_comp(xnor_gate, pos);
     }
 
     pub fn add_const_high_gate(&mut self, id: usize, pos: Pos2) {
@@ -253,7 +255,7 @@ impl ComponentBoard {
             ),
             sub: None,
         };
-        self.add_subc(const_gate, pos);
+        self.add_comp(const_gate, pos);
     }
 
     pub fn add_const_low_gate(&mut self, id: usize, pos: Pos2) {
@@ -265,7 +267,7 @@ impl ComponentBoard {
             extra: ExtraInfo::from_primitive(id, Primitive::Const { value: Data::low() }),
             sub: None,
         };
-        self.add_subc(const_gate, pos);
+        self.add_comp(const_gate, pos);
     }
 
     pub fn add_clock_gate(&mut self, id: usize, pos: Pos2) {
@@ -277,7 +279,7 @@ impl ComponentBoard {
             extra: ExtraInfo::from_primitive(id, Primitive::Clock { period: 1000000000 }),
             sub: None,
         };
-        self.add_subc(clock_gate, pos);
+        self.add_comp(clock_gate, pos);
     }
 
     pub fn add_splitter(&mut self, id: usize, bits: u8, pos: Pos2) {
@@ -289,7 +291,7 @@ impl ComponentBoard {
             extra: ExtraInfo::from_primitive(id, Primitive::Splitter { bits }),
             sub: None,
         };
-        self.add_subc(splitter, pos);
+        self.add_comp(splitter, pos);
     }
 
     pub fn add_joiner(&mut self, id: usize, bits: u8, pos: Pos2) {
@@ -301,6 +303,6 @@ impl ComponentBoard {
             extra: ExtraInfo::from_primitive(id, Primitive::Joiner { bits }),
             sub: None,
         };
-        self.add_subc(joiner, pos);
+        self.add_comp(joiner, pos);
     }
 }

@@ -1,9 +1,7 @@
-mod comp_board;
-mod folder_tree;
-mod logix_app;
+mod app;
 
+use app::LogixApp;
 use eframe::egui;
-use logix_app::LogixApp;
 
 fn main() -> eframe::Result {
     let options = eframe::NativeOptions {
