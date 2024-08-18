@@ -46,7 +46,8 @@ impl LogixApp {
                 ui.menu_button("Sim", |ui| {
                     if ui.button("Start").clicked() {
                         let flatten =
-                            FlattenComponent::new(self.current_comp.build_component()).unwrap();
+                            FlattenComponent::new(self.current_comp.build_component().unwrap())
+                                .unwrap();
                         self.sim = Some(Simulator::new(flatten));
                         self.sim.as_mut().unwrap().start(true);
                         ui.close_menu();

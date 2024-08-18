@@ -11,7 +11,7 @@ impl LogixApp {
                 Sense::click(),
             );
             let color = if self.sim.is_some() {
-                match self.current_comp.data_vals[idx].1[i].value {
+                match self.current_comp.components[idx].outputs_data[i].value {
                     0 => LOW_COLOR,
                     _ => HIGH_COLOR,
                 }

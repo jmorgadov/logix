@@ -6,7 +6,7 @@ use crate::app::LogixApp;
 impl LogixApp {
     pub fn specific_comp_context_menu(&mut self, ui: &mut Ui, idx: usize) {
         let comp = self.current_comp.components.get_mut(idx).unwrap();
-        if let Some(prim) = &mut comp.extra.primitive {
+        if let Some(prim) = &mut comp.primitive {
             match prim {
                 Primitive::Clock { period: current_p } => {
                     ui.add(

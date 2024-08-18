@@ -1,8 +1,6 @@
 use egui::{emath::TSTransform, Color32, Pos2, Rect, Rounding, Sense, Shape, Ui, Vec2};
-use logix_core::component::Component;
-use logix_sim::primitives::primitives::ExtraInfo;
 
-use crate::app::{impls::constants::*, logix_app::WireDir, LogixApp};
+use crate::app::{comp_board::ComponentInfo, impls::constants::*, logix_app::WireDir, LogixApp};
 
 impl LogixApp {
     pub fn get_ghost_point(last_point: (Pos2, WireDir), cursor_pos: Pos2) -> Pos2 {
@@ -41,14 +39,11 @@ impl LogixApp {
         }
     }
 
-    pub fn comp_draw_info(
-        local_pos: Pos2,
-        sub: &Component<ExtraInfo>,
-    ) -> (Rect, Vec<Pos2>, Vec<Pos2>) {
-        let in_count = sub.inputs;
-        let out_count = sub.outputs;
-        let in_height = (sub.inputs as f32) * (PIN_MARGIN) + PIN_MARGIN;
-        let out_height = (sub.outputs as f32) * (PIN_MARGIN) + PIN_MARGIN;
+    pub fn comp_draw_info(local_pos: Pos2, comp: &ComponentInfo) -> (Rect, Vec<Pos2>, Vec<Pos2>) {
+        let in_count = comp.input_count();
+        let out_count = comp.output_count();
+        let in_height = (in_count as f32) * (PIN_MARGIN) + PIN_MARGIN;
+        let out_height = (out_count as f32) * (PIN_MARGIN) + PIN_MARGIN;
 
         let height = in_height.max(out_height);
 
@@ -92,7 +87,7 @@ impl LogixApp {
         // -----------------------------------------------------------------------------
 
         let comp = self.current_comp.components.get(idx).unwrap();
-        let comp_name = comp.name.as_ref().unwrap().clone();
+        let comp_name = comp.name.clone();
 
         let (s_rect, inputs, outputs) = Self::comp_draw_info(self.current_comp.comp_pos[idx], comp);
 

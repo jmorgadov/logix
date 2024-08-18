@@ -87,7 +87,8 @@ impl LogixApp {
             for i in 0..self.current_comp.components.len() {
                 let id = self.current_comp.components[i].id;
                 let (in_vals, out_vals) = comp.get_status(&[id]);
-                self.current_comp.data_vals[i] = (in_vals, out_vals);
+                self.current_comp.components[i].inputs_data = in_vals;
+                self.current_comp.components[i].outputs_data = out_vals;
             }
         });
         thread::sleep(std::time::Duration::from_millis(5));

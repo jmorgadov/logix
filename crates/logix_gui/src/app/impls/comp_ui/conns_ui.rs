@@ -97,14 +97,14 @@ impl LogixApp {
                     });
 
                     if self.sim.is_some() {
-                        let data = self.current_comp.data_vals[idx].1[from_port];
+                        let data = self.current_comp.components[idx].outputs_data[from_port];
                         let val_in_bits =
                             format!("{:0width$b}", data.value, width = data.size as usize);
                         resp.on_hover_text(format!("{} - {}", val_in_bits, data.value));
                     }
 
                     let color = if self.sim.is_some() {
-                        match self.current_comp.data_vals[idx].1[from_port].value {
+                        match self.current_comp.components[idx].outputs_data[from_port].value {
                             0 => LOW_COLOR,
                             _ => HIGH_COLOR,
                         }
@@ -114,7 +114,8 @@ impl LogixApp {
                         Color32::WHITE
                     };
 
-                    let is_one_bit_data = self.current_comp.data_vals[idx].1[from_port].size == 1;
+                    let is_one_bit_data =
+                        self.current_comp.components[idx].outputs_data[from_port].size == 1;
                     let stroke_with = if is_one_bit_data { 2.0 } else { 4.0 };
 
                     ui.painter().add(Shape::Path(PathShape::line(

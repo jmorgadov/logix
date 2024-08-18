@@ -14,7 +14,7 @@ impl LogixApp {
                 .add(Shape::circle_filled(pin_pos, PIN_SIZE / 2.0, Color32::GRAY));
 
             let color = if self.sim.is_some() {
-                match self.current_comp.data_vals[idx].0[i].value {
+                match self.current_comp.components[idx].inputs_data[i].value {
                     0 => LOW_COLOR,
                     _ => HIGH_COLOR,
                 }
@@ -31,8 +31,8 @@ impl LogixApp {
             let mut connection_added = false;
             if let Some((from, points)) = self.new_conn.as_mut() {
                 if resp.clicked()
-                    && self.current_comp.data_vals[from.0].1[from.1].size
-                        == self.current_comp.data_vals[idx].0[i].size
+                    && self.current_comp.components[from.0].outputs_data[from.1].size
+                        == self.current_comp.components[idx].inputs_data[i].size
                 {
                     connection_added = true;
                     let last_point = points.last().unwrap().clone();
