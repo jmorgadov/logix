@@ -13,16 +13,14 @@ pub struct ConnectionInfo {
     pub points: Vec<Pos2>,
 }
 
-pub type ComponentsData = Vec<(Vec<Data>, Vec<Data>)>;
-
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct ComponentInfo {
     pub id: usize,
     pub name: String,
     pub source: Option<PathBuf>,
     pub primitive: Option<Primitive>,
-    pub inputs_name: Vec<Option<String>>,
-    pub outputs_name: Vec<Option<String>>,
+    pub inputs_name: Vec<String>,
+    pub outputs_name: Vec<String>,
     pub inputs_data: Vec<Data>,
     pub outputs_data: Vec<Data>,
 }
@@ -93,8 +91,8 @@ impl ComponentInfo {
             name: "AND".to_string(),
             source: None,
             primitive: Some(Primitive::AndGate),
-            inputs_name: (0..in_count).map(|_| None).collect(),
-            outputs_name: vec![None],
+            inputs_name: (0..in_count).map(|_| Default::default()).collect(),
+            outputs_name: vec![Default::default()],
             inputs_data: vec![Data::low(); in_count],
             outputs_data: vec![Data::low()],
         }
@@ -106,8 +104,8 @@ impl ComponentInfo {
             name: "NAND".to_string(),
             source: None,
             primitive: Some(Primitive::NandGate),
-            inputs_name: (0..in_count).map(|_| None).collect(),
-            outputs_name: vec![None],
+            inputs_name: (0..in_count).map(|_| Default::default()).collect(),
+            outputs_name: vec![Default::default()],
             inputs_data: vec![Data::low(); in_count],
             outputs_data: vec![Data::low()],
         }
@@ -119,8 +117,8 @@ impl ComponentInfo {
             name: "OR".to_string(),
             source: None,
             primitive: Some(Primitive::OrGate),
-            inputs_name: (0..in_count).map(|_| None).collect(),
-            outputs_name: vec![None],
+            inputs_name: (0..in_count).map(|_| Default::default()).collect(),
+            outputs_name: vec![Default::default()],
             inputs_data: vec![Data::low(); in_count],
             outputs_data: vec![Data::low()],
         }
@@ -132,8 +130,8 @@ impl ComponentInfo {
             name: "NOR".to_string(),
             source: None,
             primitive: Some(Primitive::NorGate),
-            inputs_name: (0..in_count).map(|_| None).collect(),
-            outputs_name: vec![None],
+            inputs_name: (0..in_count).map(|_| Default::default()).collect(),
+            outputs_name: vec![Default::default()],
             inputs_data: vec![Data::low(); in_count],
             outputs_data: vec![Data::low()],
         }
@@ -145,8 +143,8 @@ impl ComponentInfo {
             name: "XOR".to_string(),
             source: None,
             primitive: Some(Primitive::XorGate),
-            inputs_name: (0..in_count).map(|_| None).collect(),
-            outputs_name: vec![None],
+            inputs_name: (0..in_count).map(|_| Default::default()).collect(),
+            outputs_name: vec![Default::default()],
             inputs_data: vec![Data::low(); in_count],
             outputs_data: vec![Data::low()],
         }
@@ -158,8 +156,8 @@ impl ComponentInfo {
             name: "NOT".to_string(),
             source: None,
             primitive: Some(Primitive::NotGate),
-            inputs_name: vec![None],
-            outputs_name: vec![None],
+            inputs_name: vec![Default::default()],
+            outputs_name: vec![Default::default()],
             inputs_data: vec![Data::low()],
             outputs_data: vec![Data::low()],
         }
@@ -174,7 +172,7 @@ impl ComponentInfo {
                 value: Data::high(),
             }),
             inputs_name: vec![],
-            outputs_name: vec![None],
+            outputs_name: vec![Default::default()],
             inputs_data: vec![],
             outputs_data: vec![Data::high()],
         }
@@ -187,7 +185,7 @@ impl ComponentInfo {
             source: None,
             primitive: Some(Primitive::Const { value: Data::low() }),
             inputs_name: vec![],
-            outputs_name: vec![None],
+            outputs_name: vec![Default::default()],
             inputs_data: vec![],
             outputs_data: vec![Data::low()],
         }
@@ -200,7 +198,7 @@ impl ComponentInfo {
             source: None,
             primitive: Some(Primitive::Clock { period: 1000000000 }),
             inputs_name: vec![],
-            outputs_name: vec![None],
+            outputs_name: vec![Default::default()],
             inputs_data: vec![],
             outputs_data: vec![Data::low()],
         }
@@ -212,8 +210,8 @@ impl ComponentInfo {
             name: "SPLIT".to_string(),
             source: None,
             primitive: Some(Primitive::Splitter { bits }),
-            inputs_name: vec![None],
-            outputs_name: (0..bits).map(|b| Some(b.to_string())).collect(),
+            inputs_name: vec![Default::default()],
+            outputs_name: (0..bits).map(|b| b.to_string()).collect(),
             inputs_data: vec![Data::low()],
             outputs_data: vec![Data::low(); bits as usize],
         }
@@ -225,8 +223,8 @@ impl ComponentInfo {
             name: "JOIN".to_string(),
             source: None,
             primitive: Some(Primitive::Joiner { bits }),
-            inputs_name: (0..bits).map(|b| Some(b.to_string())).collect(),
-            outputs_name: vec![None],
+            inputs_name: (0..bits).map(|b| b.to_string()).collect(),
+            outputs_name: vec![Default::default()],
             inputs_data: vec![Data::low(); bits as usize],
             outputs_data: vec![Data::low()],
         }
@@ -239,7 +237,7 @@ impl ComponentInfo {
             source: None,
             primitive: Some(Primitive::Input { bits }),
             inputs_name: vec![],
-            outputs_name: vec![None],
+            outputs_name: vec![Default::default()],
             inputs_data: vec![],
             outputs_data: vec![Data::low()],
         }
@@ -251,7 +249,7 @@ impl ComponentInfo {
             name: "OUT".to_string(),
             source: None,
             primitive: Some(Primitive::Output { bits }),
-            inputs_name: vec![None],
+            inputs_name: vec![Default::default()],
             outputs_name: vec![],
             inputs_data: vec![Data::low()],
             outputs_data: vec![],
@@ -269,10 +267,14 @@ pub struct ComponentBoard {
 
     pub components: Vec<ComponentInfo>,
 
-    pub inputs_order: Vec<usize>,
+    pub inputs_idx: Vec<usize>,
+    pub outputs_idx: Vec<usize>,
     pub connections: Vec<Conn>,
     pub in_addrs: Vec<(usize, PortAddr)>,
     pub out_addrs: Vec<PortAddr>,
+
+    pub inputs_name: Vec<String>,
+    pub outputs_name: Vec<String>,
 }
 
 impl ComponentBoard {
@@ -312,26 +314,17 @@ impl ComponentBoard {
             name: self.name.clone(),
             source: source,
             primitive: None,
-            inputs_name: self
-                .inputs_order
-                .iter()
-                .map(|i| Some(self.components[*i].name.clone()))
-                .collect(),
-            outputs_name: self
-                .components
-                .iter()
-                .filter(|c| c.primitive.clone().is_some_and(|p| p.is_output()))
-                .map(|c| Some(c.name.clone()))
-                .collect(),
+            inputs_name: self.inputs_name.clone(),
+            outputs_name: self.outputs_name.clone(),
             inputs_data: self
-                .inputs_order
+                .inputs_idx
                 .iter()
                 .map(|i| self.components[*i].outputs_data[0])
                 .collect(),
             outputs_data: self
-                .out_addrs
+                .outputs_idx
                 .iter()
-                .map(|(from, from_port)| self.components[*from].outputs_data[*from_port].clone())
+                .map(|i| self.components[*i].inputs_data[0])
                 .collect(),
         }
     }
@@ -358,31 +351,6 @@ impl ComponentBoard {
         }
     }
 
-    // fn get_default_data_vals(comp: &ComponentInfo) -> (Vec<Data>, Vec<Data>) {
-    //     (
-    //         (0..comp.inputs)
-    //             .map(|_| {
-    //                 if let Some(prim) = comp.extra.primitive.clone() {
-    //                     prim.input_default_data().expect("Invalid primitive")
-    //                 } else {
-    //                     // Use later for complex components
-    //                     Data::low()
-    //                 }
-    //             })
-    //             .collect(),
-    //         (0..comp.outputs)
-    //             .map(|_| {
-    //                 if let Some(prim) = comp.extra.primitive.clone() {
-    //                     prim.output_default_data().expect("Invalid primitive")
-    //                 } else {
-    //                     // Use later for complex components
-    //                     Data::low()
-    //                 }
-    //             })
-    //             .collect(),
-    //     )
-    // }
-
     pub fn add_comp(&mut self, subc: ComponentInfo, pos: Pos2) {
         self.components.push(subc);
         self.comp_pos.push(pos);
@@ -391,10 +359,13 @@ impl ComponentBoard {
             match prim {
                 Primitive::Input { bits: _ } => {
                     self.inputs += 1;
-                    self.inputs_order.push(self.components.len() - 1);
+                    self.inputs_idx.push(self.components.len() - 1);
+                    self.inputs_name.push(Default::default());
                 }
                 Primitive::Output { bits: _ } => {
                     self.outputs += 1;
+                    self.outputs_idx.push(self.components.len() - 1);
+                    self.outputs_name.push(Default::default());
                 }
                 _ => {}
             }
@@ -476,7 +447,7 @@ impl ComponentBoard {
 
         if let Some(prim) = &self.components[from].primitive {
             if prim.is_input() {
-                let from_input = self.inputs_order.iter().position(|&x| x == from).unwrap();
+                let from_input = self.inputs_idx.iter().position(|&x| x == from).unwrap();
                 self.in_addrs.push((from_input, (to, to_port)));
             }
         }

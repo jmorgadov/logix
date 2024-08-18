@@ -27,8 +27,30 @@ impl LogixApp {
                 Primitive::NandGate => {}
                 Primitive::NorGate => {}
                 Primitive::XorGate => {}
-                Primitive::Input { bits: _ } => {}
-                Primitive::Output { bits: _ } => {}
+                Primitive::Input { bits: _ } => {
+                    let in_idx = self
+                        .current_comp
+                        .inputs_idx
+                        .iter()
+                        .position(|&x| x == idx)
+                        .unwrap();
+                    ui.add(
+                        egui::TextEdit::singleline(&mut self.current_comp.inputs_name[in_idx])
+                            .hint_text("Name"),
+                    );
+                }
+                Primitive::Output { bits: _ } => {
+                    let out_idx = self
+                        .current_comp
+                        .outputs_idx
+                        .iter()
+                        .position(|&x| x == idx)
+                        .unwrap();
+                    ui.add(
+                        egui::TextEdit::singleline(&mut self.current_comp.outputs_name[out_idx])
+                            .hint_text("Name"),
+                    );
+                }
                 Primitive::Splitter { bits: _ } => {}
                 Primitive::Joiner { bits: _ } => {}
                 Primitive::Const { value: _ } => {}

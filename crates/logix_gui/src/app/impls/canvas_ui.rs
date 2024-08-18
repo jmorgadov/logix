@@ -1,4 +1,5 @@
 use egui::{emath::TSTransform, epaint::PathShape, Color32, Shape, Stroke};
+use rfd::FileDialog;
 
 use crate::app::LogixApp;
 
@@ -68,6 +69,19 @@ impl LogixApp {
             if response.hovered() || response.context_menu_opened() {
                 response.context_menu(|ui| {
                     ui.label("Add Component");
+                    if ui.button("Import Component").clicked() {
+                        let comp_file = FileDialog::new().pick_file();
+                        if let Some(comp_file) = comp_file {
+                            if let Ok(_) = self.current_comp.import_comp(
+                                self.last_id,
+                                comp_file,
+                                self.last_click_pos,
+                            ) {
+                                self.last_id += 1;
+                            }
+                        }
+                        ui.close_menu();
+                    }
                     if ui.button("Clock").clicked() {
                         self.current_comp
                             .add_clock_gate(self.last_id, self.last_click_pos);
