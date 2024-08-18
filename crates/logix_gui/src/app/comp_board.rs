@@ -26,6 +26,7 @@ pub struct ComponentBoard {
     pub components: Vec<Component<ExtraInfo>>,
     pub components_source: Vec<PathBuf>,
 
+    pub inputs_order: Vec<usize>,
     pub connections: Vec<Conn>,
     pub in_addrs: Vec<(usize, PortAddr)>,
     pub out_addrs: Vec<PortAddr>,
@@ -103,6 +104,19 @@ impl ComponentBoard {
         self.data_vals.push(Self::get_default_data_vals(
             &self.components.last().unwrap(),
         ));
+
+        if let Some(prim) = self.components.last().unwrap().extra.primitive.clone() {
+            match prim {
+                Primitive::Input { bits: _ } => {
+                    self.inputs += 1;
+                    self.inputs_order.push(self.components.len() - 1);
+                }
+                Primitive::Output { bits: _ } => {
+                    self.outputs += 1;
+                }
+                _ => {}
+            }
+        }
     }
 
     pub fn remove_comp(&mut self, idx: usize) {
@@ -162,11 +176,53 @@ impl ComponentBoard {
             to: (to, to_port),
         });
         self.comp_conns.push(ConnectionInfo { points });
+
+        if let Some(prim) = &self.components[from].extra.primitive {
+            if prim.is_input() {
+                let from_input = self.inputs_order.iter().position(|&x| x == from).unwrap();
+                self.in_addrs.push((from_input, (to, to_port)));
+            }
+        }
+
+        if let Some(prim) = &self.components[to].extra.primitive {
+            if prim.is_output() {
+                self.out_addrs.push((from, from_port));
+            }
+        }
     }
 
     pub fn remove_conn(&mut self, idx: usize) {
+        let conn = self.connections[idx].clone();
         self.connections.remove(idx);
         self.comp_conns.remove(idx);
+
+        // Check if connection is an input connection
+        if let Some(prim) = &self.components[conn.from.0].extra.primitive {
+            if prim.is_input() {
+                let mut i = 0;
+                while i < self.in_addrs.len() {
+                    if self.in_addrs[i].0 == conn.from.0 && self.in_addrs[i].1 == conn.to {
+                        self.in_addrs.remove(i);
+                        break;
+                    }
+                    i += 1;
+                }
+            }
+        }
+
+        // Check if connection is an output connection
+        if let Some(prim) = &self.components[conn.to.0].extra.primitive {
+            if prim.is_output() {
+                let mut i = 0;
+                while i < self.out_addrs.len() {
+                    if self.out_addrs[i] == conn.from {
+                        self.out_addrs.remove(i);
+                        break;
+                    }
+                    i += 1;
+                }
+            }
+        }
     }
 
     pub fn add_and_gate(&mut self, id: usize, in_count: usize, pos: Pos2) {
@@ -304,5 +360,29 @@ impl ComponentBoard {
             sub: None,
         };
         self.add_comp(joiner, pos);
+    }
+
+    pub fn add_input(&mut self, id: usize, bits: u8, pos: Pos2) {
+        let input = Component {
+            id,
+            name: Some("IN".to_string()),
+            inputs: 0,
+            outputs: 1,
+            extra: ExtraInfo::from_primitive(id, Primitive::Input { bits }),
+            sub: None,
+        };
+        self.add_comp(input, pos);
+    }
+
+    pub fn add_output(&mut self, id: usize, bits: u8, pos: Pos2) {
+        let output = Component {
+            id,
+            name: Some("OUT".to_string()),
+            inputs: 1,
+            outputs: 0,
+            extra: ExtraInfo::from_primitive(id, Primitive::Output { bits }),
+            sub: None,
+        };
+        self.add_comp(output, pos);
     }
 }

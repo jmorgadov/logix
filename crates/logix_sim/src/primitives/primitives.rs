@@ -54,6 +54,20 @@ impl Primitive {
             Primitive::Output { bits: _ } => None,
         }
     }
+
+    pub fn is_input(&self) -> bool {
+        match self {
+            Primitive::Input { bits: _ } => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_output(&self) -> bool {
+        match self {
+            Primitive::Output { bits: _ } => true,
+            _ => false,
+        }
+    }
 }
 
 #[derive(Debug)]

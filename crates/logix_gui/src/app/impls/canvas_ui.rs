@@ -94,6 +94,28 @@ impl LogixApp {
                         ui.close_menu();
                     }
 
+                    ui.menu_button("Input", |ui| {
+                        for i in 1..=8 {
+                            if ui.button(format!("{} Bits", i)).clicked() {
+                                self.current_comp
+                                    .add_input(self.last_id, i, self.last_click_pos);
+                                self.last_id += 1;
+                                ui.close_menu();
+                            }
+                        }
+                    });
+
+                    ui.menu_button("Output", |ui| {
+                        for i in 1..=8 {
+                            if ui.button(format!("{} Bits", i)).clicked() {
+                                self.current_comp
+                                    .add_output(self.last_id, i, self.last_click_pos);
+                                self.last_id += 1;
+                                ui.close_menu();
+                            }
+                        }
+                    });
+
                     ui.menu_button("And Gate", |ui| {
                         for i in 2..=8 {
                             if ui.button(format!("{} Inputs", i)).clicked() {

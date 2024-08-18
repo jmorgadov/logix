@@ -53,6 +53,7 @@ impl LogixApp {
                     }
                     if ui.button("Stop").clicked() {
                         self.sim = None;
+                        ui.close_menu();
                     }
                 });
             });
