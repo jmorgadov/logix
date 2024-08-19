@@ -26,9 +26,10 @@ impl LogixApp {
             ui.close_menu();
         }
         if ui.button("Load board").clicked() {
-            let file = FileDialog::new().pick_file();
-            if let Some(new_folder) = file {
-                self.load_board(&new_folder);
+            let mut file = FileDialog::new().pick_file();
+            if let Some(new_file) = file.as_mut() {
+                new_file.set_extension("json");
+                self.load_board(&new_file);
             }
             ui.close_menu();
         }

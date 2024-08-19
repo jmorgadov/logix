@@ -1,29 +1,13 @@
-use egui::{Color32, Pos2, Rangef, Rect, Sense, Shape, Ui, Vec2};
+use egui::{Color32, Response, Shape, Ui};
 
 use crate::app::{impls::constants::*, logix_app::WireDir, LogixApp};
 
 impl LogixApp {
-    pub fn draw_input_pins(&mut self, ui: &mut Ui, idx: usize, inputs: Vec<Pos2>) {
-        for (i, pin_pos) in inputs.into_iter().enumerate() {
-            let resp = ui.interact(
-                Rect::from_center_size(pin_pos, Vec2::splat(PIN_SIZE)),
-                ui.id().with(("input", i, idx)),
-                Sense::click_and_drag(),
-            );
+    pub fn draw_input_pins(&mut self, ui: &mut Ui, idx: usize, inputs: Vec<Response>) {
+        for (i, resp) in inputs.into_iter().enumerate() {
+            let pin_pos = resp.rect.center();
             ui.painter()
                 .add(Shape::circle_filled(pin_pos, PIN_SIZE / 2.0, Color32::GRAY));
-
-            let pin_name_rect = Rect::from_x_y_ranges(
-                Rangef::new(pin_pos.x + 8.0, pin_pos.x + 50.0),
-                Rangef::new(pin_pos.y - PIN_SIZE, pin_pos.y + PIN_SIZE),
-            );
-
-            let pin_name = self.current_comp.components[idx].inputs_name[i].clone();
-            ui.allocate_ui_at_rect(pin_name_rect, |ui| {
-                ui.horizontal_centered(|ui| {
-                    ui.add(egui::Label::new(pin_name).selectable(false));
-                });
-            });
 
             let color = if self.sim.is_some() {
                 match self.current_comp.components[idx].inputs_data[i].value {

@@ -1,4 +1,4 @@
-use egui::{emath::TSTransform, epaint::PathShape, Color32, Shape, Stroke};
+use egui::{emath::TSTransform, epaint::PathShape, Color32, Id, Rect, Shape, Stroke, Ui};
 use rfd::FileDialog;
 
 use crate::app::LogixApp;
@@ -68,6 +68,11 @@ impl LogixApp {
 
             if response.hovered() || response.context_menu_opened() {
                 response.context_menu(|ui| {
+                    ui.label("Board");
+                    ui.add(
+                        egui::TextEdit::singleline(&mut self.current_comp.name)
+                            .hint_text("Board name"),
+                    );
                     ui.label("Add Component");
                     if ui.button("Import Component").clicked() {
                         let comp_file = FileDialog::new().pick_file();
@@ -227,5 +232,27 @@ impl LogixApp {
                 ui.ctx().request_repaint();
             }
         });
+    }
+
+    pub fn draw_subs(&mut self, ui: &mut Ui, transform: TSTransform, id: Id, rect: Rect) {
+        self.update_comp_vals();
+        let window_layer = ui.layer_id();
+        let mut over_conn: Option<usize> = None;
+        let mut i = 0;
+        while i < self.current_comp.components.len() {
+            let id = egui::Area::new(id.with(("subc", i)))
+                .fixed_pos(self.current_comp.comp_pos[i])
+                .constrain(false)
+                .show(ui.ctx(), |ui| {
+                    ui.set_clip_rect(transform.inverse() * rect);
+                    self.draw_comp(ui, i, transform, &mut over_conn);
+                })
+                .response
+                .layer_id;
+            ui.ctx().set_transform_layer(id, transform);
+            ui.ctx().set_sublayer(window_layer, id);
+            i += 1;
+        }
+        self.over_connection = over_conn;
     }
 }

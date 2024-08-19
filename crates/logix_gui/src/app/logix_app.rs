@@ -1,8 +1,8 @@
 use crate::app::{comp_board::ComponentBoard, folder_tree::Folder};
-use egui::{emath::TSTransform, Id, Pos2, Rect, Ui};
+use egui::{emath::TSTransform, Pos2};
 use logix_core::component::PortAddr;
 use logix_sim::Simulator;
-use std::{path::PathBuf, thread};
+use std::path::PathBuf;
 
 #[derive(Debug, Clone, Copy)]
 pub enum WireDir {
@@ -77,7 +77,7 @@ impl LogixApp {
         }
     }
 
-    fn update_comp_vals(&mut self) {
+    pub fn update_comp_vals(&mut self) {
         if let None = self.sim {
             return;
         }
@@ -98,28 +98,6 @@ impl LogixApp {
                 }
             }
         });
-        thread::sleep(std::time::Duration::from_millis(5));
-    }
-
-    pub fn draw_subs(&mut self, ui: &mut Ui, transform: TSTransform, id: Id, rect: Rect) {
-        self.update_comp_vals();
-        let window_layer = ui.layer_id();
-        let mut over_conn: Option<usize> = None;
-        let mut i = 0;
-        while i < self.current_comp.components.len() {
-            let id = egui::Area::new(id.with(("subc", i)))
-                .fixed_pos(self.current_comp.comp_pos[i])
-                .show(ui.ctx(), |ui| {
-                    ui.set_clip_rect(transform.inverse() * rect);
-                    self.draw_comp(ui, i, transform, &mut over_conn);
-                })
-                .response
-                .layer_id;
-            ui.ctx().set_transform_layer(id, transform);
-            ui.ctx().set_sublayer(window_layer, id);
-            i += 1;
-        }
-        self.over_connection = over_conn;
     }
 }
 
