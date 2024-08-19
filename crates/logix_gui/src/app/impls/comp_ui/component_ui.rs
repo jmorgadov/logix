@@ -173,15 +173,6 @@ impl LogixApp {
         self.draw_new_connection(ui, idx, transform);
 
         // -----------------------------------------------------------------------------
-        // Define the component rect
-        // -----------------------------------------------------------------------------
-        // let mut resp = ui.put(
-        //     s_rect,
-        //     egui::Label::new(comp_name.clone()).selectable(false),
-        // );
-        // resp = resp.interact(Sense::click_and_drag());
-
-        // -----------------------------------------------------------------------------
         // Handle dragging the component
         // -----------------------------------------------------------------------------
         if resp.dragged() && self.new_conn.is_none() {

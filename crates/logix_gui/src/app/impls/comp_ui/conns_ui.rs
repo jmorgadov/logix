@@ -24,7 +24,7 @@ impl LogixApp {
                 for j in 0..points.len() - 1 {
                     let p1 = points[j];
                     let p2 = points[j + 1];
-                    let c_orient = WireDir::get_dir(j);
+                    let c_orient = WireDir::get_dir(j + 1);
 
                     let resp = ui.interact(
                         Rect::from_two_pos(p1, p2).expand(4.0),
@@ -68,6 +68,18 @@ impl LogixApp {
                                 self.last_click_pos.x = p1.x;
                             }
                         }
+                    }
+
+                    if resp.double_clicked() && self.new_conn.is_none() {
+                        let cursor_pos = resp.interact_pointer_pos().unwrap();
+                        let current_pos = match c_orient {
+                            WireDir::Horizontal => Pos2::new(cursor_pos.x, p1.y),
+                            WireDir::Vertical => Pos2::new(p1.x, cursor_pos.y),
+                        };
+                        let mut new_conn_points: Vec<Pos2> =
+                            points.iter().take(j + 1).cloned().collect();
+                        new_conn_points.push(current_pos);
+                        self.new_conn = Some(((idx, from_port), new_conn_points));
                     }
 
                     resp.context_menu(|ui| {

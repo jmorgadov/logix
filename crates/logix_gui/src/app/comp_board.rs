@@ -84,25 +84,12 @@ impl ComponentInfo {
         res
     }
 
-    // pub fn from_source(id: usize, source: PathBuf) -> Result<Self, ()> {
-    //     let serialized = match std::fs::read_to_string(&source) {
-    //         Ok(serialized) => serialized,
-    //         Err(_) => return Err(()),
-    //     };
-    //     let board: ComponentBoard = match serde_json::from_str(&serialized) {
-    //         Ok(board) => board,
-    //         Err(_) => return Err(()),
-    //     };
-
-    //     Ok(board.board_info(id, Some(source)))
-    // }
-
     pub fn input_count(&self) -> usize {
-        self.inputs_name.len()
+        self.inputs_data.len()
     }
 
     pub fn output_count(&self) -> usize {
-        self.outputs_name.len()
+        self.outputs_data.len()
     }
 
     pub fn and_gate(id: usize, in_count: usize) -> Self {
@@ -410,10 +397,46 @@ impl ComponentBoard {
             Ok(serialized) => serialized,
             Err(_) => return Err(()),
         };
-        match serde_json::from_str(&serialized) {
-            Ok(board) => Ok(board),
-            Err(_) => Err(()),
+        let mut board: ComponentBoard = match serde_json::from_str(&serialized) {
+            Ok(board) => board,
+            Err(_) => return Err(()),
+        };
+
+        board.reload_imported_components().map(|_| board)
+    }
+
+    pub fn reload_imported_components(&mut self) -> Result<(), ()> {
+        let mut conns_to_remove = vec![];
+        for (comp, source) in self
+            .components
+            .iter_mut()
+            .filter_map(|c| c.source.clone().map(|source| (c, source)))
+        {
+            match Self::load_comp(comp.id, source) {
+                Ok(c) => {
+                    *comp = c;
+                    let in_count = comp.input_count();
+                    let out_count = comp.output_count();
+
+                    for (i, conn) in self.connections.iter().enumerate() {
+                        if conn.from.0 == comp.id && conn.from.1 >= out_count {
+                            conns_to_remove.push(i);
+                            continue;
+                        }
+                        if conn.to.0 == comp.id && conn.to.1 >= in_count {
+                            conns_to_remove.push(i);
+                            continue;
+                        }
+                    }
+                }
+                Err(_) => return Err(()),
+            }
         }
+
+        for i in conns_to_remove.iter().rev() {
+            self.remove_conn(*i);
+        }
+        Ok(())
     }
 
     pub fn add_comp(&mut self, subc: ComponentInfo, pos: Pos2) {
@@ -437,7 +460,7 @@ impl ComponentBoard {
         }
     }
 
-    pub fn import_comp(&mut self, id: usize, source: PathBuf, pos: Pos2) -> Result<(), ()> {
+    pub fn load_comp(id: usize, source: PathBuf) -> Result<ComponentInfo, ()> {
         let serialized = match std::fs::read_to_string(&source) {
             Ok(serialized) => serialized,
             Err(_) => return Err(()),
@@ -448,45 +471,63 @@ impl ComponentBoard {
             Err(_) => return Err(()),
         };
 
-        let comp = board.board_info(id, Some(source));
+        Ok(board.board_info(id, Some(source)))
+    }
+
+    pub fn import_comp(&mut self, id: usize, source: PathBuf, pos: Pos2) -> Result<(), ()> {
+        let comp = Self::load_comp(id, source.clone())?;
         self.add_comp(comp, pos);
         Ok(())
     }
 
     pub fn remove_comp(&mut self, idx: usize) {
-        self.components.remove(idx);
+        let comp = self.components.remove(idx);
         self.comp_pos.remove(idx);
 
-        // Remove input connections to the component
-        for i in 0..self.in_addrs.len() {
-            if self.in_addrs[i].1 .0 == idx {
-                self.in_addrs.remove(i);
-                self.inputs -= 1;
+        if let Some(prim) = comp.primitive.clone() {
+            match prim {
+                Primitive::Input { bits: _ } => {
+                    self.inputs -= 1;
+                    self.inputs_name.remove(idx);
+                }
+                Primitive::Output { bits: _ } => {
+                    self.outputs_name.remove(idx);
+                }
+                _ => {}
             }
         }
 
-        // Remove output connections from the component
-        for i in 0..self.out_addrs.len() {
-            if self.out_addrs[i].0 == idx {
-                self.out_addrs.remove(i);
-                self.outputs -= 1;
-            }
-        }
+        // Remove input/output connections to the component
+        self.in_addrs.retain(|(i, _)| *i != idx);
+        self.out_addrs.retain(|(i, _)| *i != idx);
 
+        let mut i = 0;
         // Update inputs/outputs indices
-        for i in 0..self.inputs_idx.len() {
+        while i < self.inputs_idx.len() {
+            if self.inputs_idx[i] == idx {
+                self.inputs_idx.remove(i);
+                continue;
+            }
             if self.inputs_idx[i] > idx {
                 self.inputs_idx[i] -= 1;
             }
+            i += 1;
         }
-        for i in 0..self.outputs_idx.len() {
+
+        i = 0;
+        while i < self.outputs_idx.len() {
+            if self.outputs_idx[i] == idx {
+                self.outputs_idx.remove(i);
+                continue;
+            }
             if self.outputs_idx[i] > idx {
                 self.outputs_idx[i] -= 1;
             }
+            i += 1;
         }
 
         // Update connections
-        let mut i = 0;
+        i = 0;
         while i < self.connections.len() {
             let conn = self.connections[i];
 
