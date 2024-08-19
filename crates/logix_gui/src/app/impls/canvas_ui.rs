@@ -74,15 +74,21 @@ impl LogixApp {
                             .hint_text("Board name"),
                     );
                     ui.label("Add Component");
-                    if ui.button("Import Component").clicked() {
-                        let comp_file = FileDialog::new().pick_file();
+                    if self.folder.is_some() && ui.button("Import Component").clicked() {
+                        let comp_file = FileDialog::new()
+                            .set_directory(self.folder.as_ref().unwrap().current_path.clone())
+                            .pick_file();
                         if let Some(comp_file) = comp_file {
-                            if let Ok(_) = self.current_comp.import_comp(
-                                self.last_id,
-                                comp_file,
-                                self.last_click_pos,
-                            ) {
-                                self.last_id += 1;
+                            if let Ok(comp_file) = comp_file
+                                .strip_prefix(self.folder.as_ref().unwrap().current_path.clone())
+                            {
+                                if let Ok(_) = self.current_comp.import_comp(
+                                    self.last_id,
+                                    comp_file.to_path_buf(),
+                                    self.last_click_pos,
+                                ) {
+                                    self.last_id += 1;
+                                }
                             }
                         }
                         ui.close_menu();

@@ -15,7 +15,9 @@ impl LogixApp {
         ui.separator();
         if ui.button("Open folder").clicked() {
             let new_folder = FileDialog::new().pick_folder();
-            self.folder = Some(Folder::from_pathbuf(&new_folder.unwrap()));
+            let path = new_folder.unwrap().clone();
+            self.folder = Some(Folder::from_pathbuf(&path.clone()));
+            std::env::set_current_dir(&path.clone()).unwrap();
             ui.close_menu();
         }
         ui.separator();
@@ -52,7 +54,6 @@ impl LogixApp {
                             self.current_comp.build_component(&mut initial_id).unwrap(),
                         )
                         .unwrap();
-                        println!("{:?}", flatten);
                         self.sim = Some(Simulator::new(flatten));
                         self.sim.as_mut().unwrap().start(true);
                         ui.close_menu();

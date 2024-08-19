@@ -55,40 +55,27 @@ impl LogixApp {
             .show(ui, |ui| {
                 ui.with_layout(egui::Layout::left_to_right(egui::Align::Min), |ui| {
                     // Inputs
-                    let r = ui
-                        .with_layout(egui::Layout::top_down(egui::Align::Min), |ui| {
-                            ui.add_space(in_offset);
-                            for i in 0..in_count {
-                                ui.with_layout(
-                                    egui::Layout::left_to_right(egui::Align::Min),
-                                    |ui| {
-                                        let r = ui
-                                            .add(egui::Label::new(
-                                                egui::RichText::new(format!(
-                                                    " {}",
-                                                    in_names[i].clone()
-                                                ))
-                                                .font(font_id.clone())
-                                                .line_height(Some(font_size_y)),
-                                            ))
-                                            .rect;
-                                        let pos = Pos2::new(r.left(), r.center().y);
-                                        let resp = ui.interact(
-                                            Rect::from_center_size(
-                                                pos,
-                                                Vec2::splat(PIN_SIZE * 2.0),
-                                            ),
-                                            ui.id().with(("input", i, idx)),
-                                            Sense::click_and_drag(),
-                                        );
-                                        in_resps.push(resp);
-                                    },
+                    ui.with_layout(egui::Layout::top_down(egui::Align::Min), |ui| {
+                        ui.add_space(in_offset);
+                        for i in 0..in_count {
+                            ui.with_layout(egui::Layout::left_to_right(egui::Align::Min), |ui| {
+                                let r = ui
+                                    .add(egui::Label::new(
+                                        egui::RichText::new(format!(" {}", in_names[i].clone()))
+                                            .font(font_id.clone())
+                                            .line_height(Some(font_size_y)),
+                                    ))
+                                    .rect;
+                                let pos = Pos2::new(r.left(), r.center().y);
+                                let resp = ui.interact(
+                                    Rect::from_center_size(pos, Vec2::splat(PIN_SIZE * 2.0)),
+                                    ui.id().with(("input", i, idx)),
+                                    Sense::click_and_drag(),
                                 );
-                            }
-                        })
-                        .response
-                        .rect;
-                    println!("r: {:?}", r.size());
+                                in_resps.push(resp);
+                            });
+                        }
+                    });
 
                     // Name
                     ui.with_layout(egui::Layout::top_down(egui::Align::Min), |ui| {
@@ -127,7 +114,6 @@ impl LogixApp {
             })
             .response;
 
-        println!("whole: {:?}", resp.rect.size());
         resp = resp.interact(Sense::click_and_drag());
 
         for i in 0..self.current_comp.connections.len() {
