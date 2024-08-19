@@ -4,28 +4,13 @@ use logix_core::component::PortAddr;
 use logix_sim::Simulator;
 use std::path::PathBuf;
 
-#[derive(Debug, Clone, Copy)]
-pub enum WireDir {
-    Horizontal,
-    Vertical,
-}
-
-impl WireDir {
-    pub fn opposite(&self) -> Self {
-        match self {
-            WireDir::Horizontal => WireDir::Vertical,
-            WireDir::Vertical => WireDir::Horizontal,
-        }
-    }
-}
-
 pub struct LogixApp {
     pub folder: Option<Folder>,
     pub selected_file: Option<PathBuf>,
     pub transform: TSTransform,
     pub board: ComponentBoard,
     pub last_id: usize,
-    pub new_conn: Option<(PortAddr, Vec<(Pos2, WireDir)>)>,
+    pub new_conn: Option<(PortAddr, Vec<Pos2>)>,
     pub last_click_pos: Pos2,
     pub over_connection: Option<usize>,
     pub sim: Option<Simulator>,

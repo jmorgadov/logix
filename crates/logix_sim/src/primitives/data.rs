@@ -66,7 +66,7 @@ impl Data {
         self.value = other.value;
     }
 
-    pub fn show_vec(values: &Vec<Data>) -> String {
+    pub fn show_vec(values: &[Data]) -> String {
         values
             .iter()
             .map(|v| v.to_string())
@@ -158,8 +158,8 @@ mod tests {
         let d1 = Data::bit(true);
         let d2 = Data::bit(false);
 
-        assert_eq!(d1.as_bool(), true);
-        assert_eq!(d2.as_bool(), false);
+        assert!(d1.as_bool());
+        assert!(!d2.as_bool());
     }
 
     #[test]

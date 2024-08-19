@@ -1,4 +1,4 @@
-use crate::{flatten::FlattenComponent, primitives::primitives::Primitive};
+use crate::{flatten::FlattenComponent, primitives::primitive::Primitive};
 use log::debug;
 use rand::seq::SliceRandom;
 use std::{
@@ -83,7 +83,7 @@ impl Simulator {
                 // debug!("Update list: {:?}", self.to_upd);
 
                 let mut state = state_arc.lock().unwrap();
-                if state.running == false {
+                if !state.running {
                     {
                         let _x = state;
                     }

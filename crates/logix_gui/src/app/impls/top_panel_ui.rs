@@ -17,7 +17,7 @@ impl LogixApp {
             let new_folder = FileDialog::new().pick_folder();
             let path = new_folder.unwrap().clone();
             self.folder = Some(Folder::from_pathbuf(&path.clone()));
-            std::env::set_current_dir(&path.clone()).unwrap();
+            std::env::set_current_dir(path.clone()).unwrap();
             ui.close_menu();
         }
         ui.separator();

@@ -1,17 +1,20 @@
 use egui::{emath::TSTransform, Color32, Pos2, Rect, Response, Sense, Ui, Vec2};
 
-use crate::app::{impls::constants::*, logix_app::WireDir, LogixApp};
+use crate::app::{
+    impls::{constants::*, wire_dir::WireDir},
+    LogixApp,
+};
 
 impl LogixApp {
-    pub fn get_ghost_point(last_point: (Pos2, WireDir), cursor_pos: Pos2) -> Pos2 {
-        match last_point.1 {
-            WireDir::Horizontal => Pos2::new(cursor_pos.x, last_point.0.y),
-            WireDir::Vertical => Pos2::new(last_point.0.x, cursor_pos.y),
-        }
-    }
-
     pub fn update_comp_pos(&mut self, idx: usize, new_pos: Pos2) {
         self.board.comp_pos[idx] = new_pos;
+    }
+
+    pub fn get_ghost_point(last_point: Pos2, dir: WireDir, cursor_pos: Pos2) -> Pos2 {
+        match dir {
+            WireDir::Horizontal => Pos2::new(cursor_pos.x, last_point.y),
+            WireDir::Vertical => Pos2::new(last_point.x, cursor_pos.y),
+        }
     }
 
     pub fn _draw_comp(
@@ -57,11 +60,11 @@ impl LogixApp {
                     // Inputs
                     ui.with_layout(egui::Layout::top_down(egui::Align::Min), |ui| {
                         ui.add_space(in_offset);
-                        for i in 0..in_count {
+                        for (i, name) in in_names.iter().enumerate() {
                             ui.with_layout(egui::Layout::left_to_right(egui::Align::Min), |ui| {
                                 let r = ui
                                     .add(egui::Label::new(
-                                        egui::RichText::new(format!(" {}", in_names[i].clone()))
+                                        egui::RichText::new(format!(" {}", name.clone()))
                                             .font(font_id.clone())
                                             .line_height(Some(font_size_y)),
                                     ))
@@ -91,11 +94,11 @@ impl LogixApp {
                     // Outputs
                     ui.with_layout(egui::Layout::top_down(egui::Align::Min), |ui| {
                         ui.add_space(out_offset);
-                        for i in 0..out_count {
+                        for (i, name) in out_names.iter().enumerate() {
                             ui.with_layout(egui::Layout::left_to_right(egui::Align::Min), |ui| {
                                 let r = ui
                                     .add(egui::Label::new(
-                                        egui::RichText::new(format!("{} ", out_names[i].clone()))
+                                        egui::RichText::new(format!("{} ", name.clone()))
                                             .font(font_id.clone())
                                             .line_height(Some(font_size_y)),
                                     ))

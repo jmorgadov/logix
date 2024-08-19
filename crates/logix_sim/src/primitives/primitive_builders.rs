@@ -1,4 +1,4 @@
-use super::{data::Data, prelude::ExtraInfo, primitives::Primitive};
+use super::{data::Data, prelude::ExtraInfo, primitive::Primitive};
 use logix_core::prelude::*;
 
 fn base_component_extra(

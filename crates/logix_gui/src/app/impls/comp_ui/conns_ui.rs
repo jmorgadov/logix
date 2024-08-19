@@ -1,6 +1,9 @@
-use egui::{epaint::PathShape, Color32, Pos2, Rangef, Rect, Sense, Shape, Stroke};
+use egui::{epaint::PathShape, Color32, Pos2, Rect, Sense, Shape, Stroke};
 
-use crate::app::{impls::constants::*, logix_app::WireDir, LogixApp};
+use crate::app::{
+    impls::{constants::*, wire_dir::WireDir},
+    LogixApp,
+};
 
 impl LogixApp {
     pub fn draw_comp_conns(
@@ -18,28 +21,13 @@ impl LogixApp {
                 let mut to_remove: Vec<usize> = vec![];
                 let points: Vec<Pos2> = self.board.comp_conns[i].points.clone();
 
-                let mut c_orient = WireDir::Horizontal;
                 for j in 0..points.len() - 1 {
                     let p1 = points[j];
                     let p2 = points[j + 1];
-
-                    let min_x = p1.x.min(p2.x);
-                    let max_x = p1.x.max(p2.x);
-                    let min_y = p1.y.min(p2.y);
-                    let max_y = p1.y.max(p2.y);
-                    let sub_wire_rect = match c_orient {
-                        WireDir::Horizontal => Rect::from_x_y_ranges(
-                            Rangef::new(min_x, max_x),
-                            Rangef::new(min_y - 4.0, max_y + 4.0),
-                        ),
-                        WireDir::Vertical => Rect::from_x_y_ranges(
-                            Rangef::new(min_x - 4.0, max_x + 4.0),
-                            Rangef::new(min_y, max_y),
-                        ),
-                    };
+                    let c_orient = WireDir::get_dir(j);
 
                     let resp = ui.interact(
-                        sub_wire_rect,
+                        Rect::from_two_pos(p1, p2).expand(4.0),
                         ui.id().with(("wire", i, j)),
                         Sense::click_and_drag(),
                     );
@@ -121,7 +109,6 @@ impl LogixApp {
                     if j > 0 {
                         ui.painter().add(Shape::circle_filled(p1, 3.0, color));
                     }
-                    c_orient = c_orient.opposite();
                 }
 
                 for p in to_add {

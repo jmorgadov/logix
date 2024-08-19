@@ -1,5 +1,5 @@
 use egui::Ui;
-use logix_sim::primitives::primitives::Primitive;
+use logix_sim::primitives::primitive::Primitive;
 
 use crate::app::LogixApp;
 

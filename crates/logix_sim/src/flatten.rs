@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use crate::primitives::{
     data::Data,
     prelude::Primitive,
-    primitives::{ExtraInfo, PrimitiveComponent},
+    primitive::{ExtraInfo, PrimitiveComponent},
 };
 use log::*;
 use logix_core::prelude::*;
@@ -99,7 +99,7 @@ impl FlattenComponent {
         &self.components[*self
             .id_to_idx
             .get(&id)
-            .expect(format!("Component {} not found", id).as_str())]
+            .unwrap_or_else(|| panic!("Component {} not found", id))]
     }
 
     pub fn get_input_status_at(&self, id: usize, idx: usize) -> Data {
@@ -124,7 +124,7 @@ impl FlattenComponent {
                 NestedConfig::Compose(_, subs, _, _) => {
                     comp = subs
                         .get(id)
-                        .expect(format!("Component {} not found", id).as_str());
+                        .unwrap_or_else(|| panic!("Component {} not found", id));
                 }
                 _ => panic!("Component not found"),
             }

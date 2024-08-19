@@ -56,17 +56,11 @@ impl Primitive {
     }
 
     pub fn is_input(&self) -> bool {
-        match self {
-            Primitive::Input { bits: _ } => true,
-            _ => false,
-        }
+        matches!(self, Primitive::Input { bits: _ })
     }
 
     pub fn is_output(&self) -> bool {
-        match self {
-            Primitive::Output { bits: _ } => true,
-            _ => false,
-        }
+        matches!(self, Primitive::Output { bits: _ })
     }
 }
 
@@ -203,8 +197,8 @@ impl PrimitiveComponent {
             id,
             name: "Input".to_string(),
             prim_type: Primitive::Input { bits },
-            inputs: vec![Data::new(0, bits as u8)],
-            outputs: vec![Data::new(0, bits as u8)],
+            inputs: vec![Data::new(0, bits)],
+            outputs: vec![Data::new(0, bits)],
         }
     }
 
@@ -213,8 +207,8 @@ impl PrimitiveComponent {
             id,
             name: "Output".to_string(),
             prim_type: Primitive::Output { bits },
-            inputs: vec![Data::new(0, bits as u8)],
-            outputs: vec![Data::new(0, bits as u8)],
+            inputs: vec![Data::new(0, bits)],
+            outputs: vec![Data::new(0, bits)],
         }
     }
 
@@ -223,7 +217,7 @@ impl PrimitiveComponent {
             id,
             name: "Splitter".to_string(),
             prim_type: Primitive::Splitter { bits },
-            inputs: vec![Data::new(0, bits as u8)],
+            inputs: vec![Data::new(0, bits)],
             outputs: vec![Data::low(); bits as usize],
         }
     }
@@ -234,7 +228,7 @@ impl PrimitiveComponent {
             name: "Joiner".to_string(),
             prim_type: Primitive::Joiner { bits },
             inputs: vec![Data::low(); bits as usize],
-            outputs: vec![Data::new(0, bits as u8)],
+            outputs: vec![Data::new(0, bits)],
         }
     }
 

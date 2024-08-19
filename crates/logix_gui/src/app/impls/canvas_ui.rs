@@ -1,7 +1,7 @@
 use egui::{emath::TSTransform, epaint::PathShape, Color32, Id, Rect, Shape, Stroke, Ui};
 use rfd::FileDialog;
 
-use crate::app::LogixApp;
+use crate::app::{impls::wire_dir::WireDir, LogixApp};
 
 impl LogixApp {
     pub fn draw_canvas(&mut self, ctx: &egui::Context) {
@@ -51,17 +51,18 @@ impl LogixApp {
 
             if self.new_conn.is_some() {
                 let new_conn = self.new_conn.as_mut().unwrap();
-                if response.hovered() {
-                    if response.clicked_by(egui::PointerButton::Primary) {
-                        let last_point = new_conn.1.last().unwrap();
-                        let cursor_pos =
-                            transform.inverse() * response.interact_pointer_pos().unwrap();
-                        let new_point = Self::get_ghost_point(last_point.clone(), cursor_pos);
-                        new_conn.1.push((new_point, last_point.1.opposite()));
-                    }
+                if response.hovered() && response.clicked_by(egui::PointerButton::Primary) {
+                    let last_point = *new_conn.1.last().unwrap();
+                    let cursor_pos = transform.inverse() * response.interact_pointer_pos().unwrap();
+                    let new_point = Self::get_ghost_point(
+                        last_point,
+                        WireDir::get_dir(new_conn.1.len()),
+                        cursor_pos,
+                    );
+                    new_conn.1.push(new_point);
                 }
                 ui.painter().add(Shape::Path(PathShape::line(
-                    new_conn.1.iter().map(|(p, _)| transform * *p).collect(),
+                    new_conn.1.iter().map(|p| transform * *p).collect(),
                     Stroke::new(2.0, Color32::WHITE),
                 )));
             }
@@ -81,11 +82,15 @@ impl LogixApp {
                             if let Ok(comp_file) = comp_file
                                 .strip_prefix(self.folder.as_ref().unwrap().current_path.clone())
                             {
-                                if let Ok(_) = self.board.import_comp(
-                                    self.last_id,
-                                    comp_file.to_path_buf(),
-                                    self.last_click_pos,
-                                ) {
+                                if self
+                                    .board
+                                    .import_comp(
+                                        self.last_id,
+                                        comp_file.to_path_buf(),
+                                        self.last_click_pos,
+                                    )
+                                    .is_ok()
+                                {
                                     self.last_id += 1;
                                 }
                             }

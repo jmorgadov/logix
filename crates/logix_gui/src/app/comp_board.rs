@@ -4,7 +4,7 @@ use egui::Pos2;
 use logix_core::component::{Component, Conn, PortAddr, SubComponent};
 use logix_sim::primitives::{
     data::Data,
-    primitives::{ExtraInfo, Primitive},
+    primitive::{ExtraInfo, Primitive},
 };
 use serde::{Deserialize, Serialize};
 
@@ -61,7 +61,7 @@ impl ComponentInfo {
 
         assert!(self.source.is_some());
         let source = self.source.clone().unwrap();
-        let serialized = match std::fs::read_to_string(&source) {
+        let serialized = match std::fs::read_to_string(source) {
             Ok(serialized) => serialized,
             Err(_) => return Err(()),
         };
@@ -347,7 +347,7 @@ impl ComponentBoard {
         let id = *last_id;
         *last_id += 1;
         Ok(Component {
-            id: id,
+            id,
             name: Some(self.name.clone()),
             inputs: self.inputs,
             outputs: self.outputs,
@@ -363,7 +363,7 @@ impl ComponentBoard {
         ComponentInfo {
             id,
             name: self.name.clone(),
-            source: source,
+            source,
             primitive: None,
             inputs_name: self.inputs_name.clone(),
             outputs_name: self.outputs_name.clone(),
@@ -537,7 +537,7 @@ impl ComponentBoard {
     }
 
     pub fn remove_conn(&mut self, idx: usize) {
-        let conn = self.connections[idx].clone();
+        let conn = self.connections[idx];
         self.connections.remove(idx);
         self.comp_conns.remove(idx);
 

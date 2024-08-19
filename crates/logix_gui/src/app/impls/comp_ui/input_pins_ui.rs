@@ -1,6 +1,9 @@
 use egui::{Color32, Response, Sense, Shape, Ui};
 
-use crate::app::{impls::constants::*, logix_app::WireDir, LogixApp};
+use crate::app::{
+    impls::{constants::*, wire_dir::WireDir},
+    LogixApp,
+};
 
 impl LogixApp {
     pub fn draw_input_pins(&mut self, ui: &mut Ui, idx: usize, inputs: Vec<Response>) {
@@ -34,20 +37,15 @@ impl LogixApp {
                         == self.board.components[idx].inputs_data[i].size
                 {
                     connection_added = true;
-                    let last_point = points.last().unwrap().clone();
-                    let next_orientation = last_point.1.opposite();
-                    let ghost_point = Self::get_ghost_point(last_point, pin_pos);
-                    points.push((ghost_point, next_orientation));
-                    points.push((pin_pos, WireDir::Horizontal));
+                    let last_point = points.last().unwrap();
+                    let ghost_point =
+                        Self::get_ghost_point(*last_point, WireDir::get_dir(points.len()), pin_pos);
+                    points.push(ghost_point);
+                    points.push(pin_pos);
 
                     let to_conn = (idx, i);
-                    self.board.add_conn(
-                        from.0,
-                        to_conn.0,
-                        from.1,
-                        to_conn.1,
-                        points.iter().map(|(p, _)| *p).collect(),
-                    );
+                    self.board
+                        .add_conn(from.0, to_conn.0, from.1, to_conn.1, points.clone());
                 }
             }
             if connection_added {

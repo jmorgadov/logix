@@ -1,6 +1,6 @@
 use egui::{Color32, Response, Sense, Shape, Ui};
 
-use crate::app::{impls::constants::*, logix_app::WireDir, LogixApp};
+use crate::app::{impls::constants::*, LogixApp};
 
 impl LogixApp {
     pub fn draw_output_pins(&mut self, ui: &mut Ui, idx: usize, outputs: Vec<Response>) {
@@ -19,10 +19,10 @@ impl LogixApp {
                 Color32::LIGHT_GRAY
             };
             ui.painter()
-                .add(Shape::circle_filled(pin_pos.clone(), PIN_SIZE / 2.0, color));
+                .add(Shape::circle_filled(pin_pos, PIN_SIZE / 2.0, color));
 
             if resp.clicked() {
-                self.new_conn = Some(((idx, i), vec![(pin_pos.clone(), WireDir::Horizontal)]));
+                self.new_conn = Some(((idx, i), vec![pin_pos]));
             }
         }
     }
