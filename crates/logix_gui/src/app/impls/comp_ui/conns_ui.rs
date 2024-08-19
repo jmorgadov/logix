@@ -10,17 +10,13 @@ impl LogixApp {
         over_conn: &mut Option<usize>,
     ) {
         let mut i = 0;
-        while i < self.current_comp.connections.len() {
-            let conn = &self.current_comp.connections[i];
+        while i < self.board.connections.len() {
+            let conn = &self.board.connections[i];
             if conn.from.0 == idx {
                 let from_port = conn.from.1;
                 let mut to_add: Vec<(usize, Pos2, WireDir)> = vec![];
                 let mut to_remove: Vec<usize> = vec![];
-                let points: Vec<Pos2> = self.current_comp.comp_conns[i]
-                    .points
-                    .iter()
-                    .map(|p| (*p))
-                    .collect();
+                let points: Vec<Pos2> = self.board.comp_conns[i].points.clone();
 
                 let mut c_orient = WireDir::Horizontal;
                 for j in 0..points.len() - 1 {
@@ -64,12 +60,12 @@ impl LogixApp {
                         let delta = resp.drag_delta();
                         match c_orient {
                             WireDir::Vertical => {
-                                self.current_comp.comp_conns[i].points[j].x += delta.x;
-                                self.current_comp.comp_conns[i].points[j + 1].x += delta.x;
+                                self.board.comp_conns[i].points[j].x += delta.x;
+                                self.board.comp_conns[i].points[j + 1].x += delta.x;
                             }
                             WireDir::Horizontal => {
-                                self.current_comp.comp_conns[i].points[j].y += delta.y;
-                                self.current_comp.comp_conns[i].points[j + 1].y += delta.y;
+                                self.board.comp_conns[i].points[j].y += delta.y;
+                                self.board.comp_conns[i].points[j + 1].y += delta.y;
                             }
                         }
                     }
@@ -92,19 +88,19 @@ impl LogixApp {
                             to_add.push((j + 1, self.last_click_pos, c_orient));
                         }
                         if ui.button("Remove Connection").clicked() {
-                            self.current_comp.remove_conn(i);
+                            self.board.remove_conn(i);
                         }
                     });
 
                     if self.sim.is_some() {
-                        let data = self.current_comp.components[idx].outputs_data[from_port];
+                        let data = self.board.components[idx].outputs_data[from_port];
                         let val_in_bits =
                             format!("{:0width$b}", data.value, width = data.size as usize);
                         resp.on_hover_text(format!("{} - {}", val_in_bits, data.value));
                     }
 
                     let color = if self.sim.is_some() {
-                        match self.current_comp.components[idx].outputs_data[from_port].value {
+                        match self.board.components[idx].outputs_data[from_port].value {
                             0 => LOW_COLOR,
                             _ => HIGH_COLOR,
                         }
@@ -115,7 +111,7 @@ impl LogixApp {
                     };
 
                     let is_one_bit_data =
-                        self.current_comp.components[idx].outputs_data[from_port].size == 1;
+                        self.board.components[idx].outputs_data[from_port].size == 1;
                     let stroke_with = if is_one_bit_data { 2.0 } else { 4.0 };
 
                     ui.painter().add(Shape::Path(PathShape::line(
@@ -129,13 +125,13 @@ impl LogixApp {
                 }
 
                 for p in to_add {
-                    self.current_comp.comp_conns[i].points.insert(p.0, p.1);
+                    self.board.comp_conns[i].points.insert(p.0, p.1);
                 }
 
                 to_remove.sort();
                 to_remove.reverse();
                 for idx in to_remove {
-                    self.current_comp.comp_conns[i].points.remove(idx);
+                    self.board.comp_conns[i].points.remove(idx);
                 }
             }
             i += 1;

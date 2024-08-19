@@ -27,7 +27,7 @@ impl LogixApp {
                 file = file.set_directory(folder.current_path.clone());
             }
             if let Some(new_folder) = file.pick_file() {
-                let _ = self.current_comp.save(&new_folder);
+                let _ = self.board.save(&new_folder);
             }
             ui.close_menu();
         }
@@ -56,7 +56,7 @@ impl LogixApp {
                     if ui.button("Start").clicked() {
                         let mut initial_id = 0;
                         let flatten = FlattenComponent::new(
-                            self.current_comp.build_component(&mut initial_id).unwrap(),
+                            self.board.build_component(&mut initial_id).unwrap(),
                         )
                         .unwrap();
                         self.sim = Some(Simulator::new(flatten));

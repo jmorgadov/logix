@@ -23,7 +23,7 @@ pub struct LogixApp {
     pub folder: Option<Folder>,
     pub selected_file: Option<PathBuf>,
     pub transform: TSTransform,
-    pub current_comp: ComponentBoard,
+    pub board: ComponentBoard,
     pub last_id: usize,
     pub new_conn: Option<(PortAddr, Vec<(Pos2, WireDir)>)>,
     pub last_click_pos: Pos2,
@@ -42,7 +42,7 @@ impl Default for LogixApp {
             folder,
             selected_file: None,
             transform: TSTransform::default(),
-            current_comp: Default::default(),
+            board: Default::default(),
             last_id: 0,
             last_click_pos: Pos2::ZERO,
             new_conn: None,
@@ -62,7 +62,7 @@ impl LogixApp {
     }
 
     pub fn new_board(&mut self) {
-        self.current_comp = Default::default();
+        self.board = Default::default();
         self.last_id = 0;
         self.reset_field();
     }
@@ -70,39 +70,46 @@ impl LogixApp {
     pub fn load_board(&mut self, path: &PathBuf) {
         let comp_res = ComponentBoard::load(path);
         if let Ok(comp) = comp_res {
-            self.current_comp = comp;
+            self.board = comp;
             self.last_id = self
-                .current_comp
+                .board
                 .components
                 .iter()
                 .map(|c| c.id)
                 .max()
-                .unwrap()
+                .unwrap_or_default()
                 + 1;
             self.reset_field();
         }
     }
 
     pub fn update_comp_vals(&mut self) {
-        if let None = self.sim {
-            return;
-        }
-
-        let sim = self.sim.as_mut().unwrap();
+        let sim = match self.sim.as_mut() {
+            Some(sim) => sim,
+            None => return,
+        };
         sim.component(|comp| {
-            for i in 0..self.current_comp.components.len() {
-                for j in 0..self.current_comp.components[i].input_count() {
-                    let (id, idx) = self.current_comp.components[i].inputs_data_idx[j];
-                    let data = comp.get_input_status_at(id, idx);
-                    self.current_comp.components[i].inputs_data[j] = data;
-                }
+            self.board.components.iter_mut().for_each(|board_comp| {
+                // Update inputs data
+                board_comp
+                    .inputs_data
+                    .iter_mut()
+                    .enumerate()
+                    .for_each(|(i, data)| {
+                        let (id, idx) = board_comp.inputs_data_idx[i];
+                        *data = comp.get_input_status_at(id, idx);
+                    });
 
-                for j in 0..self.current_comp.components[i].output_count() {
-                    let (id, idx) = self.current_comp.components[i].outputs_data_idx[j];
-                    let data = comp.get_output_status_at(id, idx);
-                    self.current_comp.components[i].outputs_data[j] = data;
-                }
-            }
+                // Update outputs data
+                board_comp
+                    .outputs_data
+                    .iter_mut()
+                    .enumerate()
+                    .for_each(|(i, data)| {
+                        let (id, idx) = board_comp.outputs_data_idx[i];
+                        *data = comp.get_output_status_at(id, idx);
+                    });
+            });
         });
     }
 }

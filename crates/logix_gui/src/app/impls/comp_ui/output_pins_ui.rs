@@ -9,7 +9,7 @@ impl LogixApp {
             let resp = ui.interact(resp.rect, resp.id.with(i), Sense::click_and_drag());
 
             let color = if self.sim.is_some() {
-                match self.current_comp.components[idx].outputs_data[i].value {
+                match self.board.components[idx].outputs_data[i].value {
                     0 => LOW_COLOR,
                     _ => HIGH_COLOR,
                 }

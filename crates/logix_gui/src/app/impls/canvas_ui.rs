@@ -70,8 +70,7 @@ impl LogixApp {
                 response.context_menu(|ui| {
                     ui.label("Board");
                     ui.add(
-                        egui::TextEdit::singleline(&mut self.current_comp.name)
-                            .hint_text("Board name"),
+                        egui::TextEdit::singleline(&mut self.board.name).hint_text("Board name"),
                     );
                     ui.label("Add Component");
                     if self.folder.is_some() && ui.button("Import Component").clicked() {
@@ -82,7 +81,7 @@ impl LogixApp {
                             if let Ok(comp_file) = comp_file
                                 .strip_prefix(self.folder.as_ref().unwrap().current_path.clone())
                             {
-                                if let Ok(_) = self.current_comp.import_comp(
+                                if let Ok(_) = self.board.import_comp(
                                     self.last_id,
                                     comp_file.to_path_buf(),
                                     self.last_click_pos,
@@ -94,27 +93,25 @@ impl LogixApp {
                         ui.close_menu();
                     }
                     if ui.button("Clock").clicked() {
-                        self.current_comp
-                            .add_clock_gate(self.last_id, self.last_click_pos);
+                        self.board.add_clock_gate(self.last_id, self.last_click_pos);
                         self.last_id += 1;
                         ui.close_menu();
                     }
                     if ui.button("High Const").clicked() {
-                        self.current_comp
+                        self.board
                             .add_const_high_gate(self.last_id, self.last_click_pos);
                         self.last_id += 1;
                         ui.close_menu();
                     }
                     if ui.button("Low Const").clicked() {
-                        self.current_comp
+                        self.board
                             .add_const_low_gate(self.last_id, self.last_click_pos);
                         self.last_id += 1;
                         ui.close_menu();
                     }
 
                     if ui.button("Not").clicked() {
-                        self.current_comp
-                            .add_not_gate(self.last_id, self.last_click_pos);
+                        self.board.add_not_gate(self.last_id, self.last_click_pos);
                         self.last_id += 1;
                         ui.close_menu();
                     }
@@ -122,8 +119,7 @@ impl LogixApp {
                     ui.menu_button("Input", |ui| {
                         for i in 1..=8 {
                             if ui.button(format!("{} Bits", i)).clicked() {
-                                self.current_comp
-                                    .add_input(self.last_id, i, self.last_click_pos);
+                                self.board.add_input(self.last_id, i, self.last_click_pos);
                                 self.last_id += 1;
                                 ui.close_menu();
                             }
@@ -133,8 +129,7 @@ impl LogixApp {
                     ui.menu_button("Output", |ui| {
                         for i in 1..=8 {
                             if ui.button(format!("{} Bits", i)).clicked() {
-                                self.current_comp
-                                    .add_output(self.last_id, i, self.last_click_pos);
+                                self.board.add_output(self.last_id, i, self.last_click_pos);
                                 self.last_id += 1;
                                 ui.close_menu();
                             }
@@ -144,11 +139,8 @@ impl LogixApp {
                     ui.menu_button("And Gate", |ui| {
                         for i in 2..=8 {
                             if ui.button(format!("{} Inputs", i)).clicked() {
-                                self.current_comp.add_and_gate(
-                                    self.last_id,
-                                    i,
-                                    self.last_click_pos,
-                                );
+                                self.board
+                                    .add_and_gate(self.last_id, i, self.last_click_pos);
                                 self.last_id += 1;
                                 ui.close_menu();
                             }
@@ -157,11 +149,8 @@ impl LogixApp {
                     ui.menu_button("Nand Gate", |ui| {
                         for i in 2..=8 {
                             if ui.button(format!("{} Inputs", i)).clicked() {
-                                self.current_comp.add_nand_gate(
-                                    self.last_id,
-                                    i,
-                                    self.last_click_pos,
-                                );
+                                self.board
+                                    .add_nand_gate(self.last_id, i, self.last_click_pos);
                                 self.last_id += 1;
                                 ui.close_menu();
                             }
@@ -170,8 +159,7 @@ impl LogixApp {
                     ui.menu_button("Or Gate", |ui| {
                         for i in 2..=8 {
                             if ui.button(format!("{} Inputs", i)).clicked() {
-                                self.current_comp
-                                    .add_or_gate(self.last_id, i, self.last_click_pos);
+                                self.board.add_or_gate(self.last_id, i, self.last_click_pos);
                                 self.last_id += 1;
                                 ui.close_menu();
                             }
@@ -181,11 +169,8 @@ impl LogixApp {
                     ui.menu_button("Nor Gate", |ui| {
                         for i in 2..=8 {
                             if ui.button(format!("{} Inputs", i)).clicked() {
-                                self.current_comp.add_nor_gate(
-                                    self.last_id,
-                                    i,
-                                    self.last_click_pos,
-                                );
+                                self.board
+                                    .add_nor_gate(self.last_id, i, self.last_click_pos);
                                 self.last_id += 1;
                                 ui.close_menu();
                             }
@@ -195,11 +180,8 @@ impl LogixApp {
                     ui.menu_button("Xor Gate", |ui| {
                         for i in 2..=8 {
                             if ui.button(format!("{} Inputs", i)).clicked() {
-                                self.current_comp.add_xor_gate(
-                                    self.last_id,
-                                    i,
-                                    self.last_click_pos,
-                                );
+                                self.board
+                                    .add_xor_gate(self.last_id, i, self.last_click_pos);
                                 self.last_id += 1;
                                 ui.close_menu();
                             }
@@ -209,8 +191,7 @@ impl LogixApp {
                     ui.menu_button("Joiner", |ui| {
                         for i in 2..=8 {
                             if ui.button(format!("{} Inputs", i)).clicked() {
-                                self.current_comp
-                                    .add_joiner(self.last_id, i, self.last_click_pos);
+                                self.board.add_joiner(self.last_id, i, self.last_click_pos);
                                 self.last_id += 1;
                                 ui.close_menu();
                             }
@@ -220,11 +201,8 @@ impl LogixApp {
                     ui.menu_button("Splitter", |ui| {
                         for i in 2..=8 {
                             if ui.button(format!("{} Outputs", i)).clicked() {
-                                self.current_comp.add_splitter(
-                                    self.last_id,
-                                    i,
-                                    self.last_click_pos,
-                                );
+                                self.board
+                                    .add_splitter(self.last_id, i, self.last_click_pos);
                                 self.last_id += 1;
                                 ui.close_menu();
                             }
@@ -245,9 +223,9 @@ impl LogixApp {
         let window_layer = ui.layer_id();
         let mut over_conn: Option<usize> = None;
         let mut i = 0;
-        while i < self.current_comp.components.len() {
+        while i < self.board.components.len() {
             let id = egui::Area::new(id.with(("subc", i)))
-                .fixed_pos(self.current_comp.comp_pos[i])
+                .fixed_pos(self.board.comp_pos[i])
                 .constrain(false)
                 .show(ui.ctx(), |ui| {
                     ui.set_clip_rect(transform.inverse() * rect);

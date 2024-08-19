@@ -11,7 +11,7 @@ impl LogixApp {
     }
 
     pub fn update_comp_pos(&mut self, idx: usize, new_pos: Pos2) {
-        self.current_comp.comp_pos[idx] = new_pos;
+        self.board.comp_pos[idx] = new_pos;
     }
 
     pub fn _draw_comp(
@@ -22,8 +22,8 @@ impl LogixApp {
         let font_size_y = 15.0;
         let font_id = egui::FontId::monospace(font_size_y);
 
-        let in_count = self.current_comp.components[idx].input_count();
-        let out_count = self.current_comp.components[idx].output_count();
+        let in_count = self.board.components[idx].input_count();
+        let out_count = self.board.components[idx].output_count();
 
         let in_height = (in_count as f32) * font_size_y;
         let out_height = (out_count as f32) * font_size_y;
@@ -39,8 +39,8 @@ impl LogixApp {
         let mut in_resps = vec![];
         let mut out_resps = vec![];
 
-        let in_names = &self.current_comp.components[idx].inputs_name;
-        let out_names = &self.current_comp.components[idx].outputs_name;
+        let in_names = &self.board.components[idx].inputs_name;
+        let out_names = &self.board.components[idx].outputs_name;
 
         let out_names_max_len = out_names.iter().map(|x| x.len()).max().unwrap_or(0);
         let out_names = out_names
@@ -81,7 +81,7 @@ impl LogixApp {
                     ui.with_layout(egui::Layout::top_down(egui::Align::Min), |ui| {
                         ui.add_space(name_offset);
                         ui.add(egui::Label::new(
-                            egui::RichText::new(self.current_comp.components[idx].name.clone())
+                            egui::RichText::new(self.board.components[idx].name.clone())
                                 .font(font_id.clone())
                                 .line_height(Some(font_size_y))
                                 .color(Color32::WHITE),
@@ -116,9 +116,9 @@ impl LogixApp {
 
         resp = resp.interact(Sense::click_and_drag());
 
-        for i in 0..self.current_comp.connections.len() {
-            let conn = &self.current_comp.connections[i];
-            let conn_info = &mut self.current_comp.comp_conns[i];
+        for i in 0..self.board.connections.len() {
+            let conn = &self.board.connections[i];
+            let conn_info = &mut self.board.comp_conns[i];
 
             // If it is an output connection
             if conn.from.0 == idx {
@@ -182,7 +182,7 @@ impl LogixApp {
         // Handle dragging the component
         // -----------------------------------------------------------------------------
         if resp.dragged() && self.new_conn.is_none() {
-            self.update_comp_pos(idx, self.current_comp.comp_pos[idx] + resp.drag_delta());
+            self.update_comp_pos(idx, self.board.comp_pos[idx] + resp.drag_delta());
         }
 
         // -----------------------------------------------------------------------------
@@ -198,7 +198,7 @@ impl LogixApp {
             resp.context_menu(|ui| {
                 self.specific_comp_context_menu(ui, idx);
                 if ui.button("Remove").clicked() {
-                    self.current_comp.remove_comp(idx);
+                    self.board.remove_comp(idx);
                     ui.close_menu();
                 }
             });

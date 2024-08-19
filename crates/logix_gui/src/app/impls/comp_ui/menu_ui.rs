@@ -5,7 +5,7 @@ use crate::app::LogixApp;
 
 impl LogixApp {
     pub fn specific_comp_context_menu(&mut self, ui: &mut Ui, idx: usize) {
-        let comp = self.current_comp.components.get_mut(idx).unwrap();
+        let comp = self.board.components.get_mut(idx).unwrap();
         if let Some(prim) = &mut comp.primitive {
             match prim {
                 Primitive::Clock { period: current_p } => {
@@ -29,25 +29,25 @@ impl LogixApp {
                 Primitive::XorGate => {}
                 Primitive::Input { bits: _ } => {
                     let in_idx = self
-                        .current_comp
+                        .board
                         .inputs_idx
                         .iter()
                         .position(|&x| x == idx)
                         .unwrap();
                     ui.add(
-                        egui::TextEdit::singleline(&mut self.current_comp.inputs_name[in_idx])
+                        egui::TextEdit::singleline(&mut self.board.inputs_name[in_idx])
                             .hint_text("Name"),
                     );
                 }
                 Primitive::Output { bits: _ } => {
                     let out_idx = self
-                        .current_comp
+                        .board
                         .outputs_idx
                         .iter()
                         .position(|&x| x == idx)
                         .unwrap();
                     ui.add(
-                        egui::TextEdit::singleline(&mut self.current_comp.outputs_name[out_idx])
+                        egui::TextEdit::singleline(&mut self.board.outputs_name[out_idx])
                             .hint_text("Name"),
                     );
                 }
