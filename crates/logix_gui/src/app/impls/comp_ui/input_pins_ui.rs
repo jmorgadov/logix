@@ -1,4 +1,4 @@
-use egui::{Color32, Response, Shape, Ui};
+use egui::{Color32, Response, Sense, Shape, Ui};
 
 use crate::app::{impls::constants::*, logix_app::WireDir, LogixApp};
 
@@ -6,6 +6,9 @@ impl LogixApp {
     pub fn draw_input_pins(&mut self, ui: &mut Ui, idx: usize, inputs: Vec<Response>) {
         for (i, resp) in inputs.into_iter().enumerate() {
             let pin_pos = resp.rect.center();
+
+            let resp = ui.interact(resp.rect, resp.id.with(i), Sense::click_and_drag());
+
             ui.painter()
                 .add(Shape::circle_filled(pin_pos, PIN_SIZE / 2.0, Color32::GRAY));
 

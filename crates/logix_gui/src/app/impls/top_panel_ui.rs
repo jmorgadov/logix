@@ -9,6 +9,7 @@ impl LogixApp {
         ui.set_max_width(200.0); // To make sure we wrap long text
 
         if ui.button("New Board").clicked() {
+            self.new_board();
             ui.close_menu();
         }
         ui.separator();

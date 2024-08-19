@@ -61,6 +61,12 @@ impl LogixApp {
         self.sim = None;
     }
 
+    pub fn new_board(&mut self) {
+        self.current_comp = Default::default();
+        self.last_id = 0;
+        self.reset_field();
+    }
+
     pub fn load_board(&mut self, path: &PathBuf) {
         let comp_res = ComponentBoard::load(path);
         if let Ok(comp) = comp_res {
