@@ -22,16 +22,21 @@ impl LogixApp {
         }
         ui.separator();
         if ui.button("Save board").clicked() {
-            let file = FileDialog::new().save_file();
-            if let Some(new_folder) = file {
+            let mut file = FileDialog::new();
+            if let Some(folder) = &self.folder {
+                file = file.set_directory(folder.current_path.clone());
+            }
+            if let Some(new_folder) = file.pick_file() {
                 let _ = self.current_comp.save(&new_folder);
             }
             ui.close_menu();
         }
         if ui.button("Load board").clicked() {
-            let mut file = FileDialog::new().pick_file();
-            if let Some(new_file) = file.as_mut() {
-                new_file.set_extension("json");
+            let mut file = FileDialog::new();
+            if let Some(folder) = &self.folder {
+                file = file.set_directory(folder.current_path.clone());
+            }
+            if let Some(new_file) = file.pick_file() {
                 self.load_board(&new_file);
             }
             ui.close_menu();
