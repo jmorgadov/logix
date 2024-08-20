@@ -111,16 +111,11 @@ impl LogixApp {
     }
 
     pub fn run_current_sim(&mut self) {
-        let mut initial_id = 0;
-        let flatten =
-            FlattenComponent::new(self.board_mut().build_component(&mut initial_id).unwrap())
-                .unwrap();
-        self.board_editing_mut().sim = Some(Simulator::new(flatten));
-        self.board_editing_mut().sim.as_mut().unwrap().start(true);
+        self.board_editing_mut().run_sim();
     }
 
     pub fn stop_current_sim(&mut self) {
-        self.board_editing_mut().sim = None;
+        self.board_editing_mut().stop_sim()
     }
 
     pub fn draw_tabs(&mut self, ctx: &egui::Context) {

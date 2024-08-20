@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use egui::{emath::TSTransform, Pos2};
 use logix_core::component::PortAddr;
-use logix_sim::Simulator;
+use logix_sim::{flatten::FlattenComponent, Simulator};
 
 use super::comp_board::ComponentBoard;
 
@@ -25,6 +25,18 @@ impl BoardEditing {
 
     pub fn is_empty(&self) -> bool {
         self.board.components.is_empty()
+    }
+
+    pub fn run_sim(&mut self) {
+        let mut initial_id = 0;
+        let flatten =
+            FlattenComponent::new(self.board.build_component(&mut initial_id).unwrap()).unwrap();
+        self.sim = Some(Simulator::new(flatten));
+        self.sim.as_mut().unwrap().start(true);
+    }
+
+    pub fn stop_sim(&mut self) {
+        self.sim = None;
     }
 
     pub fn update_comp_vals(&mut self) {
