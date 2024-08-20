@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use egui::Ui;
 use logix_sim::{flatten::FlattenComponent, Simulator};
 use rfd::FileDialog;
@@ -5,6 +7,20 @@ use rfd::FileDialog;
 use crate::app::{folder_tree::Folder, LogixApp};
 
 impl LogixApp {
+    pub fn save_board(&mut self, path: Option<&PathBuf>) {
+        if let Some(file_path) = path {
+            let _ = self.board().save(file_path);
+            return;
+        }
+        let mut file = FileDialog::new();
+        if let Some(folder) = &self.folder {
+            file = file.set_directory(folder.current_path.clone());
+        }
+        if let Some(new_folder) = file.pick_file() {
+            let _ = self.board().save(&new_folder);
+        }
+    }
+
     fn file_menu(&mut self, ui: &mut Ui) {
         ui.set_max_width(200.0); // To make sure we wrap long text
 
@@ -22,13 +38,8 @@ impl LogixApp {
         }
         ui.separator();
         if ui.button("Save board").clicked() {
-            let mut file = FileDialog::new();
-            if let Some(folder) = &self.folder {
-                file = file.set_directory(folder.current_path.clone());
-            }
-            if let Some(new_folder) = file.pick_file() {
-                let _ = self.board().save(&new_folder);
-            }
+            let path = self.board_editing().file.clone();
+            self.save_board(path.as_ref());
             ui.close_menu();
         }
         if ui.button("Load board").clicked() {

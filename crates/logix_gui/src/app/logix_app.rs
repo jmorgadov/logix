@@ -1,5 +1,5 @@
 use crate::app::{comp_board::ComponentBoard, folder_tree::Folder};
-use egui::{Color32, Sense, Stroke};
+use egui::{Color32, Key, KeyboardShortcut, Modifiers, Sense, Stroke};
 use std::path::PathBuf;
 
 use super::board_editing::BoardEditing;
@@ -9,7 +9,6 @@ pub struct LogixApp {
     pub selected_file: Option<PathBuf>,
     pub board_tabs: Vec<BoardEditing>,
     pub current_tab: usize,
-    pub board: ComponentBoard,
 }
 
 impl Default for LogixApp {
@@ -24,7 +23,6 @@ impl Default for LogixApp {
             selected_file: None,
             board_tabs: vec![Default::default()],
             current_tab: 0,
-            board: Default::default(),
         }
     }
 }
@@ -168,6 +166,14 @@ impl LogixApp {
 impl eframe::App for LogixApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         ctx.set_pixels_per_point(1.15);
+
+        ctx.input_mut(|input| {
+            if input.consume_shortcut(&KeyboardShortcut::new(Modifiers::CTRL, Key::S)) {
+                let file = self.board_editing().file.clone();
+                self.save_board(file.as_ref());
+            }
+        });
+
         self.top_panel(ctx);
         self.left_panel(ctx);
         self.draw_tabs(ctx);
