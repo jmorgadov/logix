@@ -65,6 +65,14 @@ impl LogixApp {
     }
 
     pub fn load_board(&mut self, path: &PathBuf) {
+        // Check first if it is already open in a tab
+        for (i, tab) in self.board_tabs.iter().enumerate() {
+            if tab.file == Some(path.clone()) {
+                let _ = self.set_current_tab(i);
+                return;
+            }
+        }
+
         let comp_res = ComponentBoard::load(path);
         if let Ok(comp) = comp_res {
             let next_id = comp
