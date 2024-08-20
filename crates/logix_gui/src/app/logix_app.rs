@@ -1,8 +1,10 @@
 use crate::app::{comp_board::ComponentBoard, folder_tree::Folder};
-use egui::{Color32, Key, KeyboardShortcut, Modifiers, Sense, Stroke};
+use egui::{Color32, Sense, Stroke};
+use logix_sim::{flatten::FlattenComponent, Simulator};
+use rfd::FileDialog;
 use std::path::PathBuf;
 
-use super::board_editing::BoardEditing;
+use super::{board_editing::BoardEditing, shortcuts};
 
 pub struct LogixApp {
     pub folder: Option<Folder>,
@@ -93,6 +95,34 @@ impl LogixApp {
         }
     }
 
+    pub fn save_current_board(&mut self) {
+        let path = self.board_editing().file.clone();
+        if let Some(file_path) = path {
+            let _ = self.board().save(&file_path);
+            return;
+        }
+        let mut file = FileDialog::new();
+        if let Some(folder) = &self.folder {
+            file = file.set_directory(folder.current_path.clone());
+        }
+        if let Some(new_folder) = file.pick_file() {
+            let _ = self.board().save(&new_folder);
+        }
+    }
+
+    pub fn run_current_sim(&mut self) {
+        let mut initial_id = 0;
+        let flatten =
+            FlattenComponent::new(self.board_mut().build_component(&mut initial_id).unwrap())
+                .unwrap();
+        self.board_editing_mut().sim = Some(Simulator::new(flatten));
+        self.board_editing_mut().sim.as_mut().unwrap().start(true);
+    }
+
+    pub fn stop_current_sim(&mut self) {
+        self.board_editing_mut().sim = None;
+    }
+
     pub fn draw_tabs(&mut self, ctx: &egui::Context) {
         egui::TopBottomPanel::top("tabs")
             .frame(
@@ -168,9 +198,14 @@ impl eframe::App for LogixApp {
         ctx.set_pixels_per_point(1.15);
 
         ctx.input_mut(|input| {
-            if input.consume_shortcut(&KeyboardShortcut::new(Modifiers::CTRL, Key::S)) {
-                let file = self.board_editing().file.clone();
-                self.save_board(file.as_ref());
+            if input.consume_shortcut(&shortcuts::SAVE) {
+                self.save_current_board();
+            }
+            if input.consume_shortcut(&shortcuts::RUN) {
+                self.run_current_sim();
+            }
+            if input.consume_shortcut(&shortcuts::STOP) {
+                self.stop_current_sim();
             }
         });
 
