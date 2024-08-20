@@ -104,8 +104,6 @@ impl FlattenComponent {
 
     pub fn get_input_status_at(&self, id: usize, idx: usize) -> Data {
         let c_idx = *self.id_to_idx.get(&id).expect("Component not found");
-        println!("Getting input status at: {}, {}", c_idx, idx);
-        println!("Component: {:?}", self.components[c_idx].name);
         self.components[c_idx].inputs[idx]
     }
 

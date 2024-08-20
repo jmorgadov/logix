@@ -1,6 +1,5 @@
 use crate::app::{comp_board::ComponentBoard, folder_tree::Folder};
 use egui::{Color32, Sense, Stroke};
-use logix_sim::{flatten::FlattenComponent, Simulator};
 use rfd::FileDialog;
 use std::path::PathBuf;
 
@@ -47,7 +46,7 @@ impl LogixApp {
     }
 
     pub fn set_current_tab(&mut self, idx: usize) -> Result<(), ()> {
-        if idx < self.board_tabs.len() {
+        if idx < self.board_tabs.len() && idx != self.current_tab {
             self.current_tab = idx;
             self.selected_file = self.board_tabs[idx].file.clone();
             let _ = self.board_editing_mut().board.reload_imported_components();
@@ -58,10 +57,6 @@ impl LogixApp {
 
     pub fn board(&mut self) -> &ComponentBoard {
         &self.board_editing().board
-    }
-
-    pub fn board_mut(&mut self) -> &mut ComponentBoard {
-        &mut self.board_editing_mut().board
     }
 
     pub fn new_board(&mut self) {

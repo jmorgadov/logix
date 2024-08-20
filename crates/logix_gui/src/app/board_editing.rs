@@ -29,8 +29,8 @@ impl BoardEditing {
 
     pub fn run_sim(&mut self) {
         let mut initial_id = 0;
-        let flatten =
-            FlattenComponent::new(self.board.build_component(&mut initial_id).unwrap()).unwrap();
+        let comp = self.board.build_component(&mut initial_id).unwrap();
+        let flatten = FlattenComponent::new(comp).unwrap();
         self.sim = Some(Simulator::new(flatten));
         self.sim.as_mut().unwrap().start(true);
     }
