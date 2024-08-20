@@ -1,19 +1,15 @@
 use crate::app::{comp_board::ComponentBoard, folder_tree::Folder};
-use egui::{emath::TSTransform, Pos2};
-use logix_core::component::PortAddr;
-use logix_sim::Simulator;
+use egui::{Color32, Sense, Stroke};
 use std::path::PathBuf;
+
+use super::board_editing::BoardEditing;
 
 pub struct LogixApp {
     pub folder: Option<Folder>,
     pub selected_file: Option<PathBuf>,
-    pub transform: TSTransform,
+    pub board_tabs: Vec<BoardEditing>,
+    pub current_tab: usize,
     pub board: ComponentBoard,
-    pub last_id: usize,
-    pub new_conn: Option<(PortAddr, Vec<Pos2>)>,
-    pub last_click_pos: Pos2,
-    pub over_connection: Option<usize>,
-    pub sim: Option<Simulator>,
 }
 
 impl Default for LogixApp {
@@ -26,83 +22,155 @@ impl Default for LogixApp {
         Self {
             folder,
             selected_file: None,
-            transform: TSTransform::default(),
+            board_tabs: vec![Default::default()],
+            current_tab: 0,
             board: Default::default(),
-            last_id: 0,
-            last_click_pos: Pos2::ZERO,
-            new_conn: None,
-            over_connection: None,
-            sim: None,
         }
     }
 }
 
 impl LogixApp {
-    fn reset_field(&mut self) {
-        self.transform = TSTransform::default();
-        self.new_conn = None;
-        self.last_click_pos = Pos2::ZERO;
-        self.over_connection = None;
-        self.sim = None;
+    pub fn board_editing_mut(&mut self) -> &mut BoardEditing {
+        if self.board_tabs.is_empty() {
+            self.board_tabs.push(Default::default());
+            self.current_tab = 0;
+        }
+        &mut self.board_tabs[self.current_tab]
+    }
+
+    pub fn board_editing(&mut self) -> &BoardEditing {
+        if self.board_tabs.is_empty() {
+            self.board_tabs.push(Default::default());
+            self.current_tab = 0;
+        }
+        &self.board_tabs[self.current_tab]
+    }
+
+    pub fn set_current_tab(&mut self, idx: usize) -> Result<(), ()> {
+        if idx < self.board_tabs.len() {
+            self.current_tab = idx;
+            self.selected_file = self.board_tabs[idx].file.clone();
+            let _ = self.board_editing_mut().board.reload_imported_components();
+            return Ok(());
+        }
+        Err(())
+    }
+
+    pub fn board(&mut self) -> &ComponentBoard {
+        &self.board_editing().board
+    }
+
+    pub fn board_mut(&mut self) -> &mut ComponentBoard {
+        &mut self.board_editing_mut().board
     }
 
     pub fn new_board(&mut self) {
-        self.board = Default::default();
-        self.last_id = 0;
-        self.reset_field();
+        self.board_tabs.push(Default::default());
+        self.current_tab = self.board_tabs.len() - 1;
     }
 
     pub fn load_board(&mut self, path: &PathBuf) {
         let comp_res = ComponentBoard::load(path);
         if let Ok(comp) = comp_res {
-            self.board = comp;
-            self.last_id = self
-                .board
+            let next_id = comp
                 .components
                 .iter()
                 .map(|c| c.id)
                 .max()
                 .unwrap_or_default()
                 + 1;
-            self.reset_field();
+
+            let b_editing = BoardEditing {
+                board: comp,
+                file: Some(path.clone()),
+                next_id,
+                ..Default::default()
+            };
+            if self.board_tabs.len() == 1 && self.board_tabs[0].is_empty() {
+                self.board_tabs[0] = b_editing;
+            } else {
+                self.board_tabs.push(b_editing);
+                self.set_current_tab(self.board_tabs.len() - 1).unwrap();
+            }
         }
     }
 
-    pub fn update_comp_vals(&mut self) {
-        let sim = match self.sim.as_mut() {
-            Some(sim) => sim,
-            None => return,
-        };
-        sim.component(|comp| {
-            self.board.components.iter_mut().for_each(|board_comp| {
-                // Update inputs data
-                board_comp
-                    .inputs_data
-                    .iter_mut()
-                    .enumerate()
-                    .for_each(|(i, data)| {
-                        let (id, idx) = board_comp.inputs_data_idx[i];
-                        *data = comp.get_input_status_at(id, idx);
-                    });
+    pub fn draw_tabs(&mut self, ctx: &egui::Context) {
+        egui::TopBottomPanel::top("tabs")
+            .frame(
+                egui::Frame::default()
+                    .inner_margin(egui::Margin::same(0.0))
+                    .fill(ctx.style().visuals.panel_fill),
+            )
+            .show_separator_line(false)
+            .show(ctx, |ui| {
+                ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
+                    let mut i = 0;
+                    let mut next_current_tab = self.current_tab;
+                    while i < self.board_tabs.len() {
+                        let mut removed = false;
+                        let color = if i == self.current_tab {
+                            Color32::from_gray(35)
+                        } else {
+                            ui.style().visuals.panel_fill
+                        };
+                        egui::Frame::default().fill(color).show(ui, |ui| {
+                            ui.allocate_space(egui::vec2(0.0, ui.available_height()));
+                            ui.horizontal(|ui| {
+                                ui.set_max_width(150.0);
+                                let tab_label = if self.board_tabs[i].board.name.is_empty() {
+                                    "Untitled"
+                                } else {
+                                    self.board_tabs[i].board.name.as_str()
+                                };
+                                let resp = ui
+                                    .add(egui::Label::new(tab_label).truncate().selectable(false))
+                                    .interact(Sense::click());
 
-                // Update outputs data
-                board_comp
-                    .outputs_data
-                    .iter_mut()
-                    .enumerate()
-                    .for_each(|(i, data)| {
-                        let (id, idx) = board_comp.outputs_data_idx[i];
-                        *data = comp.get_output_status_at(id, idx);
-                    });
+                                if resp.clicked() {
+                                    next_current_tab = i;
+                                }
+                            });
+                            if ui
+                                .add(
+                                    egui::Button::new("❌")
+                                        .stroke(Stroke::new(0.0, Color32::TRANSPARENT))
+                                        .fill(Color32::TRANSPARENT),
+                                )
+                                .clicked()
+                            {
+                                self.board_tabs.remove(i);
+                                removed = true;
+
+                                if i < self.current_tab
+                                    || (i == self.current_tab
+                                        && i == self.board_tabs.len()
+                                        && i > 0)
+                                {
+                                    next_current_tab -= 1;
+                                }
+                            }
+                        });
+
+                        if !removed {
+                            i += 1;
+                        }
+                    }
+                    if self.board_tabs.is_empty() {
+                        self.new_board();
+                    }
+                    let _ = self.set_current_tab(next_current_tab);
+                });
             });
-        });
     }
 }
 
 impl eframe::App for LogixApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        ctx.set_pixels_per_point(1.15);
         self.top_panel(ctx);
         self.left_panel(ctx);
-        self.draw_canvas(ctx);
+        self.draw_tabs(ctx);
+        self.board_editing_mut().show(ctx);
     }
 }

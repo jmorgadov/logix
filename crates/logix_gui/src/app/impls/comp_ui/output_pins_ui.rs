@@ -1,8 +1,8 @@
 use egui::{Color32, Response, Sense, Shape, Ui};
 
-use crate::app::{impls::constants::*, LogixApp};
+use crate::app::{board_editing::BoardEditing, impls::constants::*};
 
-impl LogixApp {
+impl BoardEditing {
     pub fn draw_output_pins(&mut self, ui: &mut Ui, idx: usize, outputs: Vec<Response>) {
         for (i, resp) in outputs.iter().enumerate() {
             let pin_pos = resp.rect.center();
@@ -14,7 +14,7 @@ impl LogixApp {
                     _ => HIGH_COLOR,
                 }
             } else if resp.hovered() {
-                Color32::LIGHT_BLUE
+                Color32::LIGHT_RED
             } else {
                 Color32::LIGHT_GRAY
             };

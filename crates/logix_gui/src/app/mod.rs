@@ -1,3 +1,4 @@
+mod board_editing;
 mod comp_board;
 mod folder_tree;
 mod impls;

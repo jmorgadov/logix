@@ -1,8 +1,8 @@
 use egui::{emath::TSTransform, epaint::PathShape, Color32, Pos2, Shape, Stroke};
 
-use crate::app::{impls::wire_dir::WireDir, LogixApp};
+use crate::app::{board_editing::BoardEditing, impls::wire_dir::WireDir};
 
-impl LogixApp {
+impl BoardEditing {
     pub fn draw_new_connection(&mut self, ui: &mut egui::Ui, idx: usize, transform: TSTransform) {
         if let Some((from, points)) = self.new_conn.as_mut() {
             let cursor_pos = ui.ctx().pointer_hover_pos();

@@ -1,11 +1,11 @@
 use egui::{epaint::PathShape, Color32, Pos2, Rect, Sense, Shape, Stroke};
 
 use crate::app::{
+    board_editing::BoardEditing,
     impls::{constants::*, wire_dir::WireDir},
-    LogixApp,
 };
 
-impl LogixApp {
+impl BoardEditing {
     pub fn draw_comp_conns(
         &mut self,
         ui: &mut egui::Ui,
@@ -61,12 +61,8 @@ impl LogixApp {
                     if resp.hovered() && resp.clicked_by(egui::PointerButton::Secondary) {
                         self.last_click_pos = resp.interact_pointer_pos().unwrap();
                         match c_orient {
-                            WireDir::Horizontal => {
-                                self.last_click_pos.y = p1.y;
-                            }
-                            WireDir::Vertical => {
-                                self.last_click_pos.x = p1.x;
-                            }
+                            WireDir::Horizontal => self.last_click_pos.y = p1.y,
+                            WireDir::Vertical => self.last_click_pos.x = p1.x,
                         }
                     }
 
@@ -105,7 +101,7 @@ impl LogixApp {
                             _ => HIGH_COLOR,
                         }
                     } else if self.over_connection.is_some_and(|k| k == i) {
-                        Color32::LIGHT_BLUE
+                        Color32::LIGHT_RED
                     } else {
                         Color32::WHITE
                     };

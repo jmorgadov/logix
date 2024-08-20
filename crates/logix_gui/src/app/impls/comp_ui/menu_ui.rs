@@ -1,9 +1,9 @@
 use egui::Ui;
 use logix_sim::primitives::primitive::Primitive;
 
-use crate::app::LogixApp;
+use crate::app::board_editing::BoardEditing;
 
-impl LogixApp {
+impl BoardEditing {
     pub fn specific_comp_context_menu(&mut self, ui: &mut Ui, idx: usize) {
         let comp = self.board.components.get_mut(idx).unwrap();
         if let Some(prim) = &mut comp.primitive {

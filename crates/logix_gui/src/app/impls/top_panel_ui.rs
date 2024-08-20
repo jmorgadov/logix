@@ -27,7 +27,7 @@ impl LogixApp {
                 file = file.set_directory(folder.current_path.clone());
             }
             if let Some(new_folder) = file.pick_file() {
-                let _ = self.board.save(&new_folder);
+                let _ = self.board().save(&new_folder);
             }
             ui.close_menu();
         }
@@ -56,15 +56,15 @@ impl LogixApp {
                     if ui.button("Start").clicked() {
                         let mut initial_id = 0;
                         let flatten = FlattenComponent::new(
-                            self.board.build_component(&mut initial_id).unwrap(),
+                            self.board_mut().build_component(&mut initial_id).unwrap(),
                         )
                         .unwrap();
-                        self.sim = Some(Simulator::new(flatten));
-                        self.sim.as_mut().unwrap().start(true);
+                        self.board_editing_mut().sim = Some(Simulator::new(flatten));
+                        self.board_editing_mut().sim.as_mut().unwrap().start(true);
                         ui.close_menu();
                     }
                     if ui.button("Stop").clicked() {
-                        self.sim = None;
+                        self.board_editing_mut().sim = None;
                         ui.close_menu();
                     }
                 });

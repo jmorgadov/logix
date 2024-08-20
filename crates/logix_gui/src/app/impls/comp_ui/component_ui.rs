@@ -1,11 +1,11 @@
 use egui::{emath::TSTransform, Color32, Pos2, Rect, Response, Sense, Ui, Vec2};
 
 use crate::app::{
+    board_editing::BoardEditing,
     impls::{constants::*, wire_dir::WireDir},
-    LogixApp,
 };
 
-impl LogixApp {
+impl BoardEditing {
     pub fn update_comp_pos(&mut self, idx: usize, new_pos: Pos2) {
         self.board.comp_pos[idx] = new_pos;
     }
@@ -52,7 +52,7 @@ impl LogixApp {
             .collect::<Vec<String>>();
 
         let mut resp = egui::Frame::default()
-            .fill(Color32::from_rgb(50, 50, 50))
+            .fill(Color32::from_rgb(70, 70, 70))
             .inner_margin(egui::Margin::symmetric(0.0, font_size_y / 4.0))
             .rounding(4.0)
             .show(ui, |ui| {
@@ -190,6 +190,7 @@ impl LogixApp {
         // -----------------------------------------------------------------------------
         if resp.hovered() || resp.context_menu_opened() {
             resp.context_menu(|ui| {
+                ui.set_max_width(150.0);
                 self.specific_comp_context_menu(ui, idx);
                 if ui.button("Remove").clicked() {
                     self.board.remove_comp(idx);
