@@ -1,3 +1,4 @@
+pub mod errors;
 pub mod flatten;
 pub mod primitives;
 pub mod simulator;

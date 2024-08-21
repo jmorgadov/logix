@@ -2,293 +2,16 @@ use std::path::PathBuf;
 
 use egui::Pos2;
 use logix_core::component::{Component, Conn, PortAddr, SubComponent};
-use logix_sim::primitives::{
-    data::Data,
-    primitive::{ExtraInfo, Primitive},
-};
+use logix_sim::primitives::primitive::{ExtraInfo, Primitive};
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize, Default)]
-pub struct ConnectionInfo {
-    pub points: Vec<Pos2>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Default)]
-pub struct ComponentInfo {
-    pub id: usize,
-    pub name: String,
-    pub source: Option<PathBuf>,
-    pub primitive: Option<Primitive>,
-    pub inputs_name: Vec<String>,
-    pub outputs_name: Vec<String>,
-    pub inputs_data: Vec<Data>,
-    pub outputs_data: Vec<Data>,
-
-    pub inputs_data_idx: Vec<(usize, usize)>,
-    pub outputs_data_idx: Vec<(usize, usize)>,
-}
-
-impl ComponentInfo {
-    pub fn build_primitive(&mut self, last_id: &mut usize) -> Result<Component<ExtraInfo>, ()> {
-        if self.primitive.is_none() {
-            return Err(());
-        }
-
-        let id = *last_id;
-        *last_id += 1;
-        self.id = id;
-
-        self.inputs_data_idx = (0..self.inputs_name.len()).map(|i| (id, i)).collect();
-        self.outputs_data_idx = (0..self.outputs_name.len()).map(|i| (id, i)).collect();
-
-        Ok(Component {
-            id,
-            name: Some(self.name.clone()),
-            inputs: self.inputs_data.len(),
-            outputs: self.outputs_data.len(),
-            sub: None,
-            extra: ExtraInfo {
-                id: self.id,
-                primitive: Some(self.primitive.clone().unwrap()),
-            },
-        })
-    }
-
-    pub fn build_component(&mut self, last_id: &mut usize) -> Result<Component<ExtraInfo>, ()> {
-        if self.primitive.is_some() {
-            return self.build_primitive(last_id);
-        }
-
-        assert!(self.source.is_some());
-        let source = self.source.clone().unwrap();
-        let serialized = match std::fs::read_to_string(source) {
-            Ok(serialized) => serialized,
-            Err(_) => return Err(()),
-        };
-
-        let mut board: ComponentBoard = match serde_json::from_str(&serialized) {
-            Ok(board) => board,
-            Err(_) => return Err(()),
-        };
-
-        let res = board.build_component(last_id);
-
-        for (idx, (to, to_port)) in board.in_addrs.iter() {
-            self.inputs_data_idx[*idx] = board.components[*to].inputs_data_idx[*to_port];
-        }
-
-        for (i, (from, from_port)) in board.out_addrs.iter().enumerate() {
-            self.outputs_data_idx[i] = board.components[*from].outputs_data_idx[*from_port];
-        }
-
-        res
-    }
-
-    pub fn input_count(&self) -> usize {
-        self.inputs_data.len()
-    }
-
-    pub fn output_count(&self) -> usize {
-        self.outputs_data.len()
-    }
-
-    pub fn and_gate(id: usize, in_count: usize) -> Self {
-        ComponentInfo {
-            id,
-            name: "AND".to_string(),
-            source: None,
-            primitive: Some(Primitive::AndGate),
-            inputs_name: (0..in_count).map(|_| Default::default()).collect(),
-            outputs_name: vec![Default::default()],
-            inputs_data: vec![Data::low(); in_count],
-            outputs_data: vec![Data::low()],
-            inputs_data_idx: vec![(id, 0); in_count],
-            outputs_data_idx: vec![(0, 0)],
-        }
-    }
-
-    pub fn nand_gate(id: usize, in_count: usize) -> Self {
-        ComponentInfo {
-            id,
-            name: "NAND".to_string(),
-            source: None,
-            primitive: Some(Primitive::NandGate),
-            inputs_name: (0..in_count).map(|_| Default::default()).collect(),
-            outputs_name: vec![Default::default()],
-            inputs_data: vec![Data::low(); in_count],
-            outputs_data: vec![Data::low()],
-            inputs_data_idx: vec![(0, 0); in_count],
-            outputs_data_idx: vec![(0, 0)],
-        }
-    }
-
-    pub fn or_gate(id: usize, in_count: usize) -> Self {
-        ComponentInfo {
-            id,
-            name: "OR".to_string(),
-            source: None,
-            primitive: Some(Primitive::OrGate),
-            inputs_name: (0..in_count).map(|_| Default::default()).collect(),
-            outputs_name: vec![Default::default()],
-            inputs_data: vec![Data::low(); in_count],
-            outputs_data: vec![Data::low()],
-            inputs_data_idx: vec![(0, 0); in_count],
-            outputs_data_idx: vec![(0, 0)],
-        }
-    }
-
-    pub fn nor_gate(id: usize, in_count: usize) -> Self {
-        ComponentInfo {
-            id,
-            name: "NOR".to_string(),
-            source: None,
-            primitive: Some(Primitive::NorGate),
-            inputs_name: (0..in_count).map(|_| Default::default()).collect(),
-            outputs_name: vec![Default::default()],
-            inputs_data: vec![Data::low(); in_count],
-            outputs_data: vec![Data::low()],
-            inputs_data_idx: vec![(0, 0); in_count],
-            outputs_data_idx: vec![(0, 0)],
-        }
-    }
-
-    pub fn xor_gate(id: usize, in_count: usize) -> Self {
-        ComponentInfo {
-            id,
-            name: "XOR".to_string(),
-            source: None,
-            primitive: Some(Primitive::XorGate),
-            inputs_name: (0..in_count).map(|_| Default::default()).collect(),
-            outputs_name: vec![Default::default()],
-            inputs_data: vec![Data::low(); in_count],
-            outputs_data: vec![Data::low()],
-            inputs_data_idx: vec![(0, 0); in_count],
-            outputs_data_idx: vec![(0, 0)],
-        }
-    }
-
-    pub fn not_gate(id: usize) -> Self {
-        ComponentInfo {
-            id,
-            name: "NOT".to_string(),
-            source: None,
-            primitive: Some(Primitive::NotGate),
-            inputs_name: vec![Default::default()],
-            outputs_name: vec![Default::default()],
-            inputs_data: vec![Data::low()],
-            outputs_data: vec![Data::low()],
-            inputs_data_idx: vec![(0, 0)],
-            outputs_data_idx: vec![(0, 0)],
-        }
-    }
-
-    pub fn const_high_gate(id: usize) -> Self {
-        ComponentInfo {
-            id,
-            name: "HIGH".to_string(),
-            source: None,
-            primitive: Some(Primitive::Const {
-                value: Data::high(),
-            }),
-            inputs_name: vec![],
-            outputs_name: vec![Default::default()],
-            inputs_data: vec![],
-            outputs_data: vec![Data::high()],
-            inputs_data_idx: vec![],
-            outputs_data_idx: vec![(0, 0)],
-        }
-    }
-
-    pub fn const_low_gate(id: usize) -> Self {
-        ComponentInfo {
-            id,
-            name: "LOW".to_string(),
-            source: None,
-            primitive: Some(Primitive::Const { value: Data::low() }),
-            inputs_name: vec![],
-            outputs_name: vec![Default::default()],
-            inputs_data: vec![],
-            outputs_data: vec![Data::low()],
-            inputs_data_idx: vec![],
-            outputs_data_idx: vec![(0, 0)],
-        }
-    }
-
-    pub fn clock_gate(id: usize) -> Self {
-        ComponentInfo {
-            id,
-            name: "CLK".to_string(),
-            source: None,
-            primitive: Some(Primitive::Clock { period: 1000000000 }),
-            inputs_name: vec![],
-            outputs_name: vec![Default::default()],
-            inputs_data: vec![],
-            outputs_data: vec![Data::low()],
-            inputs_data_idx: vec![],
-            outputs_data_idx: vec![(0, 0)],
-        }
-    }
-
-    pub fn splitter(id: usize, bits: u8) -> Self {
-        ComponentInfo {
-            id,
-            name: "SPLIT".to_string(),
-            source: None,
-            primitive: Some(Primitive::Splitter { bits }),
-            inputs_name: vec![Default::default()],
-            outputs_name: (0..bits).map(|b| b.to_string()).collect(),
-            inputs_data: vec![Data::new(0, bits)],
-            outputs_data: vec![Data::low(); bits as usize],
-            inputs_data_idx: vec![(0, 0)],
-            outputs_data_idx: vec![(0, 0); bits as usize],
-        }
-    }
-
-    pub fn joiner(id: usize, bits: u8) -> Self {
-        ComponentInfo {
-            id,
-            name: "JOIN".to_string(),
-            source: None,
-            primitive: Some(Primitive::Joiner { bits }),
-            inputs_name: (0..bits).map(|b| b.to_string()).collect(),
-            outputs_name: vec![Default::default()],
-            inputs_data: vec![Data::low(); bits as usize],
-            outputs_data: vec![Data::new(0, bits)],
-            inputs_data_idx: vec![(0, 0); bits as usize],
-            outputs_data_idx: vec![(0, 0)],
-        }
-    }
-
-    pub fn input(id: usize, bits: u8) -> Self {
-        ComponentInfo {
-            id,
-            name: "IN".to_string(),
-            source: None,
-            primitive: Some(Primitive::Input { bits }),
-            inputs_name: vec![],
-            outputs_name: vec![Default::default()],
-            inputs_data: vec![],
-            outputs_data: vec![Data::new(0, bits)],
-            inputs_data_idx: vec![],
-            outputs_data_idx: vec![(0, 0)],
-        }
-    }
-
-    pub fn output(id: usize, bits: u8) -> Self {
-        ComponentInfo {
-            id,
-            name: "OUT".to_string(),
-            source: None,
-            primitive: Some(Primitive::Output { bits }),
-            inputs_name: vec![Default::default()],
-            outputs_name: vec![],
-            inputs_data: vec![Data::new(0, bits)],
-            outputs_data: vec![],
-            inputs_data_idx: vec![(0, 0)],
-            outputs_data_idx: vec![],
-        }
-    }
-}
+use super::{
+    comp_info::{ComponentInfo, ConnectionInfo},
+    errors::{
+        BoardBuildError, LoadBoardError, LoadComponentError, OpenBoardError, ReloadComponentsError,
+        SaveBoardError,
+    },
+};
 
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct ComponentBoard {
@@ -311,24 +34,24 @@ pub struct ComponentBoard {
 }
 
 impl ComponentBoard {
-    pub fn build_component(&mut self, last_id: &mut usize) -> Result<Component<ExtraInfo>, ()> {
-        let sub_comps: Result<Vec<Component<ExtraInfo>>, ()> = self
+    pub fn build_component(
+        &mut self,
+        last_id: &mut usize,
+    ) -> Result<Component<ExtraInfo>, BoardBuildError> {
+        let sub_comps: Vec<Component<ExtraInfo>> = self
             .components
             .iter_mut()
             .map(|c| {
                 //
                 c.build_component(last_id)
             })
-            .collect();
+            .collect::<Result<Vec<Component<ExtraInfo>>, BoardBuildError>>()?;
 
-        let sub: SubComponent<ExtraInfo> = match sub_comps {
-            Ok(sub_comps) => SubComponent {
-                components: sub_comps,
-                connections: self.connections.clone(),
-                in_addrs: self.in_addrs.clone(),
-                out_addrs: self.out_addrs.clone(),
-            },
-            Err(_) => return Err(()),
+        let sub = SubComponent {
+            components: sub_comps,
+            connections: self.connections.clone(),
+            in_addrs: self.in_addrs.clone(),
+            out_addrs: self.out_addrs.clone(),
         };
 
         let id = *last_id;
@@ -381,55 +104,45 @@ impl ComponentBoard {
         }
     }
 
-    pub fn save(&self, path: &PathBuf) -> Result<(), ()> {
-        let serialized = match serde_json::to_string(self) {
-            Ok(serialized) => serialized,
-            Err(_) => return Err(()),
-        };
-        match std::fs::write(path, serialized) {
-            Ok(_) => Ok(()),
-            Err(_) => Err(()),
-        }
+    pub fn save(&self, path: &PathBuf) -> Result<(), SaveBoardError> {
+        let serialized = serde_json::to_string(self)?;
+        std::fs::write(path, serialized)?;
+        Ok(())
     }
 
-    pub fn load(path: &PathBuf) -> Result<Self, ()> {
-        let serialized = match std::fs::read_to_string(path) {
-            Ok(serialized) => serialized,
-            Err(_) => return Err(()),
-        };
-        let mut board: ComponentBoard = match serde_json::from_str(&serialized) {
-            Ok(board) => board,
-            Err(_) => return Err(()),
-        };
-
-        board.reload_imported_components().map(|_| board)
+    pub fn load(path: &PathBuf) -> Result<Self, LoadBoardError> {
+        let serialized = std::fs::read_to_string(path)?;
+        let board: ComponentBoard = serde_json::from_str(&serialized)?;
+        Ok(board)
     }
 
-    pub fn reload_imported_components(&mut self) -> Result<(), ()> {
+    pub fn open(path: &PathBuf) -> Result<Self, OpenBoardError> {
+        let mut board = Self::load(path)?;
+        board.reload_imported_components()?;
+        Ok(board)
+    }
+
+    pub fn reload_imported_components(&mut self) -> Result<(), ReloadComponentsError> {
         let mut conns_to_remove = vec![];
         for (comp, source) in self
             .components
             .iter_mut()
             .filter_map(|c| c.source.clone().map(|source| (c, source)))
         {
-            match Self::load_comp(comp.id, source) {
-                Ok(c) => {
-                    *comp = c;
-                    let in_count = comp.input_count();
-                    let out_count = comp.output_count();
+            let c = Self::load_comp(comp.id, source)?;
+            *comp = c;
+            let in_count = comp.input_count();
+            let out_count = comp.output_count();
 
-                    for (i, conn) in self.connections.iter().enumerate() {
-                        if conn.from.0 == comp.id && conn.from.1 >= out_count {
-                            conns_to_remove.push(i);
-                            continue;
-                        }
-                        if conn.to.0 == comp.id && conn.to.1 >= in_count {
-                            conns_to_remove.push(i);
-                            continue;
-                        }
-                    }
+            for (i, conn) in self.connections.iter().enumerate() {
+                if conn.from.0 == comp.id && conn.from.1 >= out_count {
+                    conns_to_remove.push(i);
+                    continue;
                 }
-                Err(_) => return Err(()),
+                if conn.to.0 == comp.id && conn.to.1 >= in_count {
+                    conns_to_remove.push(i);
+                    continue;
+                }
             }
         }
 
@@ -460,21 +173,17 @@ impl ComponentBoard {
         }
     }
 
-    pub fn load_comp(id: usize, source: PathBuf) -> Result<ComponentInfo, ()> {
-        let serialized = match std::fs::read_to_string(&source) {
-            Ok(serialized) => serialized,
-            Err(_) => return Err(()),
-        };
-
-        let board: ComponentBoard = match serde_json::from_str(&serialized) {
-            Ok(board) => board,
-            Err(_) => return Err(()),
-        };
-
+    pub fn load_comp(id: usize, source: PathBuf) -> Result<ComponentInfo, LoadComponentError> {
+        let board = Self::load(&source)?;
         Ok(board.board_info(id, Some(source)))
     }
 
-    pub fn import_comp(&mut self, id: usize, source: PathBuf, pos: Pos2) -> Result<(), ()> {
+    pub fn import_comp(
+        &mut self,
+        id: usize,
+        source: PathBuf,
+        pos: Pos2,
+    ) -> Result<(), LoadComponentError> {
         let comp = Self::load_comp(id, source.clone())?;
         self.add_comp(comp, pos);
         Ok(())
@@ -674,5 +383,63 @@ impl ComponentBoard {
     pub fn add_output(&mut self, id: usize, bits: u8, pos: Pos2) {
         let output = ComponentInfo::output(id, bits);
         self.add_comp(output, pos);
+    }
+}
+
+impl ComponentInfo {
+    pub fn build_primitive(
+        &mut self,
+        last_id: &mut usize,
+    ) -> Result<Component<ExtraInfo>, BoardBuildError> {
+        if self.primitive.is_none() {
+            return Err(BoardBuildError::PrimitiveNotSpecified);
+        }
+
+        let id = *last_id;
+        *last_id += 1;
+        self.id = id;
+
+        self.inputs_data_idx = (0..self.inputs_name.len()).map(|i| (id, i)).collect();
+        self.outputs_data_idx = (0..self.outputs_name.len()).map(|i| (id, i)).collect();
+
+        Ok(Component {
+            id,
+            name: Some(self.name.clone()),
+            inputs: self.inputs_data.len(),
+            outputs: self.outputs_data.len(),
+            sub: None,
+            extra: ExtraInfo {
+                id: self.id,
+                primitive: Some(self.primitive.clone().unwrap()),
+            },
+        })
+    }
+
+    pub fn build_component(
+        &mut self,
+        last_id: &mut usize,
+    ) -> Result<Component<ExtraInfo>, BoardBuildError> {
+        if self.primitive.is_some() {
+            return self.build_primitive(last_id);
+        }
+
+        let source = self
+            .source
+            .clone()
+            .ok_or(BoardBuildError::SourceNotSpecified)?;
+
+        let mut board = ComponentBoard::load(&source)?;
+
+        let res = board.build_component(last_id);
+
+        for (idx, (to, to_port)) in board.in_addrs.iter() {
+            self.inputs_data_idx[*idx] = board.components[*to].inputs_data_idx[*to_port];
+        }
+
+        for (i, (from, from_port)) in board.out_addrs.iter().enumerate() {
+            self.outputs_data_idx[i] = board.components[*from].outputs_data_idx[*from_port];
+        }
+
+        res
     }
 }

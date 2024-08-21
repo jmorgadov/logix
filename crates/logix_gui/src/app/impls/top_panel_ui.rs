@@ -2,7 +2,6 @@ use egui::{KeyboardShortcut, Ui};
 use rfd::FileDialog;
 
 use crate::app::{
-    folder_tree::Folder,
     shortcuts::{shortcut_string, RUN, SAVE, STOP},
     LogixApp,
 };
@@ -22,8 +21,7 @@ impl LogixApp {
         if ui.button("Open folder").clicked() {
             let new_folder = FileDialog::new().pick_folder();
             let path = new_folder.unwrap().clone();
-            self.folder = Some(Folder::from_pathbuf(&path.clone()));
-            std::env::set_current_dir(path.clone()).unwrap();
+            self.try_load_folder(&path);
             ui.close_menu();
         }
         ui.separator();
@@ -40,7 +38,9 @@ impl LogixApp {
                 file = file.set_directory(folder.current_path.clone());
             }
             if let Some(new_file) = file.pick_file() {
-                self.load_board(&new_file);
+                if self.load_board(&new_file).is_ok() {
+                    self.selected_file = Some(new_file);
+                }
             }
             ui.close_menu();
         }

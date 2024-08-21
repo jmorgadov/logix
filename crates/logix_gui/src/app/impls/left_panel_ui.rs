@@ -16,7 +16,7 @@ impl LogixApp {
                         if ui.button("Open folder").clicked() {
                             let new_folder = FileDialog::new().pick_folder();
                             if let Some(new_folder) = new_folder {
-                                self.folder = Some(Folder::from_pathbuf(&new_folder));
+                                self.try_load_folder(&new_folder);
                             }
                         }
                     });
@@ -42,9 +42,10 @@ impl LogixApp {
                             .ui_impl(ui, self.selected_file.as_ref());
                         if new_file != self.selected_file {
                             if let Some(file) = new_file.clone() {
-                                self.load_board(&file);
+                                if self.load_board(&file).is_ok() {
+                                    self.selected_file = new_file;
+                                }
                             }
-                            self.selected_file = new_file;
                         }
                     });
             });

@@ -1,5 +1,7 @@
 mod board_editing;
 mod comp_board;
+mod comp_info;
+mod errors;
 mod folder_tree;
 mod impls;
 mod logix_app;

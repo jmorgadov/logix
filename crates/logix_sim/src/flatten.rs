@@ -1,13 +1,15 @@
 use std::collections::HashMap;
 
-use crate::primitives::{
-    data::Data,
-    prelude::Primitive,
-    primitive::{ExtraInfo, PrimitiveComponent},
+use crate::{
+    errors::{DataRequestError, FlattenComponentError},
+    primitives::{
+        data::Data,
+        prelude::Primitive,
+        primitive::{ExtraInfo, PrimitiveComponent},
+    },
 };
 use log::*;
 use logix_core::prelude::*;
-use thiserror::Error;
 
 #[derive(Debug)]
 pub enum NestedConfig {
@@ -19,9 +21,6 @@ pub enum NestedConfig {
         Vec<PortAddr>,
     ),
 }
-
-#[derive(Debug, Error)]
-pub enum FlattenError {}
 
 #[derive(Debug)]
 pub struct FlattenComponent {
@@ -36,7 +35,7 @@ pub struct FlattenComponent {
 }
 
 impl FlattenComponent {
-    pub fn new(mut comp: Component<ExtraInfo>) -> Result<Self, FlattenError> {
+    pub fn new(mut comp: Component<ExtraInfo>) -> Result<Self, FlattenComponentError> {
         let (_, nested_config) = reindex_connections(&mut comp, 0)?;
         let (components, conns) = flat_comp(comp);
 
@@ -102,14 +101,28 @@ impl FlattenComponent {
             .unwrap_or_else(|| panic!("Component {} not found", id))]
     }
 
-    pub fn get_input_status_at(&self, id: usize, idx: usize) -> Data {
-        let c_idx = *self.id_to_idx.get(&id).expect("Component not found");
-        self.components[c_idx].inputs[idx]
+    pub fn get_input_status_at(&self, id: usize, idx: usize) -> Result<Data, DataRequestError> {
+        let c_idx = *self
+            .id_to_idx
+            .get(&id)
+            .ok_or(DataRequestError::InvalidComponentId(id))?;
+        self.components[c_idx]
+            .inputs
+            .get(idx)
+            .copied()
+            .ok_or(DataRequestError::InvalidInputPortIndex(idx))
     }
 
-    pub fn get_output_status_at(&self, id: usize, idx: usize) -> Data {
-        let c_idx = *self.id_to_idx.get(&id).expect("Component not found");
-        self.components[c_idx].outputs[idx]
+    pub fn get_output_status_at(&self, id: usize, idx: usize) -> Result<Data, DataRequestError> {
+        let c_idx = *self
+            .id_to_idx
+            .get(&id)
+            .ok_or(DataRequestError::InvalidComponentId(id))?;
+        self.components[c_idx]
+            .outputs
+            .get(idx)
+            .copied()
+            .ok_or(DataRequestError::InvalidOutputPortIndex(idx))
     }
 
     pub fn get_status_by_id(&self, id: usize) -> (&Vec<Data>, &Vec<Data>) {
@@ -187,7 +200,7 @@ fn flat_comp(comp: Component<ExtraInfo>) -> (Vec<PrimitiveComponent>, Vec<Conn>)
 fn reindex_connections(
     comp: &mut Component<ExtraInfo>,
     start_idx: usize,
-) -> Result<(usize, NestedConfig), FlattenError> {
+) -> Result<(usize, NestedConfig), FlattenComponentError> {
     debug!(
         "Reindexing connections for component: {:?} statring from {}",
         comp.name, start_idx

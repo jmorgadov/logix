@@ -51,16 +51,20 @@ impl Simulator {
         }
     }
 
-    pub fn component(&mut self, on_locked: impl FnOnce(&mut FlattenComponent)) {
+    pub fn component<T>(&mut self, on_locked: impl FnOnce(&mut FlattenComponent) -> T) -> T {
         let mut state = self.state.lock().unwrap();
-        on_locked(&mut state.comp);
+        on_locked(&mut state.comp)
     }
 
-    pub fn try_component(&mut self, on_locked: impl FnOnce(&mut FlattenComponent)) {
+    pub fn try_component<T: Default>(
+        &mut self,
+        on_locked: impl FnOnce(&mut FlattenComponent) -> T,
+    ) -> T {
         let state = self.state.try_lock();
         if let Ok(mut state) = state {
-            on_locked(&mut state.comp);
+            return on_locked(&mut state.comp);
         }
+        T::default()
     }
 
     /// Starts the simulation.

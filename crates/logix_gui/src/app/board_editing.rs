@@ -1,14 +1,14 @@
-use std::path::PathBuf;
-
+use super::{comp_board::ComponentBoard, errors::SimulationError};
 use egui::{emath::TSTransform, Pos2};
+use log::*;
 use logix_core::component::PortAddr;
 use logix_sim::{flatten::FlattenComponent, Simulator};
-
-use super::comp_board::ComponentBoard;
+use std::path::PathBuf;
 
 #[derive(Default)]
 pub struct BoardEditing {
     pub board: ComponentBoard,
+    pub project_folder: Option<PathBuf>,
     pub file: Option<PathBuf>,
     pub transform: TSTransform,
     pub next_id: usize,
@@ -27,12 +27,13 @@ impl BoardEditing {
         self.board.components.is_empty()
     }
 
-    pub fn run_sim(&mut self) {
+    pub fn run_sim(&mut self) -> Result<(), SimulationError> {
         let mut initial_id = 0;
-        let comp = self.board.build_component(&mut initial_id).unwrap();
-        let flatten = FlattenComponent::new(comp).unwrap();
+        let comp = self.board.build_component(&mut initial_id)?;
+        let flatten = FlattenComponent::new(comp)?;
         self.sim = Some(Simulator::new(flatten));
         self.sim.as_mut().unwrap().start(true);
+        Ok(())
     }
 
     pub fn stop_sim(&mut self) {
@@ -44,28 +45,51 @@ impl BoardEditing {
             Some(sim) => sim,
             None => return,
         };
-        sim.component(|comp| {
-            self.board.components.iter_mut().for_each(|board_comp| {
+        let res: Result<(), SimulationError> = sim.component(|comp| {
+            self.board.components.iter_mut().try_for_each(|board_comp| {
                 // Update inputs data
                 board_comp
                     .inputs_data
                     .iter_mut()
                     .enumerate()
-                    .for_each(|(i, data)| {
+                    .try_for_each(|(i, data)| {
                         let (id, idx) = board_comp.inputs_data_idx[i];
-                        *data = comp.get_input_status_at(id, idx);
-                    });
+                        *data = comp.get_input_status_at(id, idx).map_err(|err| {
+                            SimulationError::RequestComponentData {
+                                comp_name: board_comp.name.clone(),
+                                comp_id: board_comp.id,
+                                err,
+                            }
+                        })?;
+                        Ok::<_, SimulationError>(())
+                    })?;
 
                 // Update outputs data
                 board_comp
                     .outputs_data
                     .iter_mut()
                     .enumerate()
-                    .for_each(|(i, data)| {
+                    .try_for_each(|(i, data)| {
                         let (id, idx) = board_comp.outputs_data_idx[i];
-                        *data = comp.get_output_status_at(id, idx);
-                    });
-            });
+                        *data = comp.get_output_status_at(id, idx).map_err(|err| {
+                            SimulationError::RequestComponentData {
+                                comp_name: board_comp.name.clone(),
+                                comp_id: board_comp.id,
+                                err,
+                            }
+                        })?;
+                        Ok::<_, SimulationError>(())
+                    })?;
+                Ok(())
+            })
         });
+
+        if let Err(err) = res {
+            error!(
+                "Error updating component values: {:?}/nEnding simulation",
+                err
+            );
+            self.sim = None;
+        }
     }
 }
