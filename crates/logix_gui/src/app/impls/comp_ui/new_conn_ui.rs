@@ -1,6 +1,9 @@
 use egui::{emath::TSTransform, epaint::PathShape, Color32, Pos2, Shape, Stroke};
 
-use crate::app::{board_editing::BoardEditing, impls::wire_dir::WireDir};
+use crate::app::{
+    board_editing::BoardEditing,
+    impls::{constants::GHOST_POINT_THRESHOLD, wire_dir::WireDir},
+};
 
 impl BoardEditing {
     pub fn draw_new_connection(&mut self, ui: &mut egui::Ui, idx: usize, transform: TSTransform) {
@@ -15,7 +18,7 @@ impl BoardEditing {
 
                 let mut ghost_points = vec![from_pos];
 
-                if x_diff.abs() > 10.0 && y_diff.abs() > 10.0 {
+                if x_diff.abs() > GHOST_POINT_THRESHOLD && y_diff.abs() > GHOST_POINT_THRESHOLD {
                     let ghost_point =
                         Self::get_ghost_point(from_pos, WireDir::get_dir(points.len()), cursor_pos);
                     ghost_points.push(ghost_point);

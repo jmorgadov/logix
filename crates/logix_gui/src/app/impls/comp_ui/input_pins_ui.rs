@@ -1,4 +1,4 @@
-use egui::{Color32, Response, Sense, Shape, Ui};
+use egui::{Color32, Pos2, Response, Sense, Shape, Ui};
 
 use crate::app::{
     board_editing::BoardEditing,
@@ -37,12 +37,22 @@ impl BoardEditing {
                         == self.board.components[idx].inputs_data[i].size
                 {
                     connection_added = true;
-                    let last_point = points.last().unwrap();
-                    let ghost_point =
-                        Self::get_ghost_point(*last_point, WireDir::get_dir(points.len()), pin_pos);
-                    points.push(ghost_point);
-                    points.push(pin_pos);
+                    let last_point = *points.last().unwrap();
+                    let dir = WireDir::get_dir(points.len());
 
+                    let mut ghost_point = Self::get_ghost_point(last_point, dir, pin_pos);
+
+                    if (ghost_point.y - pin_pos.y).abs() < GHOST_POINT_THRESHOLD
+                        || (ghost_point.x - pin_pos.x).abs() < GHOST_POINT_THRESHOLD
+                    {
+                        ghost_point.x -= GHOST_POINT_THRESHOLD;
+                        points.push(ghost_point);
+                        points.push(Pos2::new(ghost_point.x, pin_pos.y));
+                    } else {
+                        points.push(ghost_point);
+                    }
+
+                    points.push(pin_pos);
                     let to_conn = (idx, i);
                     self.board
                         .add_conn(from.0, to_conn.0, from.1, to_conn.1, points.clone());
