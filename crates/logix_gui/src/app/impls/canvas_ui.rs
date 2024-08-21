@@ -78,10 +78,15 @@ impl BoardEditing {
                     response.context_menu(|ui| {
                         ui.set_max_width(150.0);
                         ui.label("Board");
-                        ui.add(
-                            egui::TextEdit::singleline(&mut self.board.name)
-                                .hint_text("Board name"),
-                        );
+                        if ui
+                            .add(
+                                egui::TextEdit::singleline(&mut self.board.name)
+                                    .hint_text("Board name"),
+                            )
+                            .lost_focus()
+                        {
+                            ui.close_menu();
+                        };
                         ui.label("Add Component");
                         if self.file.is_some() && ui.button("Import Component").clicked() {
                             let comp_file = FileDialog::new()

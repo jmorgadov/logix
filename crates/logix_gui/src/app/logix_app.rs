@@ -183,6 +183,7 @@ impl LogixApp {
                         }
                     }
                     if self.board_tabs.is_empty() {
+                        self.selected_file = None;
                         self.new_board();
                     }
                     let _ = self.set_current_tab(next_current_tab);
@@ -194,6 +195,10 @@ impl LogixApp {
 impl eframe::App for LogixApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         ctx.set_pixels_per_point(1.15);
+
+        ctx.style_mut(|style| {
+            style.visuals.button_frame = false;
+        });
 
         ctx.input_mut(|input| {
             if input.consume_shortcut(&shortcuts::SAVE) {

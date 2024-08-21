@@ -1,9 +1,16 @@
-use egui::Ui;
+use egui::{KeyboardShortcut, Ui};
 use rfd::FileDialog;
 
-use crate::app::{folder_tree::Folder, LogixApp};
+use crate::app::{
+    folder_tree::Folder,
+    shortcuts::{shortcut_string, RUN, SAVE, STOP},
+    LogixApp,
+};
 
 impl LogixApp {
+    fn named_cmd_shorcut(cmd: &str, shortcut: &KeyboardShortcut) -> String {
+        format!("{} ({})", cmd, shortcut_string(shortcut))
+    }
     fn file_menu(&mut self, ui: &mut Ui) {
         ui.set_max_width(200.0); // To make sure we wrap long text
 
@@ -20,7 +27,10 @@ impl LogixApp {
             ui.close_menu();
         }
         ui.separator();
-        if ui.button("Save board").clicked() {
+        if ui
+            .button(Self::named_cmd_shorcut("Save board", &SAVE))
+            .clicked()
+        {
             self.save_current_board();
             ui.close_menu();
         }
@@ -46,11 +56,11 @@ impl LogixApp {
             ui.horizontal(|ui| {
                 ui.menu_button("File", |ui| self.file_menu(ui));
                 ui.menu_button("Sim", |ui| {
-                    if ui.button("Start").clicked() {
+                    if ui.button(Self::named_cmd_shorcut("Start", &RUN)).clicked() {
                         self.run_current_sim();
                         ui.close_menu();
                     }
-                    if ui.button("Stop").clicked() {
+                    if ui.button(Self::named_cmd_shorcut("Stop", &STOP)).clicked() {
                         self.stop_current_sim();
                         ui.close_menu();
                     }

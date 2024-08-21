@@ -1,4 +1,5 @@
 use egui::{emath::TSTransform, Color32, Pos2, Rect, Response, Sense, Ui, Vec2};
+use logix_sim::primitives::primitive::Primitive;
 
 use crate::app::{
     board_editing::BoardEditing,
@@ -83,8 +84,38 @@ impl BoardEditing {
                     // Name
                     ui.with_layout(egui::Layout::top_down(egui::Align::Min), |ui| {
                         ui.add_space(name_offset);
+                        let mut name = self.board.components[idx].name.clone();
+                        if let Some(prim) = &self.board.components[idx].primitive {
+                            match prim {
+                                Primitive::Input { bits: _ } => {
+                                    let in_order = self
+                                        .board
+                                        .inputs_idx
+                                        .iter()
+                                        .position(|&x| x == idx)
+                                        .unwrap();
+                                    name.push_str(&format!(
+                                        " {}",
+                                        self.board.inputs_name[in_order]
+                                    ));
+                                }
+                                Primitive::Output { bits: _ } => {
+                                    let out_order = self
+                                        .board
+                                        .outputs_idx
+                                        .iter()
+                                        .position(|&x| x == idx)
+                                        .unwrap();
+                                    name.push_str(&format!(
+                                        " {}",
+                                        self.board.outputs_name[out_order]
+                                    ));
+                                }
+                                _ => {}
+                            }
+                        }
                         ui.add(egui::Label::new(
-                            egui::RichText::new(self.board.components[idx].name.clone())
+                            egui::RichText::new(name)
                                 .font(font_id.clone())
                                 .line_height(Some(font_size_y))
                                 .color(Color32::WHITE),

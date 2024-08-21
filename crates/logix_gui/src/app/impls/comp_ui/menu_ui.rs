@@ -34,10 +34,13 @@ impl BoardEditing {
                         .iter()
                         .position(|&x| x == idx)
                         .unwrap();
-                    ui.add(
+                    let resp = ui.add(
                         egui::TextEdit::singleline(&mut self.board.inputs_name[in_idx])
                             .hint_text("Name"),
                     );
+                    if resp.lost_focus() {
+                        ui.close_menu();
+                    }
                 }
                 Primitive::Output { bits: _ } => {
                     let out_idx = self
@@ -46,10 +49,13 @@ impl BoardEditing {
                         .iter()
                         .position(|&x| x == idx)
                         .unwrap();
-                    ui.add(
+                    let resp = ui.add(
                         egui::TextEdit::singleline(&mut self.board.outputs_name[out_idx])
                             .hint_text("Name"),
                     );
+                    if resp.lost_focus() {
+                        ui.close_menu();
+                    }
                 }
                 Primitive::Splitter { bits: _ } => {}
                 Primitive::Joiner { bits: _ } => {}
