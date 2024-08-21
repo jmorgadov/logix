@@ -16,7 +16,7 @@ impl LogixApp {
                         if ui.button("Open folder").clicked() {
                             let new_folder = FileDialog::new().pick_folder();
                             if let Some(new_folder) = new_folder {
-                                self.try_load_folder(&new_folder);
+                                let _ = self.try_load_folder(&new_folder);
                             }
                         }
                     });

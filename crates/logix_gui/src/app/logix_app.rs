@@ -1,12 +1,39 @@
 use crate::app::{comp_board::ComponentBoard, folder_tree::Folder};
 use eframe::Result;
-use egui::{Color32, FontId, Sense, Stroke};
+use egui::{Color32, FontId, Sense, Stroke, Vec2};
 use egui_notify::Toasts;
 use log::*;
 use rfd::FileDialog;
-use std::{fmt::Display, path::PathBuf};
+use std::{fmt::Display, path::PathBuf, str::FromStr};
 
 use super::{board_editing::BoardEditing, errors::OpenBoardError, shortcuts};
+
+#[derive(Debug, Default, Clone)]
+pub enum AppState {
+    #[default]
+    OnWelcome,
+    CreatingNewProject {
+        folder: String,
+        name: String,
+    },
+    OnProject,
+}
+
+impl AppState {
+    pub fn new_project_folder(&mut self) -> &mut String {
+        match self {
+            Self::CreatingNewProject { folder, name: _ } => folder,
+            _ => panic!("Not in new project state"),
+        }
+    }
+
+    pub fn new_project_name(&mut self) -> &mut String {
+        match self {
+            Self::CreatingNewProject { folder: _, name } => name,
+            _ => panic!("Not in new project state"),
+        }
+    }
+}
 
 pub struct LogixApp {
     pub folder: Option<Folder>,
@@ -14,23 +41,23 @@ pub struct LogixApp {
     pub board_tabs: Vec<BoardEditing>,
     pub current_tab: usize,
     pub toasts: Toasts,
+    pub state: AppState,
+
+    pub new_project_folder: String,
+    pub new_project_name: String,
 }
 
 impl Default for LogixApp {
     fn default() -> Self {
-        let current_folder = std::env::current_dir();
-        let folder = match current_folder {
-            Ok(folder) => {
-                Some(Folder::from_pathbuf(&folder).expect("Failed to load current folder"))
-            }
-            Err(_) => None,
-        };
         Self {
-            folder,
+            folder: None,
             selected_file: None,
             board_tabs: vec![Default::default()],
             current_tab: 0,
             toasts: Toasts::new().with_default_font(FontId::proportional(10.0)),
+            state: AppState::default(),
+            new_project_folder: Default::default(),
+            new_project_name: Default::default(),
         }
     }
 }
@@ -132,18 +159,17 @@ impl LogixApp {
         Ok(())
     }
 
-    pub fn try_load_folder(&mut self, path: &PathBuf) {
+    pub fn try_load_folder(&mut self, path: &PathBuf) -> Result<(), std::io::Error> {
         let folder_res = Folder::from_pathbuf(path);
         match folder_res {
             Ok(folder) => {
                 self.folder = Some(folder);
                 std::env::set_current_dir(path.clone()).unwrap();
+                Ok(())
             }
-            Err(_) => {
-                self.notify_err(format!(
-                    "Failed to load folder: {}",
-                    folder_res.unwrap_err()
-                ));
+            Err(err) => {
+                self.notify_err(format!("Failed to load folder: {}", err));
+                Err(err)
             }
         }
     }
@@ -245,33 +271,158 @@ impl LogixApp {
                 });
             });
     }
+
+    pub fn draw_welcome_page(&mut self, ctx: &egui::Context) {
+        egui::CentralPanel::default().show(ctx, |ui| {
+            ui.vertical_centered(|ui| {
+                ui.add_space(ui.available_height() / 4.0);
+                ui.add(egui::Label::new(
+                    egui::RichText::new("Welcome to Logix!").size(40.0),
+                ));
+                ui.label("Create and simulate digital circuits with ease.");
+
+                ui.add_space(20.0);
+                if ui.button("New project").clicked() {
+                    self.state = AppState::CreatingNewProject {
+                        folder: Default::default(),
+                        name: Default::default(),
+                    };
+                }
+                if ui.button("Open a project").clicked() {
+                    let new_folder = FileDialog::new().pick_folder();
+                    let path = new_folder.unwrap().clone();
+                    if self.try_load_folder(&path).is_ok() {
+                        self.state = AppState::OnProject;
+                    };
+                }
+            });
+        });
+    }
+
+    fn draw_new_project(&mut self, ctx: &egui::Context) {
+        egui::CentralPanel::default().show(ctx, |ui| {
+            ui.vertical_centered(|ui| {
+                ui.add_space(ui.available_height() / 4.0);
+                ui.add(egui::Label::new(
+                    egui::RichText::new("Create a new project").size(30.0),
+                ));
+                ui.add_space(20.0);
+            });
+            ui.vertical_centered(|ui| {
+                ui.set_max_width(250.0);
+
+                egui::Grid::new("new_project_grid")
+                    .num_columns(2)
+                    .show(ui, |ui| {
+                        ui.add(
+                            egui::TextEdit::singleline(self.state.new_project_name())
+                                .hint_text("Project name"),
+                        );
+                        ui.end_row();
+                        ui.add(
+                            egui::TextEdit::singleline(self.state.new_project_folder())
+                                .min_size(Vec2::new(200.0, 0.0))
+                                .hint_text("Project folder"),
+                        );
+                        if ui.button("Select").clicked() {
+                            let new_folder = FileDialog::new().pick_folder();
+                            if let Some(new_folder) = new_folder {
+                                let path = new_folder.clone();
+                                *self.state.new_project_folder() =
+                                    path.to_str().unwrap().to_string();
+                            }
+                        }
+                        ui.end_row();
+                        if !self.state.new_project_folder().is_empty() {
+                            ui.add(egui::Label::new(
+                                egui::RichText::new(format!(
+                                    "Create at: {}/{}/",
+                                    self.state.new_project_folder().clone(),
+                                    self.state.new_project_name().clone()
+                                ))
+                                .small(),
+                            ));
+                            ui.end_row();
+                        }
+                    });
+
+                let folder = self.state.new_project_folder().clone();
+                let name = self.state.new_project_name().clone();
+                ui.add_space(20.0);
+                let path_res = PathBuf::from_str(&folder);
+                let valid =
+                    !folder.is_empty() && path_res.is_ok() && path_res.clone().unwrap().exists();
+                ui.add_enabled_ui(valid, |ui| {
+                    let path = path_res.unwrap();
+                    if ui
+                        .button(egui::RichText::new("Create").size(18.0))
+                        .clicked()
+                    {
+                        let path = path.join(name);
+                        match std::fs::create_dir_all(&path) {
+                            Ok(_) => {
+                                if self.try_load_folder(&path).is_ok() {
+                                    self.state = AppState::OnProject;
+                                }
+                            }
+                            Err(_) => {
+                                self.notify_err("Failed to create project folder");
+                            }
+                        }
+                    }
+                });
+                if ui
+                    .button(egui::RichText::new("Cancel").size(18.0))
+                    .clicked()
+                {
+                    self.state = AppState::OnWelcome;
+                }
+            });
+        });
+    }
+
+    fn draw_app(&mut self, ctx: &egui::Context) {
+        match &mut self.state {
+            AppState::OnWelcome => {
+                self.draw_welcome_page(ctx);
+            }
+            AppState::CreatingNewProject { folder: _, name: _ } => {
+                self.draw_new_project(ctx);
+            }
+            AppState::OnProject => {
+                if self.folder.is_none() {
+                    self.state = AppState::OnWelcome;
+                    return;
+                }
+                ctx.input_mut(|input| {
+                    if input.consume_shortcut(&shortcuts::SAVE) {
+                        self.save_current_board();
+                    }
+                    if input.consume_shortcut(&shortcuts::RUN) {
+                        self.run_current_sim();
+                    }
+                    if input.consume_shortcut(&shortcuts::STOP) {
+                        self.stop_current_sim();
+                    }
+                });
+
+                self.top_panel(ctx);
+                self.left_panel(ctx);
+                self.draw_tabs(ctx);
+                self.board_editing_mut().show(ctx);
+            }
+        }
+        self.toasts.show(ctx);
+    }
 }
 
 impl eframe::App for LogixApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         ctx.set_pixels_per_point(1.15);
-
         ctx.style_mut(|style| {
             style.visuals.button_frame = false;
         });
 
-        ctx.input_mut(|input| {
-            if input.consume_shortcut(&shortcuts::SAVE) {
-                self.save_current_board();
-            }
-            if input.consume_shortcut(&shortcuts::RUN) {
-                self.run_current_sim();
-            }
-            if input.consume_shortcut(&shortcuts::STOP) {
-                self.stop_current_sim();
-            }
-        });
-
-        self.top_panel(ctx);
-        self.left_panel(ctx);
-        self.draw_tabs(ctx);
-        self.board_editing_mut().show(ctx);
-
-        self.toasts.show(ctx);
+        self.draw_app(ctx);
     }
 }

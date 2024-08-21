@@ -55,6 +55,6 @@ pub enum ReloadComponentsError {
 pub enum OpenBoardError {
     #[error("Failed to load board.\n{0}")]
     LoadBoard(#[from] LoadBoardError),
-    #[error("Failed to reload load component.\n{0}")]
+    #[error("Failed to reload component.\n{0}")]
     ReloadComponents(#[from] ReloadComponentsError),
 }
