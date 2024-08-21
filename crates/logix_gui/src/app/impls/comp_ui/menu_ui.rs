@@ -10,15 +10,16 @@ impl BoardEditing {
             match prim {
                 Primitive::Clock { period: current_p } => {
                     ui.add(
-                        egui::Slider::from_get_set(1.0..=10000.0, |val| {
+                        egui::Slider::from_get_set(1e-6..=1e9, |val| {
                             if let Some(v) = val {
-                                let val_to_ns = v * 1_000_000.0;
+                                let val_to_ns = 1_000_000_000.0 / v;
                                 *current_p = val_to_ns as u128;
                                 return v;
                             }
-                            *current_p as f64 / 1_000_000.0
+                            1_000_000_000.0 / *current_p as f64
                         })
-                        .text("Frec (ms)"),
+                        .logarithmic(true)
+                        .text("Frec (Hz)"),
                     );
                 }
                 Primitive::AndGate => {}
