@@ -2,7 +2,7 @@ use egui::{epaint::PathShape, Color32, Pos2, Rect, Sense, Shape, Stroke};
 
 use crate::app::{
     board_editing::BoardEditing,
-    impls::{constants::*, wire_dir::WireDir},
+    impls::on_project_ui::{constants::*, wire_dir::WireDir},
 };
 
 impl BoardEditing {

@@ -1,3 +1,6 @@
+mod app_config;
+mod app_data;
+mod app_state;
 mod board_editing;
 mod comp_board;
 mod comp_info;

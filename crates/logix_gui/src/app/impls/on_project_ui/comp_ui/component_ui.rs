@@ -3,7 +3,7 @@ use logix_sim::primitives::primitive::Primitive;
 
 use crate::app::{
     board_editing::BoardEditing,
-    impls::{constants::*, wire_dir::WireDir},
+    impls::on_project_ui::{constants::PIN_SIZE, wire_dir::WireDir},
 };
 
 impl BoardEditing {

@@ -1,6 +1,6 @@
 use egui::{Color32, Response, Sense, Shape, Ui};
 
-use crate::app::{board_editing::BoardEditing, impls::constants::*};
+use crate::app::{board_editing::BoardEditing, impls::on_project_ui::constants::*};
 
 impl BoardEditing {
     pub fn draw_output_pins(&mut self, ui: &mut Ui, idx: usize, outputs: Vec<Response>) {

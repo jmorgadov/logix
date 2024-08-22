@@ -1,7 +1,7 @@
 use egui::{emath::TSTransform, epaint::PathShape, Color32, Id, Rect, Shape, Stroke, Ui};
 use rfd::FileDialog;
 
-use crate::app::{board_editing::BoardEditing, impls::wire_dir::WireDir};
+use crate::app::{board_editing::BoardEditing, impls::on_project_ui::wire_dir::WireDir};
 
 impl BoardEditing {
     pub fn draw_canvas(&mut self, ctx: &egui::Context) {

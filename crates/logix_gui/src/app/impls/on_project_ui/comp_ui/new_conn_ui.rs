@@ -2,7 +2,7 @@ use egui::{emath::TSTransform, epaint::PathShape, Color32, Pos2, Shape, Stroke};
 
 use crate::app::{
     board_editing::BoardEditing,
-    impls::{constants::GHOST_POINT_THRESHOLD, wire_dir::WireDir},
+    impls::on_project_ui::{constants::GHOST_POINT_THRESHOLD, wire_dir::WireDir},
 };
 
 impl BoardEditing {

@@ -1,39 +1,14 @@
 use crate::app::{comp_board::ComponentBoard, folder_tree::Folder};
-use eframe::Result;
-use egui::{Color32, FontId, Sense, Stroke, Vec2};
+use egui::FontId;
 use egui_notify::Toasts;
 use log::*;
 use rfd::FileDialog;
-use std::{fmt::Display, path::PathBuf, str::FromStr};
+use std::{fmt::Display, path::PathBuf};
 
-use super::{board_editing::BoardEditing, errors::OpenBoardError, shortcuts};
-
-#[derive(Debug, Default, Clone)]
-pub enum AppState {
-    #[default]
-    OnWelcome,
-    CreatingNewProject {
-        folder: String,
-        name: String,
-    },
-    OnProject,
-}
-
-impl AppState {
-    pub fn new_project_folder(&mut self) -> &mut String {
-        match self {
-            Self::CreatingNewProject { folder, name: _ } => folder,
-            _ => panic!("Not in new project state"),
-        }
-    }
-
-    pub fn new_project_name(&mut self) -> &mut String {
-        match self {
-            Self::CreatingNewProject { folder: _, name } => name,
-            _ => panic!("Not in new project state"),
-        }
-    }
-}
+use super::{
+    app_config::AppSettings, app_data::AppData, app_state::AppState, board_editing::BoardEditing,
+    errors::OpenBoardError, shortcuts,
+};
 
 pub struct LogixApp {
     pub folder: Option<Folder>,
@@ -42,6 +17,9 @@ pub struct LogixApp {
     pub current_tab: usize,
     pub toasts: Toasts,
     pub state: AppState,
+
+    pub settings: AppSettings,
+    pub data: AppData,
 
     pub new_project_folder: String,
     pub new_project_name: String,
@@ -56,6 +34,8 @@ impl Default for LogixApp {
             current_tab: 0,
             toasts: Toasts::new().with_default_font(FontId::proportional(10.0)),
             state: AppState::default(),
+            settings: AppSettings::default(),
+            data: AppData::default(),
             new_project_folder: Default::default(),
             new_project_name: Default::default(),
         }
@@ -63,6 +43,31 @@ impl Default for LogixApp {
 }
 
 impl LogixApp {
+    pub fn from_folder(path: &PathBuf) -> Result<Self, std::io::Error> {
+        let folder = Folder::from_pathbuf(path)?;
+        let mut app = LogixApp {
+            folder: Some(folder),
+            state: AppState::OnProject,
+            ..Default::default()
+        };
+        app.try_load_folder(path)?;
+        Ok(app)
+    }
+
+    pub fn data_dir() -> PathBuf {
+        let mut data_dir = dirs::data_dir().expect("Failed to get data dir");
+        data_dir.push("logix");
+        data_dir.push("data.json");
+        data_dir
+    }
+
+    pub fn config_dir() -> PathBuf {
+        let mut config_dir = dirs::config_dir().expect("Failed to get config dir");
+        config_dir.push("logix");
+        config_dir.push("config.json");
+        config_dir
+    }
+
     pub fn notify_err(&mut self, err: impl Into<String>) {
         self.toasts.error(err).set_closable(true);
     }
@@ -159,12 +164,41 @@ impl LogixApp {
         Ok(())
     }
 
+    pub fn update_data(&mut self, data_upd: impl FnOnce(&mut AppData)) {
+        data_upd(&mut self.data);
+        let data_dir = Self::data_dir();
+        std::fs::create_dir_all(data_dir.parent().unwrap()).unwrap();
+        std::fs::write(data_dir, serde_json::to_string(&self.data).unwrap())
+            .expect("Failed to write data file");
+    }
+
+    // TODO: Add this when implementing settings state
+    //
+    // pub fn update_settings(&mut self, settings_upd: impl FnOnce(&mut AppSettings)) {
+    //     settings_upd(&mut self.settings);
+    //     let config_dir = Self::config_dir();
+    //     std::fs::create_dir_all(config_dir.parent().unwrap()).unwrap();
+    //     std::fs::write(config_dir, serde_json::to_string(&self.settings).unwrap())
+    //         .expect("Failed to write config file");
+    // }
+
     pub fn try_load_folder(&mut self, path: &PathBuf) -> Result<(), std::io::Error> {
         let folder_res = Folder::from_pathbuf(path);
         match folder_res {
             Ok(folder) => {
                 self.folder = Some(folder);
                 std::env::set_current_dir(path.clone()).unwrap();
+                self.update_data(|data| {
+                    let current_dir = std::env::current_dir().unwrap();
+                    let path = current_dir.to_str().unwrap();
+                    data.projects_opened.insert(
+                        path.to_string(),
+                        std::time::SystemTime::now()
+                            .duration_since(std::time::UNIX_EPOCH)
+                            .unwrap()
+                            .as_secs(),
+                    );
+                });
                 Ok(())
             }
             Err(err) => {
@@ -202,185 +236,6 @@ impl LogixApp {
         self.board_editing_mut().stop_sim();
     }
 
-    pub fn draw_tabs(&mut self, ctx: &egui::Context) {
-        egui::TopBottomPanel::top("tabs")
-            .frame(
-                egui::Frame::default()
-                    .inner_margin(egui::Margin::same(0.0))
-                    .fill(ctx.style().visuals.panel_fill),
-            )
-            .show_separator_line(false)
-            .show(ctx, |ui| {
-                ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
-                    let mut i = 0;
-                    let mut next_current_tab = self.current_tab;
-                    while i < self.board_tabs.len() {
-                        let mut removed = false;
-                        let color = if i == self.current_tab {
-                            Color32::from_gray(35)
-                        } else {
-                            ui.style().visuals.panel_fill
-                        };
-                        egui::Frame::default().fill(color).show(ui, |ui| {
-                            ui.allocate_space(egui::vec2(0.0, ui.available_height()));
-                            ui.horizontal(|ui| {
-                                ui.set_max_width(150.0);
-                                let tab_label = if self.board_tabs[i].board.name.is_empty() {
-                                    "Untitled"
-                                } else {
-                                    self.board_tabs[i].board.name.as_str()
-                                };
-                                let resp = ui
-                                    .add(egui::Label::new(tab_label).truncate().selectable(false))
-                                    .interact(Sense::click());
-
-                                if resp.clicked() {
-                                    next_current_tab = i;
-                                }
-                            });
-                            if ui
-                                .add(
-                                    egui::Button::new("❌")
-                                        .stroke(Stroke::new(0.0, Color32::TRANSPARENT))
-                                        .fill(Color32::TRANSPARENT),
-                                )
-                                .clicked()
-                            {
-                                self.board_tabs.remove(i);
-                                removed = true;
-
-                                if i < self.current_tab
-                                    || (i == self.current_tab
-                                        && i == self.board_tabs.len()
-                                        && i > 0)
-                                {
-                                    next_current_tab -= 1;
-                                }
-                            }
-                        });
-
-                        if !removed {
-                            i += 1;
-                        }
-                    }
-                    if self.board_tabs.is_empty() {
-                        self.selected_file = None;
-                        self.new_board();
-                    }
-                    self.set_current_tab(next_current_tab);
-                });
-            });
-    }
-
-    pub fn draw_welcome_page(&mut self, ctx: &egui::Context) {
-        egui::CentralPanel::default().show(ctx, |ui| {
-            ui.vertical_centered(|ui| {
-                ui.add_space(ui.available_height() / 4.0);
-                ui.add(egui::Label::new(
-                    egui::RichText::new("Welcome to Logix!").size(40.0),
-                ));
-                ui.label("Create and simulate digital circuits with ease.");
-
-                ui.add_space(20.0);
-                if ui.button("New project").clicked() {
-                    self.state = AppState::CreatingNewProject {
-                        folder: Default::default(),
-                        name: Default::default(),
-                    };
-                }
-                if ui.button("Open a project").clicked() {
-                    let new_folder = FileDialog::new().pick_folder();
-                    let path = new_folder.unwrap().clone();
-                    if self.try_load_folder(&path).is_ok() {
-                        self.state = AppState::OnProject;
-                    };
-                }
-            });
-        });
-    }
-
-    fn draw_new_project(&mut self, ctx: &egui::Context) {
-        egui::CentralPanel::default().show(ctx, |ui| {
-            ui.vertical_centered(|ui| {
-                ui.add_space(ui.available_height() / 4.0);
-                ui.add(egui::Label::new(
-                    egui::RichText::new("Create a new project").size(30.0),
-                ));
-                ui.add_space(20.0);
-            });
-            ui.vertical_centered(|ui| {
-                ui.set_max_width(250.0);
-
-                egui::Grid::new("new_project_grid")
-                    .num_columns(2)
-                    .show(ui, |ui| {
-                        ui.add(
-                            egui::TextEdit::singleline(self.state.new_project_name())
-                                .hint_text("Project name"),
-                        );
-                        ui.end_row();
-                        ui.add(
-                            egui::TextEdit::singleline(self.state.new_project_folder())
-                                .min_size(Vec2::new(200.0, 0.0))
-                                .hint_text("Project folder"),
-                        );
-                        if ui.button("Select").clicked() {
-                            let new_folder = FileDialog::new().pick_folder();
-                            if let Some(new_folder) = new_folder {
-                                let path = new_folder.clone();
-                                *self.state.new_project_folder() =
-                                    path.to_str().unwrap().to_string();
-                            }
-                        }
-                        ui.end_row();
-                        if !self.state.new_project_folder().is_empty() {
-                            ui.add(egui::Label::new(
-                                egui::RichText::new(format!(
-                                    "Create at: {}/{}/",
-                                    self.state.new_project_folder().clone(),
-                                    self.state.new_project_name().clone()
-                                ))
-                                .small(),
-                            ));
-                            ui.end_row();
-                        }
-                    });
-
-                let folder = self.state.new_project_folder().clone();
-                let name = self.state.new_project_name().clone();
-                ui.add_space(20.0);
-                let path_res = PathBuf::from_str(&folder);
-                let valid =
-                    !folder.is_empty() && path_res.is_ok() && path_res.clone().unwrap().exists();
-                ui.add_enabled_ui(valid, |ui| {
-                    let path = path_res.unwrap();
-                    if ui
-                        .button(egui::RichText::new("Create").size(18.0))
-                        .clicked()
-                    {
-                        let path = path.join(name);
-                        match std::fs::create_dir_all(&path) {
-                            Ok(_) => {
-                                if self.try_load_folder(&path).is_ok() {
-                                    self.state = AppState::OnProject;
-                                }
-                            }
-                            Err(_) => {
-                                self.notify_err("Failed to create project folder");
-                            }
-                        }
-                    }
-                });
-                if ui
-                    .button(egui::RichText::new("Cancel").size(18.0))
-                    .clicked()
-                {
-                    self.state = AppState::OnWelcome;
-                }
-            });
-        });
-    }
-
     fn draw_app(&mut self, ctx: &egui::Context) {
         match &mut self.state {
             AppState::OnWelcome => {
@@ -414,11 +269,28 @@ impl LogixApp {
         }
         self.toasts.show(ctx);
     }
+
+    pub fn load_config_and_data(&mut self) {
+        let data_dir = Self::data_dir();
+        let data = std::fs::read_to_string(data_dir);
+        if let Ok(data) = data {
+            let data: AppData = serde_json::from_str(&data).unwrap_or_default();
+            self.data = data;
+        }
+
+        let config_dir = Self::config_dir();
+        let config = std::fs::read_to_string(config_dir);
+        if let Ok(config) = config {
+            let config: AppSettings = serde_json::from_str(&config).unwrap_or_default();
+            self.settings = config;
+        }
+    }
 }
 
 impl eframe::App for LogixApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        ctx.set_pixels_per_point(1.15);
+        self.load_config_and_data();
+        ctx.set_pixels_per_point(self.settings.zoom);
         ctx.style_mut(|style| {
             style.visuals.button_frame = false;
         });

@@ -1,6 +1,3 @@
-mod canvas_ui;
-mod comp_ui;
-mod constants;
-mod left_panel_ui;
-mod top_panel_ui;
-mod wire_dir;
+mod new_project_ui;
+mod on_project_ui;
+mod welcome_ui;
