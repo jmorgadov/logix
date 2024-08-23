@@ -3,16 +3,16 @@ use std::{path::PathBuf, str::FromStr};
 use egui::Vec2;
 use rfd::FileDialog;
 
-use crate::app::{app_state::AppState, LogixApp};
+use crate::app_ui::{app_state::AppState, logix_app::LogixApp};
 
 impl LogixApp {
-    fn build_path(folder: String, name: String) -> String {
+    fn build_path(folder: &str, name: &str) -> String {
         let mut path = String::new();
-        path.push_str(&folder);
+        path.push_str(folder);
         if !path.ends_with('/') {
             path.push('/');
         }
-        path.push_str(&name);
+        path.push_str(name);
         if !path.ends_with('/') {
             path.push('/');
         }
@@ -50,7 +50,7 @@ impl LogixApp {
                         if ui.button("Select").clicked() {
                             let new_folder = FileDialog::new().pick_folder();
                             if let Some(new_folder) = new_folder {
-                                let path = new_folder.clone();
+                                let path = new_folder;
                                 *self.state.new_project_folder() =
                                     path.to_str().unwrap().to_string();
                             }
@@ -61,8 +61,8 @@ impl LogixApp {
                                 egui::RichText::new(format!(
                                     "Create at: {}",
                                     Self::build_path(
-                                        self.state.new_project_folder().clone(),
-                                        self.state.new_project_name().clone()
+                                        &self.state.new_project_folder().clone(),
+                                        self.state.new_project_name()
                                     )
                                 ))
                                 .small(),
@@ -82,7 +82,7 @@ impl LogixApp {
                     if ui.button(egui::RichText::new("Create")).clicked() {
                         let path = path.join(name);
                         match std::fs::create_dir_all(&path) {
-                            Ok(_) => {
+                            Ok(()) => {
                                 if self.try_load_folder(&path).is_ok() {
                                     self.state = AppState::OnProject;
                                 }

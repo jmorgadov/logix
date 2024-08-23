@@ -1,9 +1,12 @@
 use egui::{emath::TSTransform, Color32, Pos2, Rect, Response, Sense, Ui, Vec2};
 use logix_sim::primitives::primitive::Primitive;
 
-use crate::app::{
+use crate::app_ui::{
     board_editing::BoardEditing,
-    impls::on_project_ui::{constants::PIN_SIZE, wire_dir::WireDir},
+    pages::on_project_ui::{
+        constants::{COMP_FONT_SIZE, PIN_SIZE},
+        wire_dir::WireDir,
+    },
 };
 
 impl BoardEditing {
@@ -11,7 +14,7 @@ impl BoardEditing {
         self.board.comp_pos[idx] = new_pos;
     }
 
-    pub fn get_ghost_point(last_point: Pos2, dir: WireDir, cursor_pos: Pos2) -> Pos2 {
+    pub const fn get_ghost_point(last_point: Pos2, dir: WireDir, cursor_pos: Pos2) -> Pos2 {
         match dir {
             WireDir::Horizontal => Pos2::new(cursor_pos.x, last_point.y),
             WireDir::Vertical => Pos2::new(last_point.x, cursor_pos.y),
@@ -23,14 +26,16 @@ impl BoardEditing {
         ui: &mut Ui,
         idx: usize,
     ) -> (Response, Vec<Response>, Vec<Response>) {
-        let font_size_y = 15.0;
-        let font_id = egui::FontId::monospace(font_size_y);
+        let font_id = egui::FontId::monospace(COMP_FONT_SIZE);
 
         let in_count = self.board.components[idx].input_count();
         let out_count = self.board.components[idx].output_count();
 
-        let in_height = (in_count as f32) * font_size_y;
-        let out_height = (out_count as f32) * font_size_y;
+        #[allow(clippy::cast_precision_loss)]
+        let in_height = (in_count as f32) * COMP_FONT_SIZE;
+
+        #[allow(clippy::cast_precision_loss)]
+        let out_height = (out_count as f32) * COMP_FONT_SIZE;
 
         let pins_max_height = in_height.max(out_height);
 
@@ -38,7 +43,7 @@ impl BoardEditing {
         let out_offset: f32 = (pins_max_height - out_height) / 2.0;
 
         let height = pins_max_height;
-        let name_offset: f32 = (height - font_size_y) / 2.0;
+        let name_offset: f32 = (height - COMP_FONT_SIZE) / 2.0;
 
         let mut in_resps = vec![];
         let mut out_resps = vec![];
@@ -46,40 +51,24 @@ impl BoardEditing {
         let in_names = &self.board.components[idx].inputs_name;
         let out_names = &self.board.components[idx].outputs_name;
 
-        let out_names_max_len = out_names.iter().map(|x| x.len()).max().unwrap_or(0);
+        let out_names_max_len = out_names
+            .iter()
+            .map(std::string::String::len)
+            .max()
+            .unwrap_or(0);
         let out_names = out_names
             .iter()
-            .map(|x| format!("{: >width$}", x, width = out_names_max_len))
+            .map(|x| format!("{x: >out_names_max_len$}"))
             .collect::<Vec<String>>();
 
         let mut resp = egui::Frame::default()
             .fill(Color32::from_rgb(70, 70, 70))
-            .inner_margin(egui::Margin::symmetric(0.0, font_size_y / 4.0))
+            .inner_margin(egui::Margin::symmetric(0.0, COMP_FONT_SIZE / 4.0))
             .rounding(4.0)
             .show(ui, |ui| {
                 ui.with_layout(egui::Layout::left_to_right(egui::Align::Min), |ui| {
                     // Inputs
-                    ui.with_layout(egui::Layout::top_down(egui::Align::Min), |ui| {
-                        ui.add_space(in_offset);
-                        for (i, name) in in_names.iter().enumerate() {
-                            ui.with_layout(egui::Layout::left_to_right(egui::Align::Min), |ui| {
-                                let r = ui
-                                    .add(egui::Label::new(
-                                        egui::RichText::new(format!(" {}", name.clone()))
-                                            .font(font_id.clone())
-                                            .line_height(Some(font_size_y)),
-                                    ))
-                                    .rect;
-                                let pos = Pos2::new(r.left(), r.center().y);
-                                let resp = ui.interact(
-                                    Rect::from_center_size(pos, Vec2::splat(PIN_SIZE * 2.0)),
-                                    ui.id().with(("input", i, idx)),
-                                    Sense::click_and_drag(),
-                                );
-                                in_resps.push(resp);
-                            });
-                        }
-                    });
+                    in_resps = draw_inputs(ui, in_offset, in_names, &font_id, idx);
 
                     // Name
                     ui.with_layout(egui::Layout::top_down(egui::Align::Min), |ui| {
@@ -117,33 +106,13 @@ impl BoardEditing {
                         ui.add(egui::Label::new(
                             egui::RichText::new(name)
                                 .font(font_id.clone())
-                                .line_height(Some(font_size_y))
+                                .line_height(Some(COMP_FONT_SIZE))
                                 .color(Color32::WHITE),
                         ));
                     });
 
                     // Outputs
-                    ui.with_layout(egui::Layout::top_down(egui::Align::Min), |ui| {
-                        ui.add_space(out_offset);
-                        for (i, name) in out_names.iter().enumerate() {
-                            ui.with_layout(egui::Layout::left_to_right(egui::Align::Min), |ui| {
-                                let r = ui
-                                    .add(egui::Label::new(
-                                        egui::RichText::new(format!("{} ", name.clone()))
-                                            .font(font_id.clone())
-                                            .line_height(Some(font_size_y)),
-                                    ))
-                                    .rect;
-                                let pos = Pos2::new(r.right(), r.center().y);
-                                let resp = ui.interact(
-                                    Rect::from_center_size(pos, Vec2::splat(PIN_SIZE * 2.0)),
-                                    ui.id().with(("output", i, idx)),
-                                    Sense::click_and_drag(),
-                                );
-                                out_resps.push(resp);
-                            });
-                        }
-                    });
+                    out_resps = draw_ouputs(ui, out_offset, &out_names, &font_id, idx);
                 });
             })
             .response;
@@ -213,8 +182,8 @@ impl BoardEditing {
         // -----------------------------------------------------------------------------
         // Add the component's pins
         // -----------------------------------------------------------------------------
-        self.draw_input_pins(ui, idx, inputs);
-        self.draw_output_pins(ui, idx, outputs);
+        self.draw_input_pins(ui, idx, &inputs);
+        self.draw_output_pins(ui, idx, &outputs);
 
         // -----------------------------------------------------------------------------
         // Handle context menu for the component
@@ -230,4 +199,70 @@ impl BoardEditing {
             });
         }
     }
+}
+
+fn draw_ouputs(
+    ui: &mut Ui,
+    out_offset: f32,
+    out_names: &[String],
+    font_id: &egui::FontId,
+    idx: usize,
+) -> Vec<Response> {
+    ui.with_layout(egui::Layout::top_down(egui::Align::Min), |ui| {
+        let mut resps = vec![];
+        ui.add_space(out_offset);
+        for (i, name) in out_names.iter().enumerate() {
+            ui.with_layout(egui::Layout::left_to_right(egui::Align::Min), |ui| {
+                let r = ui
+                    .add(egui::Label::new(
+                        egui::RichText::new(format!("{} ", name.clone()))
+                            .font(font_id.clone())
+                            .line_height(Some(COMP_FONT_SIZE)),
+                    ))
+                    .rect;
+                let pos = Pos2::new(r.right(), r.center().y);
+                let resp = ui.interact(
+                    Rect::from_center_size(pos, Vec2::splat(PIN_SIZE * 2.0)),
+                    ui.id().with(("output", i, idx)),
+                    Sense::click_and_drag(),
+                );
+                resps.push(resp);
+            });
+        }
+        resps
+    })
+    .inner
+}
+
+fn draw_inputs(
+    ui: &mut Ui,
+    in_offset: f32,
+    in_names: &[String],
+    font_id: &egui::FontId,
+    idx: usize,
+) -> Vec<Response> {
+    ui.with_layout(egui::Layout::top_down(egui::Align::Min), |ui| {
+        let mut resps = vec![];
+        ui.add_space(in_offset);
+        for (i, name) in in_names.iter().enumerate() {
+            ui.with_layout(egui::Layout::left_to_right(egui::Align::Min), |ui| {
+                let r = ui
+                    .add(egui::Label::new(
+                        egui::RichText::new(format!(" {}", name.clone()))
+                            .font(font_id.clone())
+                            .line_height(Some(COMP_FONT_SIZE)),
+                    ))
+                    .rect;
+                let pos = Pos2::new(r.left(), r.center().y);
+                let resp = ui.interact(
+                    Rect::from_center_size(pos, Vec2::splat(PIN_SIZE * 2.0)),
+                    ui.id().with(("input", i, idx)),
+                    Sense::click_and_drag(),
+                );
+                resps.push(resp);
+            });
+        }
+        resps
+    })
+    .inner
 }

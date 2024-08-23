@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use egui::Pos2;
 use logix_core::component::{Component, Conn, PortAddr, SubComponent};
@@ -112,7 +112,7 @@ impl ComponentBoard {
 
     pub fn load(path: &PathBuf) -> Result<Self, LoadBoardError> {
         let serialized = std::fs::read_to_string(path)?;
-        let board: ComponentBoard = serde_json::from_str(&serialized)?;
+        let board = serde_json::from_str(&serialized)?;
         Ok(board)
     }
 
@@ -161,12 +161,12 @@ impl ComponentBoard {
                 Primitive::Input { bits: _ } => {
                     self.inputs += 1;
                     self.inputs_idx.push(self.components.len() - 1);
-                    self.inputs_name.push(Default::default());
+                    self.inputs_name.push(String::default());
                 }
                 Primitive::Output { bits: _ } => {
                     self.outputs += 1;
                     self.outputs_idx.push(self.components.len() - 1);
-                    self.outputs_name.push(Default::default());
+                    self.outputs_name.push(String::default());
                 }
                 _ => {}
             }
@@ -181,10 +181,10 @@ impl ComponentBoard {
     pub fn import_comp(
         &mut self,
         id: usize,
-        source: PathBuf,
+        source: &Path,
         pos: Pos2,
     ) -> Result<(), LoadComponentError> {
-        let comp = Self::load_comp(id, source.clone())?;
+        let comp = Self::load_comp(id, source.to_path_buf())?;
         self.add_comp(comp, pos);
         Ok(())
     }
@@ -193,7 +193,7 @@ impl ComponentBoard {
         let comp = self.components.remove(idx);
         self.comp_pos.remove(idx);
 
-        if let Some(prim) = comp.primitive.clone() {
+        if let Some(prim) = comp.primitive {
             match prim {
                 Primitive::Input { bits: _ } => {
                     self.inputs -= 1;
@@ -432,7 +432,7 @@ impl ComponentInfo {
 
         let res = board.build_component(last_id);
 
-        for (idx, (to, to_port)) in board.in_addrs.iter() {
+        for (idx, (to, to_port)) in &board.in_addrs {
             self.inputs_data_idx[*idx] = board.components[*to].inputs_data_idx[*to_port];
         }
 

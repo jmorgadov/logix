@@ -2,7 +2,7 @@ use std::{path::PathBuf, str::FromStr};
 
 use rfd::FileDialog;
 
-use crate::app::{app_state::AppState, LogixApp};
+use crate::app_ui::{app_state::AppState, logix_app::LogixApp};
 
 impl LogixApp {
     pub fn draw_welcome_page(&mut self, ctx: &egui::Context) {
@@ -17,13 +17,13 @@ impl LogixApp {
                 ui.add_space(20.0);
                 if ui.button("New project").clicked() {
                     self.state = AppState::CreatingNewProject {
-                        folder: Default::default(),
-                        name: Default::default(),
+                        folder: String::default(),
+                        name: String::default(),
                     };
                 }
                 if ui.button("Open a project").clicked() {
                     let new_folder = FileDialog::new().pick_folder();
-                    let path = new_folder.unwrap().clone();
+                    let path = new_folder.unwrap();
                     if self.try_load_folder(&path).is_ok() {
                         self.state = AppState::OnProject;
                     };

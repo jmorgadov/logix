@@ -1,6 +1,6 @@
 use egui::{Color32, Sense, Stroke};
 
-use crate::app::LogixApp;
+use crate::app_ui::logix_app::LogixApp;
 
 impl LogixApp {
     pub fn draw_tabs(&mut self, ctx: &egui::Context) {

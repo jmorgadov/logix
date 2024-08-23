@@ -1,13 +1,13 @@
 use egui::{KeyboardShortcut, Ui};
 use rfd::FileDialog;
 
-use crate::app::{
+use crate::app_ui::{
+    logix_app::LogixApp,
     shortcuts::{shortcut_string, RUN, SAVE, STOP},
-    LogixApp,
 };
 
 impl LogixApp {
-    fn named_cmd_shorcut(cmd: &str, shortcut: &KeyboardShortcut) -> String {
+    fn named_cmd_shorcut(cmd: &str, shortcut: KeyboardShortcut) -> String {
         format!("{} ({})", cmd, shortcut_string(shortcut))
     }
     fn file_menu(&mut self, ui: &mut Ui) {
@@ -27,7 +27,7 @@ impl LogixApp {
         }
         ui.separator();
         if ui
-            .button(Self::named_cmd_shorcut("Save board", &SAVE))
+            .button(Self::named_cmd_shorcut("Save board", SAVE))
             .clicked()
         {
             self.save_current_board();
@@ -57,11 +57,11 @@ impl LogixApp {
             ui.horizontal(|ui| {
                 ui.menu_button("File", |ui| self.file_menu(ui));
                 ui.menu_button("Sim", |ui| {
-                    if ui.button(Self::named_cmd_shorcut("Start", &RUN)).clicked() {
+                    if ui.button(Self::named_cmd_shorcut("Start", RUN)).clicked() {
                         self.run_current_sim();
                         ui.close_menu();
                     }
-                    if ui.button(Self::named_cmd_shorcut("Stop", &STOP)).clicked() {
+                    if ui.button(Self::named_cmd_shorcut("Stop", STOP)).clicked() {
                         self.stop_current_sim();
                         ui.close_menu();
                     }

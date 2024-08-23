@@ -1,13 +1,16 @@
 use egui::{Color32, Pos2, Response, Sense, Shape, Ui};
 
-use crate::app::{
+use crate::app_ui::{
     board_editing::BoardEditing,
-    impls::on_project_ui::{constants::*, wire_dir::WireDir},
+    pages::on_project_ui::{
+        constants::{GHOST_POINT_THRESHOLD, HIGH_COLOR, LOW_COLOR, PIN_SIZE},
+        wire_dir::WireDir,
+    },
 };
 
 impl BoardEditing {
-    pub fn draw_input_pins(&mut self, ui: &mut Ui, idx: usize, inputs: Vec<Response>) {
-        for (i, resp) in inputs.into_iter().enumerate() {
+    pub fn draw_input_pins(&mut self, ui: &Ui, idx: usize, inputs: &[Response]) {
+        for (i, resp) in inputs.iter().enumerate() {
             let pin_pos = resp.rect.center();
 
             let resp = ui.interact(resp.rect, resp.id.with(i), Sense::click_and_drag());

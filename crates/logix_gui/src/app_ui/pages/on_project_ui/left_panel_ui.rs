@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use egui::{CollapsingHeader, Color32, Sense, Ui, Vec2};
 use rfd::FileDialog;
 
-use crate::app::{folder_tree::Folder, LogixApp};
+use crate::app_ui::{folder_tree::Folder, logix_app::LogixApp};
 
 impl LogixApp {
     pub fn left_panel(&mut self, ctx: &egui::Context) {
@@ -55,14 +55,14 @@ impl LogixApp {
 impl Folder {
     fn ui_impl(&mut self, ui: &mut Ui, selected_file: Option<&PathBuf>) -> Option<PathBuf> {
         let mut new_file = selected_file.cloned();
-        for folder in self.folders.iter_mut() {
+        for folder in &mut self.folders {
             let name = folder.current_path.file_name().unwrap().to_str().unwrap();
             CollapsingHeader::new(name).show(ui, |ui| {
                 new_file = folder.ui_impl(ui, selected_file);
             });
         }
 
-        for file in self.files.iter() {
+        for file in &self.files {
             let name = file.file_name().unwrap().to_str().unwrap();
             let mut color = Color32::TRANSPARENT;
             if let Some(selected_file) = selected_file {

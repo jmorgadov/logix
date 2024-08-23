@@ -1,6 +1,6 @@
 use super::{comp_board::ComponentBoard, errors::SimulationError};
 use egui::{emath::TSTransform, Pos2};
-use log::*;
+use log::error;
 use logix_core::component::PortAddr;
 use logix_sim::{flatten::FlattenComponent, Simulator};
 use std::path::PathBuf;
@@ -41,9 +41,8 @@ impl BoardEditing {
     }
 
     pub fn update_comp_vals(&mut self) {
-        let sim = match self.sim.as_mut() {
-            Some(sim) => sim,
-            None => return,
+        let Some(sim) = self.sim.as_mut() else {
+            return;
         };
         let res: Result<(), SimulationError> = sim.component(|comp| {
             self.board.components.iter_mut().try_for_each(|board_comp| {

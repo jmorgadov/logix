@@ -1,8 +1,10 @@
-mod app;
+#![warn(clippy::all, clippy::pedantic, clippy::nursery)]
 
-use std::{path::PathBuf, str::FromStr};
+mod app_ui;
 
-use app::LogixApp;
+use std::{env::args, path::PathBuf, str::FromStr};
+
+use crate::app_ui::logix_app::LogixApp;
 use eframe::egui;
 
 fn main() -> eframe::Result {
@@ -14,11 +16,11 @@ fn main() -> eframe::Result {
         ..Default::default()
     };
 
-    let app = if std::env::args().len() > 1 {
-        let path = std::env::args().nth(1).unwrap();
-        let path = PathBuf::from_str(&path);
+    let app = if args().len() > 1 {
+        let path_arg = args().nth(1).unwrap();
+        let path_res = PathBuf::from_str(&path_arg);
 
-        match path {
+        match path_res {
             Ok(path) => LogixApp::from_folder(&path).unwrap_or_else(|err| {
                 log::error!("Error loading folder: {}", err);
                 LogixApp::default()

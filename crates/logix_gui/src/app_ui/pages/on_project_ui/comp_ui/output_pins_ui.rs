@@ -1,9 +1,12 @@
 use egui::{Color32, Response, Sense, Shape, Ui};
 
-use crate::app::{board_editing::BoardEditing, impls::on_project_ui::constants::*};
+use crate::app_ui::{
+    board_editing::BoardEditing,
+    pages::on_project_ui::constants::{HIGH_COLOR, LOW_COLOR, PIN_SIZE},
+};
 
 impl BoardEditing {
-    pub fn draw_output_pins(&mut self, ui: &mut Ui, idx: usize, outputs: Vec<Response>) {
+    pub fn draw_output_pins(&mut self, ui: &Ui, idx: usize, outputs: &[Response]) {
         for (i, resp) in outputs.iter().enumerate() {
             let pin_pos = resp.rect.center();
             let resp = ui.interact(resp.rect, resp.id.with(i), Sense::click_and_drag());

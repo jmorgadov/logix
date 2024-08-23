@@ -1,12 +1,12 @@
 use egui::{emath::TSTransform, epaint::PathShape, Color32, Pos2, Shape, Stroke};
 
-use crate::app::{
+use crate::app_ui::{
     board_editing::BoardEditing,
-    impls::on_project_ui::{constants::GHOST_POINT_THRESHOLD, wire_dir::WireDir},
+    pages::on_project_ui::{constants::GHOST_POINT_THRESHOLD, wire_dir::WireDir},
 };
 
 impl BoardEditing {
-    pub fn draw_new_connection(&mut self, ui: &mut egui::Ui, idx: usize, transform: TSTransform) {
+    pub fn draw_new_connection(&mut self, ui: &egui::Ui, idx: usize, transform: TSTransform) {
         if let Some((from, points)) = self.new_conn.as_mut() {
             let cursor_pos = ui.ctx().pointer_hover_pos();
             if from.0 == idx && cursor_pos.is_some() {

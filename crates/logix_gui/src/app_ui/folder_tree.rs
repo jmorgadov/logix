@@ -17,13 +17,13 @@ impl Folder {
             let entry = entry.unwrap();
             let path = entry.path();
             if path.is_dir() {
-                folders.push(Folder::from_pathbuf(&path)?);
+                folders.push(Self::from_pathbuf(&path)?);
             } else {
                 files.push(path);
             }
         }
 
-        Ok(Folder {
+        Ok(Self {
             current_path,
             folders,
             files,
