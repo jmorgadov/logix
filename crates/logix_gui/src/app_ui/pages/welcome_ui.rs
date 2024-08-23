@@ -5,6 +5,14 @@ use rfd::FileDialog;
 use crate::app_ui::{app_state::AppState, logix_app::LogixApp};
 
 impl LogixApp {
+    fn get_recent_projects(&self, max: usize) -> Vec<(String, u64)> {
+        let projects = self.data.projects_opened.clone();
+        let mut sorted = projects.into_iter().collect::<Vec<(String, u64)>>();
+        sorted.sort_by(|a, b| b.1.cmp(&a.1));
+        sorted.truncate(max);
+        sorted
+    }
+
     pub fn draw_welcome_page(&mut self, ctx: &egui::Context) {
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.vertical_centered(|ui| {
@@ -43,17 +51,13 @@ impl LogixApp {
                         ui.label("Recent projects");
                         ui.end_row();
 
-                        let projects = self.data.projects_opened.clone();
-                        let mut sorted = projects.iter().collect::<Vec<(&String, &u64)>>();
-                        sorted.sort_by(|a, b| b.1.cmp(a.1));
-
-                        for (path, _) in sorted {
+                        for (path, _) in self.get_recent_projects(10) {
                             if ui
-                                .button(egui::RichText::new(path))
+                                .button(path.clone())
                                 .on_hover_text("Click to open project")
                                 .clicked()
                                 && self
-                                    .try_load_folder(&PathBuf::from_str(path).unwrap())
+                                    .try_load_folder(&PathBuf::from_str(&path).unwrap())
                                     .is_ok()
                             {
                                 self.state = AppState::OnProject;
