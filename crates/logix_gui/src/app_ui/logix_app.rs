@@ -80,6 +80,7 @@ impl LogixApp {
                 self.top_panel(ctx);
                 self.left_panel(ctx);
                 self.draw_tabs(ctx);
+                self.status_bar(ctx);
                 self.board_editing_mut().show(ctx);
             }
         }

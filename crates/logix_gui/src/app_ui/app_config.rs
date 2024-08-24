@@ -7,6 +7,6 @@ pub struct AppSettings {
 
 impl Default for AppSettings {
     fn default() -> Self {
-        Self { zoom: 1.0 }
+        Self { zoom: 1.15 }
     }
 }
