@@ -34,5 +34,5 @@ fn main() -> eframe::Result {
         LogixApp::default()
     };
 
-    eframe::run_native("logix_gui", options, Box::new(|_cc| Ok(Box::new(app))))
+    eframe::run_native("Logix", options, Box::new(|_cc| Ok(Box::new(app))))
 }

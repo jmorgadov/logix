@@ -1,9 +1,10 @@
 # Logix
 
-Project that contains a set of tools related to electronic circuits (mainly for
-digital circuits).
+Set of tools for designing and simulating digital circuits.
 
 > :construction: This project is in its early stages and constantly evolving.  All names, structures, etc. may change in the future.
+
+![Logix](./images/logix_app.png)
 
 ## Crates
 
