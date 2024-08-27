@@ -45,8 +45,10 @@ impl BoardEditing {
                     let dir = WireDir::get_dir(points.len());
 
                     let mut ghost_point = Self::get_ghost_point(last_point, dir, pin_pos);
+                    let dir_after_ghost = dir.opposite();
 
-                    if (ghost_point.y - pin_pos.y).abs() < GHOST_POINT_THRESHOLD
+                    if dir_after_ghost == WireDir::Vertical
+                        && (ghost_point.y - pin_pos.y).abs() < GHOST_POINT_THRESHOLD
                         || (ghost_point.x - pin_pos.x).abs() < GHOST_POINT_THRESHOLD
                     {
                         ghost_point.x -= GHOST_POINT_THRESHOLD;
