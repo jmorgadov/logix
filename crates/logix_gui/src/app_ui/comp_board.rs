@@ -257,10 +257,17 @@ impl ComponentBoard {
             match prim {
                 Primitive::Input { bits: _ } => {
                     self.inputs -= 1;
-                    self.inputs_name.remove(idx);
+                    self.inputs_idx
+                        .iter()
+                        .position(|&x| x == idx)
+                        .map(|i| self.inputs_idx.remove(i));
                 }
                 Primitive::Output { bits: _ } => {
-                    self.outputs_name.remove(idx);
+                    self.outputs -= 1;
+                    self.outputs_idx
+                        .iter()
+                        .position(|&x| x == idx)
+                        .map(|i| self.outputs_idx.remove(i));
                 }
                 _ => {}
             }
