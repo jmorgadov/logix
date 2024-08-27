@@ -12,8 +12,8 @@ use crate::app_ui::{
 impl BoardEditing {
     pub fn draw_comp_conns(&mut self, ui: &egui::Ui, idx: usize, over_conn: &mut Option<usize>) {
         let mut i = 0;
-        while i < self.board.connections.len() {
-            let conn = self.board.connections[i];
+        while i < self.current_sim_board().connections.len() {
+            let conn = self.current_sim_board().connections[i];
             if conn.from.0 == idx {
                 self.draw_connection(ui, &conn, i, over_conn, idx);
             }
@@ -32,7 +32,7 @@ impl BoardEditing {
         let from_port = conn.from.1;
         let mut to_add: Vec<(usize, Pos2, WireDir)> = vec![];
         let mut to_remove: Vec<usize> = vec![];
-        let points: Vec<Pos2> = self.board.comp_conns[i].points.clone();
+        let points: Vec<Pos2> = self.current_sim_board().comp_conns[i].points.clone();
 
         for j in 0..points.len() - 1 {
             let p1 = points[j];
@@ -61,12 +61,12 @@ impl BoardEditing {
                 let delta = resp.drag_delta();
                 match c_orient {
                     WireDir::Vertical => {
-                        self.board.comp_conns[i].points[j].x += delta.x;
-                        self.board.comp_conns[i].points[j + 1].x += delta.x;
+                        self.current_sim_board().comp_conns[i].points[j].x += delta.x;
+                        self.current_sim_board().comp_conns[i].points[j + 1].x += delta.x;
                     }
                     WireDir::Horizontal => {
-                        self.board.comp_conns[i].points[j].y += delta.y;
-                        self.board.comp_conns[i].points[j + 1].y += delta.y;
+                        self.current_sim_board().comp_conns[i].points[j].y += delta.y;
+                        self.current_sim_board().comp_conns[i].points[j + 1].y += delta.y;
                     }
                 }
             }
@@ -85,7 +85,7 @@ impl BoardEditing {
                     to_add.push((j + 1, self.last_click_pos, c_orient));
                 }
                 if ui.button("Remove Connection").clicked() {
-                    self.board.remove_conn(i);
+                    self.current_sim_board().remove_conn(i);
                 }
             });
 
@@ -101,13 +101,13 @@ impl BoardEditing {
             }
 
             if self.sim.is_some() {
-                let data = self.board.components[idx].outputs_data[from_port];
+                let data = self.current_sim_board().components[idx].outputs_data[from_port];
                 let val_in_bits = format!("{:0width$b}", data.value, width = data.size as usize);
                 resp.on_hover_text(format!("{} - {}", val_in_bits, data.value));
             }
 
             let color = if self.sim.is_some() {
-                match self.board.components[idx].outputs_data[from_port].value {
+                match self.current_sim_board().components[idx].outputs_data[from_port].value {
                     0 => LOW_COLOR,
                     _ => HIGH_COLOR,
                 }
@@ -117,7 +117,8 @@ impl BoardEditing {
                 Color32::WHITE
             };
 
-            let is_one_bit_data = self.board.components[idx].outputs_data[from_port].size == 1;
+            let is_one_bit_data =
+                self.current_sim_board().components[idx].outputs_data[from_port].size == 1;
             let stroke_with = if is_one_bit_data { 2.0 } else { 4.0 };
 
             ui.painter().add(Shape::Path(PathShape::line(
@@ -130,13 +131,15 @@ impl BoardEditing {
         }
 
         for p in to_add {
-            self.board.comp_conns[i].points.insert(p.0, p.1);
+            self.current_sim_board().comp_conns[i]
+                .points
+                .insert(p.0, p.1);
         }
 
         to_remove.sort_unstable();
         to_remove.reverse();
         for idx in to_remove {
-            self.board.comp_conns[i].points.remove(idx);
+            self.current_sim_board().comp_conns[i].points.remove(idx);
         }
     }
 }

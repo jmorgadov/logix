@@ -2,7 +2,10 @@ use std::{path::PathBuf, str::FromStr};
 
 use rfd::FileDialog;
 
-use crate::app_ui::{app_state::AppState, logix_app::LogixApp};
+use crate::app_ui::{
+    app_state::{AppState, LeftPannelState},
+    logix_app::LogixApp,
+};
 
 impl LogixApp {
     fn get_recent_projects(&self, max: usize) -> Vec<(String, u64)> {
@@ -33,7 +36,7 @@ impl LogixApp {
                     let new_folder = FileDialog::new().pick_folder();
                     let path = new_folder.unwrap();
                     if self.try_load_folder(&path).is_ok() {
-                        self.state = AppState::OnProject;
+                        self.state = AppState::OnProject(LeftPannelState::Folders);
                     };
                 }
             });
@@ -60,7 +63,7 @@ impl LogixApp {
                                     .try_load_folder(&PathBuf::from_str(&path).unwrap())
                                     .is_ok()
                             {
-                                self.state = AppState::OnProject;
+                                self.state = AppState::OnProject(LeftPannelState::Folders);
                             }
                             ui.end_row();
                         }

@@ -1,4 +1,11 @@
 #[derive(Debug, Default, Clone)]
+pub enum LeftPannelState {
+    #[default]
+    Folders,
+    Board,
+}
+
+#[derive(Debug, Default, Clone)]
 pub enum AppState {
     #[default]
     OnWelcome,
@@ -6,7 +13,7 @@ pub enum AppState {
         folder: String,
         name: String,
     },
-    OnProject,
+    OnProject(LeftPannelState),
 }
 
 impl AppState {

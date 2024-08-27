@@ -28,8 +28,8 @@ impl BoardEditing {
     ) -> (Response, Vec<Response>, Vec<Response>) {
         let font_id = egui::FontId::monospace(COMP_FONT_SIZE);
 
-        let in_count = self.board.components[idx].input_count();
-        let out_count = self.board.components[idx].output_count();
+        let in_count = self.current_sim_board().components[idx].input_count();
+        let out_count = self.current_sim_board().components[idx].output_count();
 
         #[allow(clippy::cast_precision_loss)]
         let in_height = (in_count as f32) * COMP_FONT_SIZE;
@@ -48,8 +48,10 @@ impl BoardEditing {
         let mut in_resps = vec![];
         let mut out_resps = vec![];
 
-        let in_names = &self.board.components[idx].inputs_name;
-        let out_names = &self.board.components[idx].outputs_name;
+        let board = self.current_sim_board_ref();
+
+        let in_names = &board.components[idx].inputs_name;
+        let out_names = &board.components[idx].outputs_name;
 
         let out_names_max_len = out_names
             .iter()
@@ -73,31 +75,24 @@ impl BoardEditing {
                     // Name
                     ui.with_layout(egui::Layout::top_down(egui::Align::Min), |ui| {
                         ui.add_space(name_offset);
-                        let mut name = self.board.components[idx].name.clone();
-                        if let Some(prim) = &self.board.components[idx].primitive {
+                        let mut name = self.current_sim_board_ref().components[idx].name.clone();
+                        if let Some(prim) = &self.current_sim_board_ref().components[idx].primitive
+                        {
                             match prim {
                                 Primitive::Input { bits: _ } => {
-                                    let in_order = self
-                                        .board
-                                        .inputs_idx
-                                        .iter()
-                                        .position(|&x| x == idx)
-                                        .unwrap();
+                                    let in_order =
+                                        board.inputs_idx.iter().position(|&x| x == idx).unwrap();
                                     name.push_str(&format!(
                                         " {}",
-                                        self.board.inputs_name[in_order]
+                                        self.current_sim_board_ref().inputs_name[in_order]
                                     ));
                                 }
                                 Primitive::Output { bits: _ } => {
-                                    let out_order = self
-                                        .board
-                                        .outputs_idx
-                                        .iter()
-                                        .position(|&x| x == idx)
-                                        .unwrap();
+                                    let out_order =
+                                        board.outputs_idx.iter().position(|&x| x == idx).unwrap();
                                     name.push_str(&format!(
                                         " {}",
-                                        self.board.outputs_name[out_order]
+                                        self.current_sim_board_ref().outputs_name[out_order]
                                     ));
                                 }
                                 _ => {}
@@ -119,9 +114,10 @@ impl BoardEditing {
 
         resp = resp.interact(Sense::click_and_drag());
 
-        for i in 0..self.board.connections.len() {
-            let conn = &self.board.connections[i];
-            let conn_info = &mut self.board.comp_conns[i];
+        let len = self.current_sim_board().connections.len();
+        for i in 0..len {
+            let conn = &self.current_sim_board().connections[i].clone();
+            let conn_info = &mut self.current_sim_board().comp_conns[i];
 
             // If it is an output connection
             if conn.from.0 == idx {
@@ -175,7 +171,7 @@ impl BoardEditing {
         // -----------------------------------------------------------------------------
         // Handle dragging the component
         // -----------------------------------------------------------------------------
-        if resp.dragged() && self.new_conn.is_none() {
+        if self.sim.is_none() && resp.dragged() && self.new_conn.is_none() {
             self.update_comp_pos(idx, self.board.comp_pos[idx] + resp.drag_delta());
         }
 
@@ -188,7 +184,7 @@ impl BoardEditing {
         // -----------------------------------------------------------------------------
         // Handle context menu for the component
         // -----------------------------------------------------------------------------
-        if resp.hovered() || resp.context_menu_opened() {
+        if self.sim.is_none() && (resp.hovered() || resp.context_menu_opened()) {
             resp.context_menu(|ui| {
                 ui.set_max_width(150.0);
                 self.specific_comp_context_menu(ui, idx);
@@ -197,6 +193,16 @@ impl BoardEditing {
                     ui.close_menu();
                 }
             });
+        }
+
+        // -----------------------------------------------------------------------------
+        // Handle clicking on the component
+        // -----------------------------------------------------------------------------
+        if self.sim.is_some()
+            && resp.double_clicked()
+            && self.current_sim_board().components[idx].source.is_some()
+        {
+            self.enter_subc_sim(self.current_sim_board_ref().components[idx].id);
         }
     }
 }

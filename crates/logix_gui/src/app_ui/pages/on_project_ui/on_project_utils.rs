@@ -4,7 +4,10 @@ use log::error;
 use rfd::FileDialog;
 
 use crate::app_ui::{
-    board_editing::BoardEditing, comp_board::ComponentBoard, errors::OpenBoardError,
+    app_state::{AppState, LeftPannelState},
+    board_editing::BoardEditing,
+    comp_board::ComponentBoard,
+    errors::OpenBoardError,
     logix_app::LogixApp,
 };
 
@@ -114,5 +117,6 @@ impl LogixApp {
 
     pub fn stop_current_sim(&mut self) {
         self.board_editing_mut().stop_sim();
+        self.state = AppState::OnProject(LeftPannelState::Folders);
     }
 }

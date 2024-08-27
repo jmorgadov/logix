@@ -12,7 +12,7 @@ impl BoardEditing {
             let resp = ui.interact(resp.rect, resp.id.with(i), Sense::click_and_drag());
 
             let color = if self.sim.is_some() {
-                match self.board.components[idx].outputs_data[i].value {
+                match self.current_sim_board().components[idx].outputs_data[i].value {
                     0 => LOW_COLOR,
                     _ => HIGH_COLOR,
                 }
@@ -24,7 +24,7 @@ impl BoardEditing {
             ui.painter()
                 .add(Shape::circle_filled(pin_pos, PIN_SIZE / 2.0, color));
 
-            if resp.clicked() {
+            if self.sim.is_none() && resp.clicked() {
                 self.new_conn = Some(((idx, i), vec![pin_pos]));
             }
         }

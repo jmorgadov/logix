@@ -70,8 +70,8 @@ impl BoardEditing {
                 // Draw the components
                 self.draw_subs(ui, transform, id, rect);
 
-                // Alwais repaint if simulation is running
                 if self.sim.is_some() {
+                    // Alwais repaint if simulation is running
                     ui.ctx().request_repaint();
                 }
             });
@@ -231,9 +231,9 @@ impl BoardEditing {
         let window_layer = ui.layer_id();
         let mut over_conn: Option<usize> = None;
         let mut i = 0;
-        while i < self.board.components.len() {
+        while i < self.current_sim_board().components.len() {
             let id = egui::Area::new(id.with(("subc", i)))
-                .fixed_pos(self.board.comp_pos[i])
+                .fixed_pos(self.current_sim_board().comp_pos[i])
                 .constrain(false)
                 .show(ui.ctx(), |ui| {
                     ui.set_clip_rect(transform.inverse() * rect);

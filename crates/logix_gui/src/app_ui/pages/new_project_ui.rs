@@ -3,7 +3,10 @@ use std::{path::PathBuf, str::FromStr};
 use egui::Vec2;
 use rfd::FileDialog;
 
-use crate::app_ui::{app_state::AppState, logix_app::LogixApp};
+use crate::app_ui::{
+    app_state::{AppState, LeftPannelState},
+    logix_app::LogixApp,
+};
 
 impl LogixApp {
     fn build_path(folder: &str, name: &str) -> String {
@@ -84,7 +87,7 @@ impl LogixApp {
                         match std::fs::create_dir_all(&path) {
                             Ok(()) => {
                                 if self.try_load_folder(&path).is_ok() {
-                                    self.state = AppState::OnProject;
+                                    self.state = AppState::OnProject(LeftPannelState::Folders);
                                 }
                             }
                             Err(_) => {

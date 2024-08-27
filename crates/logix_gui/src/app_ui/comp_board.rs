@@ -13,6 +13,51 @@ use super::{
     },
 };
 
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct IdMap {
+    pub id: usize,
+    pub name: String,
+    pub source: Option<PathBuf>,
+    pub sub_ids: Vec<IdMap>,
+}
+
+impl IdMap {
+    pub const fn new(id: usize, name: String, source: Option<PathBuf>) -> Self {
+        Self {
+            id,
+            name,
+            source,
+            sub_ids: vec![],
+        }
+    }
+
+    pub fn ids(&self) -> Vec<usize> {
+        self.sub_ids.iter().map(|map| map.id).collect()
+    }
+
+    pub fn from_children(
+        id: usize,
+        name: String,
+        source: Option<PathBuf>,
+        children: Vec<Self>,
+    ) -> Self {
+        Self {
+            id,
+            name,
+            source,
+            sub_ids: children,
+        }
+    }
+
+    pub fn id_walk(&self, id_path: &[usize]) -> Option<&Self> {
+        let mut current = self;
+        for id in id_path {
+            current = current.sub_ids.iter().find(|map| map.id == *id)?;
+        }
+        Some(current)
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct ComponentBoard {
     pub name: String,
@@ -34,39 +79,54 @@ pub struct ComponentBoard {
 }
 
 impl ComponentBoard {
+    pub fn from_comp_info(comp: &ComponentInfo) -> Self {
+        Self::load(comp.source.as_ref().unwrap()).unwrap()
+    }
+
     pub fn build_component(
         &mut self,
+        source: Option<PathBuf>,
         last_id: &mut usize,
-    ) -> Result<Component<ExtraInfo>, BoardBuildError> {
-        let sub_comps: Vec<Component<ExtraInfo>> = self
+    ) -> Result<(IdMap, Component<ExtraInfo>), BoardBuildError> {
+        let sub_comps: Vec<(IdMap, Component<ExtraInfo>)> = self
             .components
             .iter_mut()
             .map(|c| {
                 //
                 c.build_component(last_id)
             })
-            .collect::<Result<Vec<Component<ExtraInfo>>, BoardBuildError>>()?;
+            .collect::<Result<Vec<_>, _>>()?;
+
+        let id = *last_id;
+        *last_id += 1;
+        let id_map = IdMap::from_children(
+            id,
+            self.name.clone(),
+            source,
+            sub_comps.iter().map(|(m, _)| m.clone()).collect(),
+        );
 
         let sub = SubComponent {
-            components: sub_comps,
+            components: sub_comps.into_iter().map(|(_, c)| c).collect(),
             connections: self.connections.clone(),
             in_addrs: self.in_addrs.clone(),
             out_addrs: self.out_addrs.clone(),
         };
 
-        let id = *last_id;
-        *last_id += 1;
-        Ok(Component {
-            id,
-            name: Some(self.name.clone()),
-            inputs: self.inputs,
-            outputs: self.outputs,
-            sub: Some(sub),
-            extra: ExtraInfo {
-                id: 0,
-                primitive: None,
+        Ok((
+            id_map,
+            Component {
+                id,
+                name: Some(self.name.clone()),
+                inputs: self.inputs,
+                outputs: self.outputs,
+                sub: Some(sub),
+                extra: ExtraInfo {
+                    id: 0,
+                    primitive: None,
+                },
             },
-        })
+        ))
     }
 
     pub fn board_info(&self, id: usize, source: Option<PathBuf>) -> ComponentInfo {
@@ -390,7 +450,7 @@ impl ComponentInfo {
     pub fn build_primitive(
         &mut self,
         last_id: &mut usize,
-    ) -> Result<Component<ExtraInfo>, BoardBuildError> {
+    ) -> Result<(IdMap, Component<ExtraInfo>), BoardBuildError> {
         if self.primitive.is_none() {
             return Err(BoardBuildError::PrimitiveNotSpecified);
         }
@@ -402,23 +462,26 @@ impl ComponentInfo {
         self.inputs_data_idx = (0..self.inputs_name.len()).map(|i| (id, i)).collect();
         self.outputs_data_idx = (0..self.outputs_name.len()).map(|i| (id, i)).collect();
 
-        Ok(Component {
-            id,
-            name: Some(self.name.clone()),
-            inputs: self.inputs_data.len(),
-            outputs: self.outputs_data.len(),
-            sub: None,
-            extra: ExtraInfo {
-                id: self.id,
-                primitive: Some(self.primitive.clone().unwrap()),
+        Ok((
+            IdMap::new(id, self.name.clone(), self.source.clone()),
+            Component {
+                id,
+                name: Some(self.name.clone()),
+                inputs: self.inputs_data.len(),
+                outputs: self.outputs_data.len(),
+                sub: None,
+                extra: ExtraInfo {
+                    id: self.id,
+                    primitive: Some(self.primitive.clone().unwrap()),
+                },
             },
-        })
+        ))
     }
 
     pub fn build_component(
         &mut self,
         last_id: &mut usize,
-    ) -> Result<Component<ExtraInfo>, BoardBuildError> {
+    ) -> Result<(IdMap, Component<ExtraInfo>), BoardBuildError> {
         if self.primitive.is_some() {
             return self.build_primitive(last_id);
         }
@@ -430,7 +493,7 @@ impl ComponentInfo {
 
         let mut board = ComponentBoard::load(&source)?;
 
-        let res = board.build_component(last_id);
+        let res = board.build_component(self.source.clone(), last_id);
 
         for (idx, (to, to_port)) in &board.in_addrs {
             self.inputs_data_idx[*idx] = board.components[*to].inputs_data_idx[*to_port];

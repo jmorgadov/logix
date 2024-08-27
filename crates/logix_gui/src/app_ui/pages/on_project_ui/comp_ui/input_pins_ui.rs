@@ -19,7 +19,7 @@ impl BoardEditing {
                 .add(Shape::circle_filled(pin_pos, PIN_SIZE / 2.0, Color32::GRAY));
 
             let color = if self.sim.is_some() {
-                match self.board.components[idx].inputs_data[i].value {
+                match self.current_sim_board().components[idx].inputs_data[i].value {
                     0 => LOW_COLOR,
                     _ => HIGH_COLOR,
                 }
@@ -35,7 +35,8 @@ impl BoardEditing {
             // then add the connection to the board
             let mut connection_added = false;
             if let Some((from, points)) = self.new_conn.as_mut() {
-                if resp.clicked()
+                if self.sim.is_none()
+                    && resp.clicked()
                     && self.board.components[from.0].outputs_data[from.1].size
                         == self.board.components[idx].inputs_data[i].size
                 {

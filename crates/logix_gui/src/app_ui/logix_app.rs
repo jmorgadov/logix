@@ -4,7 +4,10 @@ use egui_notify::Toasts;
 use std::path::PathBuf;
 
 use super::{
-    app_config::AppSettings, app_data::AppData, app_state::AppState, board_editing::BoardEditing,
+    app_config::AppSettings,
+    app_data::AppData,
+    app_state::{AppState, LeftPannelState},
+    board_editing::BoardEditing,
     shortcuts,
 };
 
@@ -45,7 +48,7 @@ impl LogixApp {
         let folder = Folder::from_pathbuf(path)?;
         let mut app = Self {
             folder: Some(folder),
-            state: AppState::OnProject,
+            state: AppState::OnProject(LeftPannelState::Folders),
             ..Default::default()
         };
         app.try_load_folder(path)?;
@@ -60,7 +63,7 @@ impl LogixApp {
             AppState::CreatingNewProject { folder: _, name: _ } => {
                 self.draw_new_project(ctx);
             }
-            AppState::OnProject => {
+            AppState::OnProject(_) => {
                 if self.folder.is_none() {
                     self.state = AppState::OnWelcome;
                     return;
