@@ -198,8 +198,8 @@ impl BoardEditing {
         // -----------------------------------------------------------------------------
         // Handle clicking on the component
         // -----------------------------------------------------------------------------
-        if self.sim.is_some()
-            && resp.double_clicked()
+        if resp.double_clicked()
+            && self.sim.is_some()
             && self.current_sim_board().components[idx].source.is_some()
         {
             self.enter_subc_sim(self.current_sim_board_ref().components[idx].id);
