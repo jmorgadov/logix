@@ -4,7 +4,9 @@ Set of tools for designing and simulating digital circuits.
 
 > :construction: This project is in its early stages and constantly evolving.  All names, structures, etc. may change in the future.
 
-![Logix](./images/preview.png)
+<div align="center">
+  <video src="https://github.com/user-attachments/assets/a1470736-ddcd-4f4f-9eb2-e1d909e48393"/>
+</div>
 
 ## Crates
 
