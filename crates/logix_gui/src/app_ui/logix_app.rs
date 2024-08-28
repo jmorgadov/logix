@@ -21,9 +21,6 @@ pub struct LogixApp {
 
     pub settings: AppSettings,
     pub data: AppData,
-
-    pub new_project_folder: String,
-    pub new_project_name: String,
 }
 
 impl Default for LogixApp {
@@ -37,8 +34,6 @@ impl Default for LogixApp {
             state: AppState::default(),
             settings: AppSettings::default(),
             data: AppData::default(),
-            new_project_folder: String::default(),
-            new_project_name: String::default(),
         }
     }
 }
