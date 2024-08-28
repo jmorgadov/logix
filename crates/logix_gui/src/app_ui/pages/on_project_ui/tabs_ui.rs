@@ -66,9 +66,9 @@ impl LogixApp {
                     }
                     if self.board_tabs.is_empty() {
                         self.selected_file = None;
-                        self.new_board();
+                    } else {
+                        self.set_current_tab(next_current_tab);
                     }
-                    self.set_current_tab(next_current_tab);
                 });
             });
     }

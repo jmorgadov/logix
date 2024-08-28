@@ -12,7 +12,7 @@ use super::{
 
 #[derive(Default)]
 pub struct LogixApp {
-    pub folder: Option<Folder>,
+    pub folder: Folder,
     pub selected_file: Option<PathBuf>,
     pub board_tabs: Vec<BoardEditing>,
     pub current_tab: usize,
@@ -23,26 +23,11 @@ pub struct LogixApp {
     pub data: AppData,
 }
 
-// impl Default for LogixApp {
-//     fn default() -> Self {
-//         Self {
-//             folder: None,
-//             selected_file: None,
-//             board_tabs: vec![],
-//             current_tab: 0,
-//             toasts: Toasts::default(),
-//             state: AppState::default(),
-//             settings: AppSettings::default(),
-//             data: AppData::default(),
-//         }
-//     }
-// }
-
 impl LogixApp {
     pub fn from_folder(path: &PathBuf) -> Result<Self, std::io::Error> {
         let folder = Folder::from_pathbuf(path)?;
         let mut app = Self {
-            folder: Some(folder),
+            folder,
             state: AppState::OnProject(LeftPannelState::Folders),
             ..Default::default()
         };
@@ -60,19 +45,23 @@ impl LogixApp {
                 self.draw_new_project(ctx);
             }
             AppState::OnProject(_) => {
-                if self.folder.is_none() {
+                if !self.folder.is_loaded() {
                     self.state = AppState::OnWelcome;
                     return;
                 }
+
                 ctx.input_mut(|input| {
-                    if input.consume_shortcut(&shortcuts::SAVE) {
+                    if input.consume_shortcut(&shortcuts::SAVE) && self.exist_active_board() {
                         self.save_current_board();
                     }
-                    if input.consume_shortcut(&shortcuts::RUN) {
+                    if input.consume_shortcut(&shortcuts::RUN) && self.exist_active_board() {
                         self.run_current_sim();
                     }
-                    if input.consume_shortcut(&shortcuts::STOP) {
+                    if input.consume_shortcut(&shortcuts::STOP) && self.exist_active_board() {
                         self.stop_current_sim();
+                    }
+                    if input.consume_shortcut(&shortcuts::NEW_BOARD) {
+                        self.new_board();
                     }
                 });
 
@@ -80,7 +69,12 @@ impl LogixApp {
                 self.left_panel(ctx);
                 self.draw_tabs(ctx);
                 self.status_bar(ctx);
-                self.board_editing_mut().show(ctx);
+
+                if self.board_tabs.is_empty() {
+                    Self::empty_ui(ctx);
+                } else {
+                    self.board_editing_mut().show(ctx);
+                }
             }
         }
         self.toasts.show(ctx);

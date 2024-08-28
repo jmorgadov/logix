@@ -3,8 +3,8 @@ use egui::Color32;
 use crate::app_ui::logix_app::LogixApp;
 
 impl LogixApp {
-    fn is_sim_running(&mut self) -> bool {
-        self.board_tabs[self.current_tab].sim.is_some()
+    pub fn is_sim_running(&mut self) -> bool {
+        self.exist_active_board() && self.board_tabs[self.current_tab].sim.is_some()
     }
 
     pub fn status_bar(&mut self, ctx: &egui::Context) {

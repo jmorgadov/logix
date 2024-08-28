@@ -79,7 +79,7 @@ impl LogixApp {
         let folder_res = Folder::from_pathbuf(path);
         match folder_res {
             Ok(folder) => {
-                self.folder = Some(folder);
+                self.folder = folder;
                 std::env::set_current_dir(path.clone())?;
                 self.update_data(|data| -> Result<_, std::io::Error> {
                     let current_dir = std::env::current_dir()?;

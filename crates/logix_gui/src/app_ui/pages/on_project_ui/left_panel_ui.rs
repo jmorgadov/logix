@@ -1,7 +1,6 @@
 use std::path::PathBuf;
 
 use egui::{CollapsingHeader, Color32, Sense, Ui, Vec2};
-use rfd::FileDialog;
 
 use crate::app_ui::{
     app_state::{AppState, LeftPannelState},
@@ -12,22 +11,8 @@ use crate::app_ui::{
 
 impl LogixApp {
     pub fn show_folders(&mut self, ui: &mut Ui) {
-        if self.folder.is_none() {
-            ui.add_space(20.0);
-            ui.vertical_centered(|ui| {
-                if ui.button("Open folder").clicked() {
-                    let new_folder = FileDialog::new().pick_folder();
-                    if let Some(new_folder) = new_folder {
-                        let _ = self.try_load_folder(&new_folder);
-                    }
-                }
-            });
-            return;
-        }
         ui.heading(
             self.folder
-                .as_ref()
-                .unwrap()
                 .current_path
                 .file_name()
                 .unwrap()
@@ -37,11 +22,7 @@ impl LogixApp {
         egui::ScrollArea::vertical()
             .max_width(180.0)
             .show(ui, |ui| {
-                let new_file = self
-                    .folder
-                    .as_mut()
-                    .unwrap()
-                    .ui_impl(ui, self.selected_file.as_ref());
+                let new_file = self.folder.ui_impl(ui, self.selected_file.as_ref());
                 if new_file != self.selected_file {
                     if let Some(file) = new_file.clone() {
                         if self.load_board(&file).is_ok() {
@@ -89,7 +70,8 @@ impl LogixApp {
                         self.state = AppState::OnProject(LeftPannelState::Folders);
                     }
 
-                    if self.board_editing().sim.is_some()
+                    if self.exist_active_board()
+                        && self.board_editing().sim.is_some()
                         && ui
                             .add(egui::Button::new("🖳").fill(match &self.state {
                                 AppState::OnProject(LeftPannelState::Simulation) => {
@@ -108,7 +90,9 @@ impl LogixApp {
                             self.show_folders(ui);
                         }
                         LeftPannelState::Simulation => {
-                            self.show_board_tree(ui);
+                            if self.is_sim_running() {
+                                self.show_board_tree(ui);
+                            }
                         }
                     }
                 };

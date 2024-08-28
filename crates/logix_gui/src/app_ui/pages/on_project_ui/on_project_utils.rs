@@ -1,5 +1,6 @@
-use std::{path::PathBuf, str::FromStr};
+use std::path::PathBuf;
 
+use egui::KeyboardShortcut;
 use log::error;
 use rfd::FileDialog;
 
@@ -9,32 +10,31 @@ use crate::app_ui::{
     comp_board::ComponentBoard,
     errors::OpenBoardError,
     logix_app::LogixApp,
+    shortcuts::shortcut_string,
 };
 
 impl LogixApp {
-    pub fn default_board_editing(&self) -> BoardEditing {
-        let mut board = BoardEditing::default();
-        board.file = self.folder.as_ref().map(|f| f.current_path.clone());
-        board.file = board.file.map(|mut p| {
-            p.push(PathBuf::from_str("untitled.json").unwrap());
-            p
-        });
-        board.project_folder = self.folder.as_ref().map(|f| f.current_path.clone());
-        board
+    pub fn named_cmd_shorcut(cmd: &str, shortcut: KeyboardShortcut) -> String {
+        format!("{} ({})", cmd, shortcut_string(shortcut))
     }
+
+    pub fn exist_active_board(&self) -> bool {
+        !self.board_tabs.is_empty()
+    }
+
     pub fn board_editing_mut(&mut self) -> &mut BoardEditing {
-        if self.board_tabs.is_empty() {
-            self.board_tabs.push(self.default_board_editing());
-            self.current_tab = 0;
-        }
+        assert!(
+            !self.board_tabs.is_empty(),
+            "There is no active board to edit"
+        );
         &mut self.board_tabs[self.current_tab]
     }
 
     pub fn board_editing(&mut self) -> &BoardEditing {
-        if self.board_tabs.is_empty() {
-            self.board_tabs.push(self.default_board_editing());
-            self.current_tab = 0;
-        }
+        assert!(
+            !self.board_tabs.is_empty(),
+            "There is no active board to edit"
+        );
         &self.board_tabs[self.current_tab]
     }
 
@@ -43,7 +43,7 @@ impl LogixApp {
         // Only change if the tab is different
         if idx != self.current_tab {
             self.current_tab = idx;
-            self.selected_file = self.board_tabs[idx].file.clone();
+            self.selected_file = Some(self.board_tabs[idx].file.clone());
             self.board_editing_mut()
                 .board
                 .reload_imported_components()
@@ -63,7 +63,7 @@ impl LogixApp {
     pub fn load_board(&mut self, path: &PathBuf) -> Result<(), OpenBoardError> {
         // Check first if it is already open in a tab
         for (i, tab) in self.board_tabs.iter().enumerate() {
-            if tab.file == Some(path.clone()) {
+            if tab.file == path.clone() {
                 self.set_current_tab(i);
                 return Ok(());
             }
@@ -84,8 +84,8 @@ impl LogixApp {
 
         let b_editing = BoardEditing {
             board: comp,
-            file: Some(path.clone()),
-            project_folder: self.folder.as_ref().map(|f| f.current_path.clone()),
+            file: path.clone(),
+            project_folder: self.folder.current_path.clone(),
             next_id,
             ..Default::default()
         };
@@ -104,15 +104,13 @@ impl LogixApp {
 
     pub fn save_current_board(&mut self) {
         let path = self.board_editing().file.clone();
-        if let Some(file_path) = path {
-            let res = self.board().save(&file_path);
-            self.notify_if_err(res);
-            return;
-        }
+        let res = self.board().save(&path);
+        self.notify_if_err(res);
+    }
+
+    pub fn save_current_board_as(&mut self) {
         let mut file = FileDialog::new();
-        if let Some(folder) = &self.folder {
-            file = file.set_directory(folder.current_path.clone());
-        }
+        file = file.set_directory(self.folder.current_path.clone());
         if let Some(new_folder) = file.pick_file() {
             let res = self.board().save(&new_folder);
             self.notify_if_err(res);

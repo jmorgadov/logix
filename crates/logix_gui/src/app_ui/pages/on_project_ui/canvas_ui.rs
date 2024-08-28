@@ -54,7 +54,7 @@ impl BoardEditing {
                 }
 
                 if let Some(comp) = response.dnd_release_payload::<PathBuf>() {
-                    if comp.to_path_buf() == self.file.clone().unwrap() {
+                    if comp.to_path_buf() == self.file.clone() {
                         self.notify_err("Cannot import components recursively");
                         return;
                     }
@@ -206,7 +206,7 @@ impl BoardEditing {
 
     pub fn import_comp<P: AsRef<Path>>(&mut self, file: P, pos: egui::Pos2) {
         let buf = file.as_ref().to_path_buf();
-        if let Ok(comp_file) = buf.strip_prefix(self.project_folder.as_ref().unwrap().clone()) {
+        if let Ok(comp_file) = buf.strip_prefix(self.project_folder.clone()) {
             if self.board.import_comp(self.next_id, comp_file, pos).is_ok() {
                 self.next_id += 1;
             }

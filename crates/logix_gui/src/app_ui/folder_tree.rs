@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Folder {
     pub current_path: PathBuf,
     pub folders: Vec<Folder>,
@@ -28,5 +28,9 @@ impl Folder {
             folders,
             files,
         })
+    }
+
+    pub fn is_loaded(&self) -> bool {
+        !self.current_path.as_os_str().is_empty()
     }
 }

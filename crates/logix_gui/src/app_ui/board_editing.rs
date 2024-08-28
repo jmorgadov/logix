@@ -12,8 +12,8 @@ use std::path::PathBuf;
 #[derive(Default)]
 pub struct BoardEditing {
     pub board: ComponentBoard,
-    pub project_folder: Option<PathBuf>,
-    pub file: Option<PathBuf>,
+    pub project_folder: PathBuf,
+    pub file: PathBuf,
     pub transform: TSTransform,
     pub next_id: usize,
 
@@ -46,7 +46,7 @@ impl BoardEditing {
         let mut initial_id = 0;
         let (sim_ids, comp) = self
             .board
-            .build_component(self.file.clone(), &mut initial_id)?;
+            .build_component(Some(self.file.clone()), &mut initial_id)?;
 
         if let Some(sub) = comp.sub.as_ref() {
             for (i, subc) in sub.components.iter().enumerate() {

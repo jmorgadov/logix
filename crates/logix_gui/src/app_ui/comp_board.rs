@@ -497,7 +497,7 @@ impl ComponentInfo {
         self.outputs_data_idx = (0..self.outputs_name.len()).map(|i| (id, i)).collect();
 
         Ok((
-            IdMap::new(id, self.name.clone(), self.source.clone()),
+            IdMap::new(id, self.name.clone(), None),
             Component {
                 id,
                 name: Some(self.name.clone()),
