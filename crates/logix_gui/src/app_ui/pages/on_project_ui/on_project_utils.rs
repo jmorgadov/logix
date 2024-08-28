@@ -84,6 +84,7 @@ impl LogixApp {
         let b_editing = BoardEditing {
             board: comp,
             file: Some(path.clone()),
+            project_folder: self.folder.as_ref().map(|f| f.current_path.clone()),
             next_id,
             ..Default::default()
         };

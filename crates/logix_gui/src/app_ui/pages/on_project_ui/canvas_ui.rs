@@ -201,10 +201,12 @@ impl BoardEditing {
     pub fn import_comp_menu(&mut self, ui: &mut Ui, cursor_pos: egui::Pos2) {
         if self.file.is_some() && ui.button("Import Component").clicked() {
             let comp_file = FileDialog::new()
-                .set_directory(self.file.as_ref().unwrap().clone())
+                .set_directory(self.project_folder.as_ref().unwrap().clone())
                 .pick_file();
             if let Some(comp_file) = comp_file {
-                if let Ok(comp_file) = comp_file.strip_prefix(self.file.as_ref().unwrap().clone()) {
+                if let Ok(comp_file) =
+                    comp_file.strip_prefix(self.project_folder.as_ref().unwrap().clone())
+                {
                     if self
                         .board
                         .import_comp(self.next_id, comp_file, cursor_pos)

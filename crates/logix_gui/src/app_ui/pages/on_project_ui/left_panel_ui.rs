@@ -53,22 +53,25 @@ impl LogixApp {
     }
 
     pub fn show_board_tree(&mut self, ui: &mut Ui) {
-        let mut curr_path = Vec::new();
-        let main_id = self.board_editing().sim_ids.id;
-        let selected_id = self
-            .board_editing()
-            .sim_at
-            .as_ref()
-            .map_or(main_id, |(path, _)| *path.last().unwrap());
-        let path = self
-            .board_editing_mut()
-            .sim_ids
-            .board_tree(ui, &mut curr_path, selected_id);
+        let mut selected_path = Vec::new();
+        let mut current_path = vec![self.board_editing().sim_ids.id];
+        current_path.extend_from_slice(
+            self.board_editing()
+                .sim_at
+                .as_ref()
+                .map_or(&[], |(path, _)| path.as_slice()),
+        );
+        let path = self.board_editing_mut().sim_ids.board_tree(
+            ui,
+            &mut selected_path,
+            current_path.as_slice(),
+        );
 
         if let Some(path) = path {
             self.board_editing_mut().set_sim_at(&path[1..]);
         }
     }
+
     pub fn left_panel(&mut self, ctx: &egui::Context) {
         egui::SidePanel::left("side_panel")
             .min_width(160.0)
@@ -118,31 +121,42 @@ impl IdMap {
         &mut self,
         ui: &mut Ui,
         slected_path: &mut Vec<usize>,
-        selected_id: usize,
+        current_path: &[usize],
     ) -> Option<Vec<usize>> {
         let id = ui.id().with(("board_tree", self.id));
 
         let mut to_return = None;
         slected_path.push(self.id);
-        egui::collapsing_header::CollapsingState::load_with_default_open(ui.ctx(), id, false)
-            .show_header(ui, |ui| {
-                let text =
-                    egui::RichText::new(self.name.clone()).color(if self.id == selected_id {
-                        Color32::LIGHT_GREEN
-                    } else {
-                        Color32::WHITE
-                    });
-                if ui.button(text).clicked() {
-                    to_return = Some(slected_path.clone());
+        let in_path = !current_path.is_empty() && self.id == current_path[0];
+        let text =
+            egui::RichText::new(self.name.clone()).color(if in_path && current_path.len() == 1 {
+                Color32::LIGHT_GREEN
+            } else {
+                Color32::WHITE
+            });
+        let header = CollapsingHeader::new(text)
+            .id_source(id)
+            .default_open(in_path)
+            .open(if in_path && current_path.len() > 1 {
+                Some(true)
+            } else {
+                None
+            })
+            .show(ui, |ui| {
+                for sub in self.sub_ids.iter_mut().filter(|sub| sub.source.is_some()) {
+                    let next_current_path = current_path.get(1..).unwrap_or(&[]);
+                    if let Some(new_selected_path) =
+                        sub.board_tree(ui, slected_path, next_current_path)
+                    {
+                        to_return = Some(new_selected_path);
+                    }
                 }
             })
-            .body(|ui| {
-                for sub in self.sub_ids.iter_mut().filter(|sub| sub.source.is_some()) {
-                    to_return = sub
-                        .board_tree(ui, slected_path, selected_id)
-                        .or_else(|| to_return.clone());
-                }
-            });
+            .header_response;
+
+        if header.clicked() {
+            to_return = Some(slected_path.clone());
+        }
 
         slected_path.pop();
         to_return
