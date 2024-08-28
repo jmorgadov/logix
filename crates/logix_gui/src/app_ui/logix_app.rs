@@ -31,7 +31,7 @@ impl Default for LogixApp {
         Self {
             folder: None,
             selected_file: None,
-            board_tabs: vec![BoardEditing::default()],
+            board_tabs: vec![],
             current_tab: 0,
             toasts: Toasts::new().with_default_font(FontId::proportional(10.0)),
             state: AppState::default(),

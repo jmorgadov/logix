@@ -2,7 +2,7 @@
 pub enum LeftPannelState {
     #[default]
     Folders,
-    Board,
+    Simulation,
 }
 
 #[derive(Debug, Default, Clone)]

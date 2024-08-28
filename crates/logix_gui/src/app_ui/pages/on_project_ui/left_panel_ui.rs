@@ -69,7 +69,6 @@ impl LogixApp {
             self.board_editing_mut().set_sim_at(&path[1..]);
         }
     }
-
     pub fn left_panel(&mut self, ctx: &egui::Context) {
         egui::SidePanel::left("side_panel")
             .min_width(160.0)
@@ -89,15 +88,15 @@ impl LogixApp {
 
                     if self.board_editing().sim.is_some()
                         && ui
-                            .add(egui::Button::new("💻").fill(match &self.state {
-                                AppState::OnProject(LeftPannelState::Board) => {
+                            .add(egui::Button::new("🖳").fill(match &self.state {
+                                AppState::OnProject(LeftPannelState::Simulation) => {
                                     Color32::from_rgb(50, 50, 50)
                                 }
                                 _ => Color32::TRANSPARENT,
                             }))
                             .clicked()
                     {
-                        self.state = AppState::OnProject(LeftPannelState::Board);
+                        self.state = AppState::OnProject(LeftPannelState::Simulation);
                     }
                 });
                 if let AppState::OnProject(state) = &mut self.state {
@@ -105,7 +104,7 @@ impl LogixApp {
                         LeftPannelState::Folders => {
                             self.show_folders(ui);
                         }
-                        LeftPannelState::Board => {
+                        LeftPannelState::Simulation => {
                             self.show_board_tree(ui);
                         }
                     }

@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, str::FromStr};
 
 use log::error;
 use rfd::FileDialog;
@@ -12,9 +12,18 @@ use crate::app_ui::{
 };
 
 impl LogixApp {
+    pub fn default_board_editing(&self) -> BoardEditing {
+        let mut board = BoardEditing::default();
+        board.file = Some(self.folder.as_ref().unwrap().current_path.clone());
+        board.file = board.file.map(|mut p| {
+            p.push(PathBuf::from_str("untitled.json").unwrap());
+            p
+        });
+        board
+    }
     pub fn board_editing_mut(&mut self) -> &mut BoardEditing {
         if self.board_tabs.is_empty() {
-            self.board_tabs.push(BoardEditing::default());
+            self.board_tabs.push(self.default_board_editing());
             self.current_tab = 0;
         }
         &mut self.board_tabs[self.current_tab]
@@ -22,7 +31,7 @@ impl LogixApp {
 
     pub fn board_editing(&mut self) -> &BoardEditing {
         if self.board_tabs.is_empty() {
-            self.board_tabs.push(BoardEditing::default());
+            self.board_tabs.push(self.default_board_editing());
             self.current_tab = 0;
         }
         &self.board_tabs[self.current_tab]
