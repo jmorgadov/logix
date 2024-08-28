@@ -21,7 +21,7 @@ fn _show_full(
     level: usize,
 ) {
     match config {
-        NestedConfig::Single(idx) => {
+        NestedConfig::Single(_, idx, _, _) => {
             let _comp = &comp.components[*idx];
             println!(
                 "{}[{}]{}: {} {}",
@@ -32,7 +32,7 @@ fn _show_full(
                 Data::show_vec(&_comp.outputs)
             );
         }
-        NestedConfig::Compose(id, comps, ins, outs) => {
+        NestedConfig::Compose(_, id, comps, ins, outs) => {
             let inputs = ins
                 .iter()
                 .map(|(c_idx, p_idx)| comp.components[*c_idx].inputs[*p_idx])

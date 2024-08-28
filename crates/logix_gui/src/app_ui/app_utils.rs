@@ -1,3 +1,4 @@
+use log::info;
 use std::{fmt::Display, path::PathBuf};
 
 use super::{app_config::AppSettings, app_data::AppData, folder_tree::Folder, logix_app::LogixApp};
@@ -50,12 +51,18 @@ impl LogixApp {
         }
     }
 
-    pub fn update_data(&mut self, data_upd: impl FnOnce(&mut AppData)) {
-        data_upd(&mut self.data);
+    pub fn update_data<T>(
+        &mut self,
+        data_upd: impl FnOnce(&mut AppData) -> T,
+    ) -> Result<T, std::io::Error> {
+        let val = data_upd(&mut self.data);
         let data_dir = Self::data_dir();
-        std::fs::create_dir_all(data_dir.parent().unwrap()).unwrap();
-        std::fs::write(data_dir, serde_json::to_string(&self.data).unwrap())
-            .expect("Failed to write data file");
+        if !data_dir.exists() {
+            std::fs::create_dir_all(data_dir.parent().unwrap())?;
+        }
+        info!("Data: {:?}", self.data);
+        std::fs::write(data_dir, serde_json::to_string(&self.data).unwrap())?;
+        Ok(val)
     }
 
     // TODO: Add this when implementing settings state
@@ -73,9 +80,9 @@ impl LogixApp {
         match folder_res {
             Ok(folder) => {
                 self.folder = Some(folder);
-                std::env::set_current_dir(path.clone()).unwrap();
-                self.update_data(|data| {
-                    let current_dir = std::env::current_dir().unwrap();
+                std::env::set_current_dir(path.clone())?;
+                self.update_data(|data| -> Result<_, std::io::Error> {
+                    let current_dir = std::env::current_dir()?;
                     let path = current_dir.to_str().unwrap();
                     data.projects_opened.insert(
                         path.to_string(),
@@ -84,7 +91,8 @@ impl LogixApp {
                             .unwrap()
                             .as_secs(),
                     );
-                });
+                    Ok(())
+                })??;
                 Ok(())
             }
             Err(err) => {

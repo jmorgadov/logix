@@ -26,7 +26,7 @@ fn main() -> eframe::Result {
                 LogixApp::default()
             }),
             Err(err) => {
-                log::error!("Could not load folder.\n{}\nLoading app as default", err);
+                log::error!("Could not find folder.\n{}\nLoading app as default", err);
                 LogixApp::default()
             }
         }

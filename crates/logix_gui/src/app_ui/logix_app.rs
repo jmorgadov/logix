@@ -51,6 +51,7 @@ impl LogixApp {
             state: AppState::OnProject(LeftPannelState::Folders),
             ..Default::default()
         };
+        app.load_config_and_data();
         app.try_load_folder(path)?;
         Ok(app)
     }
