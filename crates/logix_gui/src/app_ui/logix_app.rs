@@ -1,5 +1,4 @@
 use crate::app_ui::folder_tree::Folder;
-use egui::FontId;
 use egui_notify::Toasts;
 use std::path::PathBuf;
 
@@ -11,6 +10,7 @@ use super::{
     shortcuts,
 };
 
+#[derive(Default)]
 pub struct LogixApp {
     pub folder: Option<Folder>,
     pub selected_file: Option<PathBuf>,
@@ -23,20 +23,20 @@ pub struct LogixApp {
     pub data: AppData,
 }
 
-impl Default for LogixApp {
-    fn default() -> Self {
-        Self {
-            folder: None,
-            selected_file: None,
-            board_tabs: vec![],
-            current_tab: 0,
-            toasts: Toasts::new().with_default_font(FontId::proportional(10.0)),
-            state: AppState::default(),
-            settings: AppSettings::default(),
-            data: AppData::default(),
-        }
-    }
-}
+// impl Default for LogixApp {
+//     fn default() -> Self {
+//         Self {
+//             folder: None,
+//             selected_file: None,
+//             board_tabs: vec![],
+//             current_tab: 0,
+//             toasts: Toasts::default(),
+//             state: AppState::default(),
+//             settings: AppSettings::default(),
+//             data: AppData::default(),
+//         }
+//     }
+// }
 
 impl LogixApp {
     pub fn from_folder(path: &PathBuf) -> Result<Self, std::io::Error> {

@@ -67,6 +67,7 @@ pub struct ComponentBoard {
     pub comp_conns: Vec<ConnectionInfo>,
 
     pub components: Vec<ComponentInfo>,
+    pub deps: Vec<PathBuf>,
 
     pub inputs_idx: Vec<usize>,
     pub outputs_idx: Vec<usize>,
@@ -182,6 +183,28 @@ impl ComponentBoard {
         Ok(board)
     }
 
+    pub fn update_deps(&mut self) {
+        self.deps = self
+            .components
+            .iter()
+            .filter_map(|c| c.source.clone())
+            .collect();
+
+        self.deps.sort();
+
+        let mut i = 1;
+        while i < self.deps.len() {
+            let absolute_1 = self.deps[i - 1].canonicalize().unwrap();
+            let absolute_2 = self.deps[i].canonicalize().unwrap();
+
+            if absolute_1 == absolute_2 {
+                self.deps.remove(i);
+            } else {
+                i += 1;
+            }
+        }
+    }
+
     pub fn reload_imported_components(&mut self) -> Result<(), ReloadComponentsError> {
         let mut conns_to_remove = vec![];
         for (comp, source) in self
@@ -231,6 +254,8 @@ impl ComponentBoard {
                 _ => {}
             }
         }
+
+        self.update_deps();
     }
 
     pub fn load_comp(id: usize, source: PathBuf) -> Result<ComponentInfo, LoadComponentError> {
@@ -323,6 +348,8 @@ impl ComponentBoard {
             }
             i += 1;
         }
+
+        self.update_deps();
     }
 
     pub fn add_conn(

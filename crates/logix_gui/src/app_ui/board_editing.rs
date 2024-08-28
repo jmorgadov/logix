@@ -3,6 +3,7 @@ use super::{
     errors::SimulationError,
 };
 use egui::{emath::TSTransform, Pos2};
+use egui_notify::Toasts;
 use log::error;
 use logix_core::component::PortAddr;
 use logix_sim::{flatten::FlattenComponent, Simulator};
@@ -15,17 +16,26 @@ pub struct BoardEditing {
     pub file: Option<PathBuf>,
     pub transform: TSTransform,
     pub next_id: usize,
+
     pub new_conn: Option<(PortAddr, Vec<Pos2>)>,
     pub last_click_pos: Pos2,
     pub over_connection: Option<usize>,
+
     pub sim: Option<Simulator>,
     pub sim_ids: IdMap,
     pub sim_at: Option<(Vec<usize>, ComponentBoard)>,
+
+    pub toasts: Toasts,
 }
 
 impl BoardEditing {
     pub fn show(&mut self, ctx: &egui::Context) {
         self.draw_canvas(ctx);
+        self.toasts.show(ctx);
+    }
+
+    pub fn notify_err(&mut self, err: impl Into<String>) {
+        self.toasts.error(err).set_closable(true);
     }
 
     pub fn is_empty(&self) -> bool {

@@ -14,11 +14,12 @@ use crate::app_ui::{
 impl LogixApp {
     pub fn default_board_editing(&self) -> BoardEditing {
         let mut board = BoardEditing::default();
-        board.file = Some(self.folder.as_ref().unwrap().current_path.clone());
+        board.file = self.folder.as_ref().map(|f| f.current_path.clone());
         board.file = board.file.map(|mut p| {
             p.push(PathBuf::from_str("untitled.json").unwrap());
             p
         });
+        board.project_folder = self.folder.as_ref().map(|f| f.current_path.clone());
         board
     }
     pub fn board_editing_mut(&mut self) -> &mut BoardEditing {

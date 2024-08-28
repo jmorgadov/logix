@@ -1,5 +1,6 @@
+use std::path::{Path, PathBuf};
+
 use egui::{emath::TSTransform, epaint::PathShape, Color32, Id, Rect, Response, Shape, Stroke, Ui};
-use rfd::FileDialog;
 
 use crate::app_ui::{
     board_editing::BoardEditing, comp_board::ComponentBoard,
@@ -52,6 +53,15 @@ impl BoardEditing {
                         transform.inverse() * response.interact_pointer_pos().unwrap();
                 }
 
+                if let Some(comp) = response.dnd_release_payload::<PathBuf>() {
+                    if comp.to_path_buf() == self.file.clone().unwrap() {
+                        self.notify_err("Cannot import components recursively");
+                        return;
+                    }
+                    let pos = transform.inverse() * response.hover_pos().unwrap();
+                    self.import_comp(comp.as_path(), pos);
+                }
+
                 // Delete new connection if escape is pressed
                 if ui.input(|i| i.key_pressed(egui::Key::Escape)) {
                     self.new_conn = None;
@@ -100,10 +110,6 @@ impl BoardEditing {
         };
 
         let cursor_pos = self.last_click_pos;
-
-        ui.separator();
-
-        self.import_comp_menu(ui, cursor_pos);
 
         ui.separator();
 
@@ -198,25 +204,12 @@ impl BoardEditing {
         });
     }
 
-    pub fn import_comp_menu(&mut self, ui: &mut Ui, cursor_pos: egui::Pos2) {
-        if self.file.is_some() && ui.button("Import Component").clicked() {
-            let comp_file = FileDialog::new()
-                .set_directory(self.project_folder.as_ref().unwrap().clone())
-                .pick_file();
-            if let Some(comp_file) = comp_file {
-                if let Ok(comp_file) =
-                    comp_file.strip_prefix(self.project_folder.as_ref().unwrap().clone())
-                {
-                    if self
-                        .board
-                        .import_comp(self.next_id, comp_file, cursor_pos)
-                        .is_ok()
-                    {
-                        self.next_id += 1;
-                    }
-                }
+    pub fn import_comp<P: AsRef<Path>>(&mut self, file: P, pos: egui::Pos2) {
+        let buf = file.as_ref().to_path_buf();
+        if let Ok(comp_file) = buf.strip_prefix(self.project_folder.as_ref().unwrap().clone()) {
+            if self.board.import_comp(self.next_id, comp_file, pos).is_ok() {
+                self.next_id += 1;
             }
-            ui.close_menu();
         }
     }
 

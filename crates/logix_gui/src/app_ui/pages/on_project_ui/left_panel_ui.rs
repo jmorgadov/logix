@@ -187,7 +187,7 @@ impl Folder {
                     egui::Label::new(name)
                         .selectable(false)
                         .wrap_mode(egui::TextWrapMode::Truncate)
-                        .sense(Sense::click()),
+                        .sense(Sense::click_and_drag()),
                 );
                 if resp.hovered() {
                     ui.ctx().set_cursor_icon(egui::CursorIcon::PointingHand);
@@ -195,6 +195,7 @@ impl Folder {
                 if resp.double_clicked() {
                     new_file = Some(file.clone());
                 }
+                resp.dnd_set_drag_payload(file.clone());
             });
         }
 
