@@ -7,7 +7,7 @@ use rfd::FileDialog;
 use crate::app_ui::{
     app_state::{AppState, LeftPannelState},
     board_editing::BoardEditing,
-    comp_board::ComponentBoard,
+    component::comp_board::ComponentBoard,
     errors::OpenBoardError,
     logix_app::LogixApp,
     shortcuts::shortcut_string,
@@ -51,8 +51,8 @@ impl LogixApp {
         }
     }
 
-    pub fn board(&mut self) -> &ComponentBoard {
-        &self.board_editing().board
+    pub fn board_mut(&mut self) -> &mut ComponentBoard {
+        &mut self.board_editing_mut().board
     }
 
     pub fn new_board(&mut self) {
@@ -103,8 +103,8 @@ impl LogixApp {
     }
 
     pub fn save_current_board(&mut self) {
-        let path = self.board_editing().file.clone();
-        let res = self.board().save(&path);
+        let path = self.board_editing_mut().file.clone();
+        let res = self.board_mut().save(&path);
         self.notify_if_err(res);
     }
 
@@ -112,7 +112,7 @@ impl LogixApp {
         let mut file = FileDialog::new();
         file = file.set_directory(self.folder.current_path.clone());
         if let Some(new_folder) = file.pick_file() {
-            let res = self.board().save(&new_folder);
+            let res = self.board_mut().save(&new_folder);
             self.notify_if_err(res);
         }
     }

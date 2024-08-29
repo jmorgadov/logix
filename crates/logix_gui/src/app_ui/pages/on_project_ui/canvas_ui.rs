@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use egui::{emath::TSTransform, epaint::PathShape, Color32, Id, Rect, Response, Shape, Stroke, Ui};
 
 use crate::app_ui::{
-    board_editing::BoardEditing, comp_board::ComponentBoard,
+    board_editing::BoardEditing, component::comp_board::ComponentBoard,
     pages::on_project_ui::wire_dir::WireDir,
 };
 

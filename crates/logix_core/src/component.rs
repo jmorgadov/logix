@@ -26,7 +26,7 @@ pub fn addr_of(port_addr: PortAddr) -> usize {
 /// The port index of the `from` part is taken from the outputs of the
 /// component it represents. The port index of the `to` part is taken from
 /// the inputs of the component it represents.
-#[derive(Default, Debug, Copy, Clone, Serialize, Deserialize)]
+#[derive(Default, Debug, Copy, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Conn {
     pub from: PortAddr,
     pub to: PortAddr,

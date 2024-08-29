@@ -6,11 +6,11 @@ use logix_sim::primitives::primitive::{ExtraInfo, Primitive};
 use serde::{Deserialize, Serialize};
 
 use super::{
-    comp_info::{ComponentInfo, ConnectionInfo},
-    errors::{
+    super::errors::{
         BoardBuildError, LoadBoardError, LoadComponentError, OpenBoardError, ReloadComponentsError,
         SaveBoardError,
     },
+    comp_info::{ComponentInfo, ConnectionInfo},
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -92,10 +92,7 @@ impl ComponentBoard {
         let sub_comps: Vec<(IdMap, Component<ExtraInfo>)> = self
             .components
             .iter_mut()
-            .map(|c| {
-                //
-                c.build_component(last_id)
-            })
+            .map(|c| c.build_component(last_id))
             .collect::<Result<Vec<_>, _>>()?;
 
         let id = *last_id;
@@ -165,7 +162,7 @@ impl ComponentBoard {
         }
     }
 
-    pub fn save(&self, path: &PathBuf) -> Result<(), SaveBoardError> {
+    pub fn save(&mut self, path: &PathBuf) -> Result<(), SaveBoardError> {
         let serialized = serde_json::to_string(self)?;
         std::fs::write(path, serialized)?;
         Ok(())
@@ -254,7 +251,6 @@ impl ComponentBoard {
                 _ => {}
             }
         }
-
         self.update_deps();
     }
 

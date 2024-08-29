@@ -1,5 +1,5 @@
 use super::{
-    comp_board::{ComponentBoard, IdMap},
+    component::comp_board::{ComponentBoard, IdMap},
     errors::SimulationError,
 };
 use egui::{emath::TSTransform, Pos2};
