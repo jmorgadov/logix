@@ -6,6 +6,7 @@ mod board_editing;
 mod component;
 mod errors;
 mod folder_tree;
+mod id_map;
 mod pages;
 mod shortcuts;
 

@@ -1,7 +1,4 @@
-use super::{
-    component::comp_board::{ComponentBoard, IdMap},
-    errors::SimulationError,
-};
+use super::{component::comp_board::ComponentBoard, errors::SimulationError, id_map::IdMap};
 use egui::{emath::TSTransform, Pos2};
 use egui_notify::Toasts;
 use log::error;

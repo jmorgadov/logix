@@ -4,8 +4,8 @@ use egui::{CollapsingHeader, Color32, Sense, Ui, Vec2};
 
 use crate::app_ui::{
     app_state::{AppState, LeftPannelState},
-    component::comp_board::IdMap,
     folder_tree::Folder,
+    id_map::IdMap,
     logix_app::LogixApp,
 };
 
