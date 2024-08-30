@@ -1,16 +1,10 @@
 use std::path::PathBuf;
 
-use egui::Pos2;
 use logix_sim::primitives::{data::Data, primitive::Primitive};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
-pub struct ConnectionInfo {
-    pub points: Vec<Pos2>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Default, Clone)]
-pub struct ComponentInfo {
+pub struct BoardComponent {
     pub id: usize,
     pub name: String,
     pub source: Option<PathBuf>,
@@ -24,7 +18,7 @@ pub struct ComponentInfo {
     pub outputs_data_idx: Vec<(usize, usize)>,
 }
 
-impl ComponentInfo {
+impl BoardComponent {
     pub fn input_count(&self) -> usize {
         self.inputs_data.len()
     }

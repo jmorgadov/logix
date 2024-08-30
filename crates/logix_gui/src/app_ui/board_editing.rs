@@ -1,4 +1,4 @@
-use super::{component::comp_board::ComponentBoard, errors::SimulationError, id_map::IdMap};
+use super::{board::Board, errors::SimulationError, id_map::IdMap};
 use egui::{emath::TSTransform, Pos2};
 use egui_notify::Toasts;
 use log::error;
@@ -8,7 +8,7 @@ use std::path::PathBuf;
 
 #[derive(Default)]
 pub struct BoardEditing {
-    pub board: ComponentBoard,
+    pub board: Board,
     pub project_folder: PathBuf,
     pub file: PathBuf,
     pub transform: TSTransform,
@@ -20,7 +20,7 @@ pub struct BoardEditing {
 
     pub sim: Option<Simulator>,
     pub sim_ids: IdMap,
-    pub sim_at: Option<(Vec<usize>, ComponentBoard)>,
+    pub sim_at: Option<(Vec<usize>, Board)>,
 
     pub toasts: Toasts,
 }
@@ -63,14 +63,14 @@ impl BoardEditing {
         self.sim_at = None;
     }
 
-    pub const fn current_sim_board_ref(&self) -> &ComponentBoard {
+    pub const fn current_sim_board_ref(&self) -> &Board {
         match self.sim_at.as_ref() {
             Some((_, board)) => board,
             None => &self.board,
         }
     }
 
-    pub fn current_sim_board(&mut self) -> &mut ComponentBoard {
+    pub fn current_sim_board(&mut self) -> &mut Board {
         match self.sim_at.as_mut() {
             Some((_, board)) => board,
             None => &mut self.board,
@@ -100,7 +100,7 @@ impl BoardEditing {
             return;
         }
 
-        let mut board = ComponentBoard::load(id_map.source.as_ref().unwrap()).unwrap();
+        let mut board = Board::load(id_map.source.as_ref().unwrap()).unwrap();
         let ids = self.sim_ids.id_walk(path).unwrap().ids();
         for (i, comp) in board.components.iter_mut().enumerate() {
             comp.id = ids[i];
@@ -113,7 +113,7 @@ impl BoardEditing {
         if let Some((path, board)) = self.sim_at.as_mut() {
             path.push(id);
             let comp = board.components.iter().find(|c| c.id == id).unwrap();
-            let mut new_board = ComponentBoard::from_comp_info(comp);
+            let mut new_board = Board::from_comp_info(comp);
             let ids = self.sim_ids.id_walk(path.as_slice()).unwrap().ids();
             for (i, comp) in new_board.components.iter_mut().enumerate() {
                 comp.id = ids[i];
@@ -121,7 +121,7 @@ impl BoardEditing {
             *board = new_board;
         } else {
             let comp = self.board.components.iter().find(|c| c.id == id).unwrap();
-            let mut new_board = ComponentBoard::from_comp_info(comp);
+            let mut new_board = Board::from_comp_info(comp);
             let ids = self.sim_ids.id_walk(&[id]).unwrap().ids();
             for (i, comp) in new_board.components.iter_mut().enumerate() {
                 comp.id = ids[i];

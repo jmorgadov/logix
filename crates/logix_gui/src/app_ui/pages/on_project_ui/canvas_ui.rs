@@ -3,8 +3,7 @@ use std::path::{Path, PathBuf};
 use egui::{emath::TSTransform, epaint::PathShape, Color32, Id, Rect, Response, Shape, Stroke, Ui};
 
 use crate::app_ui::{
-    board_editing::BoardEditing, component::comp_board::ComponentBoard,
-    pages::on_project_ui::wire_dir::WireDir,
+    board::Board, board_editing::BoardEditing, pages::on_project_ui::wire_dir::WireDir,
 };
 
 impl BoardEditing {
@@ -91,7 +90,7 @@ impl BoardEditing {
         &mut self,
         ui: &mut Ui,
         name: &str,
-        add_fn: impl FnOnce(&mut ComponentBoard, usize),
+        add_fn: impl FnOnce(&mut Board, usize),
     ) {
         if ui.button(name).clicked() {
             add_fn(&mut self.board, self.next_id);

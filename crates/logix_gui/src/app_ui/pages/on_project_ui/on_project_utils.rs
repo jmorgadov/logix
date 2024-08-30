@@ -6,8 +6,8 @@ use rfd::FileDialog;
 
 use crate::app_ui::{
     app_state::{AppState, LeftPannelState},
+    board::Board,
     board_editing::BoardEditing,
-    component::comp_board::ComponentBoard,
     errors::OpenBoardError,
     logix_app::LogixApp,
     shortcuts::shortcut_string,
@@ -51,7 +51,7 @@ impl LogixApp {
         }
     }
 
-    pub fn board_mut(&mut self) -> &mut ComponentBoard {
+    pub fn board_mut(&mut self) -> &mut Board {
         &mut self.board_editing_mut().board
     }
 
@@ -69,7 +69,7 @@ impl LogixApp {
             }
         }
 
-        let comp = ComponentBoard::open(path).map_err(|err| {
+        let comp = Board::open(path).map_err(|err| {
             self.notify_err(err.to_string());
             err
         })?;

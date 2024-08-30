@@ -80,19 +80,25 @@ impl BoardEditing {
                         {
                             match prim {
                                 Primitive::Input { bits: _ } => {
-                                    let in_order =
-                                        board.inputs_idx.iter().position(|&x| x == idx).unwrap();
+                                    let in_order = board
+                                        .inputs
+                                        .iter()
+                                        .position(|input| input.idx == idx)
+                                        .unwrap();
                                     name.push_str(&format!(
                                         " {}",
-                                        self.current_sim_board_ref().inputs_name[in_order]
+                                        self.current_sim_board_ref().inputs[in_order].name
                                     ));
                                 }
                                 Primitive::Output { bits: _ } => {
-                                    let out_order =
-                                        board.outputs_idx.iter().position(|&x| x == idx).unwrap();
+                                    let out_order = board
+                                        .outputs
+                                        .iter()
+                                        .position(|output| output.idx == idx)
+                                        .unwrap();
                                     name.push_str(&format!(
                                         " {}",
-                                        self.current_sim_board_ref().outputs_name[out_order]
+                                        self.current_sim_board_ref().outputs[out_order].name
                                     ));
                                 }
                                 _ => {}
@@ -114,23 +120,23 @@ impl BoardEditing {
 
         resp = resp.interact(Sense::click_and_drag());
 
-        let len = self.current_sim_board().connections.len();
+        let len = self.current_sim_board().conns_info.len();
         for i in 0..len {
-            let conn = &self.current_sim_board().connections[i].clone();
-            let conn_info = &mut self.current_sim_board().comp_conns[i];
+            // let conn = &self.current_sim_board().conns[i].clone();
+            let info = &mut self.current_sim_board().conns_info[i];
 
             // If it is an output connection
-            if conn.from.0 == idx {
-                let points = &mut conn_info.points;
-                points[0] = out_resps[conn.from.1].rect.center();
+            if info.conn.from.0 == idx {
+                let points = &mut info.points;
+                points[0] = out_resps[info.conn.from.1].rect.center();
                 points[1].y = points[0].y;
             }
 
             // If it is an input connection
-            if conn.to.0 == idx {
-                let points = &mut conn_info.points;
+            if info.conn.to.0 == idx {
+                let points = &mut info.points;
                 let p_count = points.len();
-                points[p_count - 1] = in_resps[conn.to.1].rect.center();
+                points[p_count - 1] = in_resps[info.conn.to.1].rect.center();
                 points[p_count - 2].y = points[p_count - 1].y;
             }
         }

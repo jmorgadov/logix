@@ -36,14 +36,9 @@ impl BoardEditing {
                 }
 
                 Primitive::Input { bits: _ } => {
-                    let in_idx = self
-                        .board
-                        .inputs_idx
-                        .iter()
-                        .position(|&x| x == idx)
-                        .unwrap();
+                    let in_idx = self.board.inputs.iter().position(|x| x.idx == idx).unwrap();
                     let resp = ui.add(
-                        egui::TextEdit::singleline(&mut self.board.inputs_name[in_idx])
+                        egui::TextEdit::singleline(&mut self.board.inputs[in_idx].name)
                             .hint_text("Name"),
                     );
                     if resp.lost_focus() {
@@ -53,12 +48,12 @@ impl BoardEditing {
                 Primitive::Output { bits: _ } => {
                     let out_idx = self
                         .board
-                        .outputs_idx
+                        .outputs
                         .iter()
-                        .position(|&x| x == idx)
+                        .position(|output| output.idx == idx)
                         .unwrap();
                     let resp = ui.add(
-                        egui::TextEdit::singleline(&mut self.board.outputs_name[out_idx])
+                        egui::TextEdit::singleline(&mut self.board.outputs[out_idx].name)
                             .hint_text("Name"),
                     );
                     if resp.lost_focus() {
