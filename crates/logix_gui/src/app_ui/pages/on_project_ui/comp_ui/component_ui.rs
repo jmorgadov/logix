@@ -79,34 +79,30 @@ impl BoardEditing {
                             .info
                             .name
                             .clone();
-                        if let Some(prim) =
-                            &self.current_sim_board_ref().components[idx].info.primitive
-                        {
-                            match prim {
-                                Primitive::Input { bits: _ } => {
-                                    let in_order = board
-                                        .inputs
-                                        .iter()
-                                        .position(|input| input.idx == idx)
-                                        .unwrap();
-                                    name.push_str(&format!(
-                                        " {}",
-                                        self.current_sim_board_ref().inputs[in_order].name
-                                    ));
-                                }
-                                Primitive::Output { bits: _ } => {
-                                    let out_order = board
-                                        .outputs
-                                        .iter()
-                                        .position(|output| output.idx == idx)
-                                        .unwrap();
-                                    name.push_str(&format!(
-                                        " {}",
-                                        self.current_sim_board_ref().outputs[out_order].name
-                                    ));
-                                }
-                                _ => {}
+                        match &self.current_sim_board_ref().components[idx].info.primitive {
+                            Some(Primitive::Input { .. }) => {
+                                let in_order = board
+                                    .inputs
+                                    .iter()
+                                    .position(|input| input.idx == idx)
+                                    .unwrap();
+                                name.push_str(&format!(
+                                    " {}",
+                                    self.current_sim_board_ref().inputs[in_order].name
+                                ));
                             }
+                            Some(Primitive::Output { .. }) => {
+                                let out_order = board
+                                    .outputs
+                                    .iter()
+                                    .position(|output| output.idx == idx)
+                                    .unwrap();
+                                name.push_str(&format!(
+                                    " {}",
+                                    self.current_sim_board_ref().outputs[out_order].name
+                                ));
+                            }
+                            _ => {}
                         }
                         ui.add(egui::Label::new(
                             egui::RichText::new(name)
@@ -124,10 +120,9 @@ impl BoardEditing {
 
         resp = resp.interact(Sense::click_and_drag());
 
-        let len = self.current_sim_board().conns_info.len();
+        let len = self.current_sim_board().conns.len();
         for i in 0..len {
-            // let conn = &self.current_sim_board().conns[i].clone();
-            let info = &mut self.current_sim_board().conns_info[i];
+            let info = &mut self.current_sim_board().conns[i];
 
             // If it is an output connection
             if info.conn.from.0 == idx {
@@ -161,12 +156,6 @@ impl BoardEditing {
         // by the caller.
         // -----------------------------------------------------------------------------
         let (resp, inputs, outputs) = self._draw_comp(ui, idx);
-
-        // ui.painter().add(Shape::Vec(vec![Shape::rect_filled(
-        //     s_rect,
-        //     Rounding::same(4.0),
-        //     Color32::from_rgb(50, 50, 50),
-        // )]));
 
         // -----------------------------------------------------------------------------
         // Draw the connections comming from this component

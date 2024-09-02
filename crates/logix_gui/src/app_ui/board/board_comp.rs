@@ -1,5 +1,5 @@
 use egui::Pos2;
-use logix_sim::primitives::data::Data;
+use logix_sim::primitives::{data::Data, prelude::Primitive};
 use serde::{Deserialize, Serialize};
 
 use super::comp_info::ComponentInfo;
@@ -19,6 +19,20 @@ impl BoardComponent {
 
     pub fn output_count(&self) -> usize {
         self.outputs_data.len()
+    }
+
+    pub fn is_input(&self) -> bool {
+        self.info
+            .primitive
+            .as_ref()
+            .is_some_and(Primitive::is_input)
+    }
+
+    pub fn is_output(&self) -> bool {
+        self.info
+            .primitive
+            .as_ref()
+            .is_some_and(Primitive::is_output)
     }
 
     pub const fn with_pos(mut self, pos: Pos2) -> Self {

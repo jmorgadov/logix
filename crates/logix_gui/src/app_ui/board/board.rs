@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 
 use egui::Pos2;
-use logix_core::component::{Component, Conn, PortAddr, SubComponent};
+use logix_core::component::{Component, Conn, SubComponent};
 use logix_sim::primitives::primitive::{ExtraInfo, Primitive};
 use serde::{Deserialize, Serialize};
 
@@ -15,35 +15,17 @@ use super::{
     board_comp::BoardComponent,
     board_conn::BoardConnection,
     comp_info::ComponentInfo,
+    io_info::IOInfo,
 };
-
-#[derive(Debug, Serialize, Deserialize, Default)]
-pub struct IOInfo {
-    pub idx: usize,
-    pub name: String,
-}
-
-impl IOInfo {
-    pub const fn new(idx: usize, name: String) -> Self {
-        Self { idx, name }
-    }
-}
 
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct Board {
     pub name: String,
-
-    pub components: Vec<BoardComponent>,
-
     pub deps: Vec<PathBuf>,
-
+    pub components: Vec<BoardComponent>,
+    pub conns: Vec<BoardConnection>,
     pub inputs: Vec<IOInfo>,
     pub outputs: Vec<IOInfo>,
-
-    pub conns_info: Vec<BoardConnection>,
-
-    pub in_addrs: Vec<(usize, PortAddr)>,
-    pub out_addrs: Vec<PortAddr>,
 }
 
 impl Board {
@@ -62,20 +44,39 @@ impl Board {
             .map(|bc| bc.info.build_component(last_id))
             .collect::<Result<Vec<_>, _>>()?;
 
+        let (ids, sub_comps) = sub_comps.into_iter().unzip();
+
         let id = *last_id;
         *last_id += 1;
-        let id_map = IdMap::from_children(
-            id,
-            self.name.clone(),
-            source,
-            sub_comps.iter().map(|(m, _)| m.clone()).collect(),
-        );
+        let id_map = IdMap::from_children(id, self.name.clone(), source, ids);
+
+        let in_addrs = self
+            .conns
+            .iter()
+            .filter_map(
+                |conn| match self.components[conn.conn.from.0].info.primitive {
+                    Some(Primitive::Input { .. }) => Some((conn.conn.from.0, conn.conn.to)),
+                    _ => None,
+                },
+            )
+            .collect();
+
+        let out_addrs = self
+            .conns
+            .iter()
+            .filter_map(
+                |conn| match self.components[conn.conn.from.0].info.primitive {
+                    Some(Primitive::Output { .. }) => Some(conn.conn.from),
+                    _ => None,
+                },
+            )
+            .collect();
 
         let sub = SubComponent {
-            components: sub_comps.into_iter().map(|(_, c)| c).collect(),
-            connections: self.conns_info.iter().map(|info| info.conn).collect(),
-            in_addrs: self.in_addrs.clone(),
-            out_addrs: self.out_addrs.clone(),
+            components: sub_comps,
+            connections: self.conns.iter().map(|info| info.conn).collect(),
+            in_addrs,
+            out_addrs,
         };
 
         Ok((
@@ -102,22 +103,14 @@ impl Board {
                 name: self.name.clone(),
                 source,
                 primitive: None,
-                inputs_name: self.inputs.iter().map(|input| input.name.clone()).collect(),
-                outputs_name: self
-                    .outputs
-                    .iter()
-                    .map(|output| output.name.clone())
-                    .collect(),
+                inputs_name: self.inputs.iter().map(|io| io.name.clone()).collect(),
+                outputs_name: self.outputs.iter().map(|io| io.name.clone()).collect(),
             },
             inputs_data: self
                 .inputs
                 .iter()
                 .map(|input| {
-                    assert!(self.components[input.idx]
-                        .info
-                        .primitive
-                        .clone()
-                        .is_some_and(|p| p.is_input()));
+                    assert!(self.components[input.idx].is_input());
                     self.components[input.idx].outputs_data[0]
                 })
                 .collect(),
@@ -125,11 +118,7 @@ impl Board {
                 .outputs
                 .iter()
                 .map(|output| {
-                    assert!(self.components[output.idx]
-                        .info
-                        .primitive
-                        .clone()
-                        .is_some_and(|p| p.is_output()));
+                    assert!(self.components[output.idx].is_output());
                     self.components[output.idx].inputs_data[0]
                 })
                 .collect(),
@@ -189,7 +178,7 @@ impl Board {
             let in_count = comp.input_count();
             let out_count = comp.output_count();
 
-            for (i, info) in self.conns_info.iter().enumerate() {
+            for (i, info) in self.conns.iter().enumerate() {
                 if info.conn.from.0 == comp.id && info.conn.from.1 >= out_count {
                     conns_to_remove.push(i);
                     continue;
@@ -201,6 +190,7 @@ impl Board {
             }
         }
 
+        conns_to_remove.sort_unstable();
         for i in conns_to_remove.iter().rev() {
             self.remove_conn(*i);
         }
@@ -242,6 +232,7 @@ impl Board {
     pub fn remove_comp(&mut self, idx: usize) {
         let comp = self.components.remove(idx);
 
+        // Update inputs/outputs if it was an IO component
         match comp.info.primitive {
             Some(Primitive::Input { bits: _ }) => {
                 self.inputs.retain(|input| input.idx != idx);
@@ -252,55 +243,31 @@ impl Board {
             _ => {}
         }
 
-        // Remove input/output connections to the component
-        self.in_addrs.retain(|(i, _)| *i != idx);
-        self.out_addrs.retain(|(i, _)| *i != idx);
+        // Update indices in inputs/outputs according to the removed component
+        self.inputs.iter_mut().for_each(|input| {
+            if input.idx > idx {
+                input.idx -= 1;
+            }
+        });
+        self.outputs.iter_mut().for_each(|output| {
+            if output.idx > idx {
+                output.idx -= 1;
+            }
+        });
 
-        let mut i = 0;
-        // Update inputs/outputs indices
-        while i < self.inputs.len() {
-            if self.inputs[i].idx == idx {
-                self.inputs.remove(i);
-                continue;
-            }
-            if self.inputs[i].idx > idx {
-                self.inputs[i].idx -= 1;
-            }
-            i += 1;
-        }
+        // Remove connections related to the removed component
+        self.conns
+            .retain(|conn| conn.conn.from.0 != idx && conn.conn.to.0 != idx);
 
-        i = 0;
-        while i < self.outputs.len() {
-            if self.outputs[i].idx == idx {
-                self.outputs.remove(i);
-                continue;
+        // Update indices in connections according to the removed component
+        self.conns.iter_mut().for_each(|conn| {
+            if conn.conn.from.0 > idx {
+                conn.conn.from.0 -= 1;
             }
-            if self.outputs[i].idx > idx {
-                self.outputs[i].idx -= 1;
+            if conn.conn.to.0 > idx {
+                conn.conn.to.0 -= 1;
             }
-            i += 1;
-        }
-
-        // Update connections
-        i = 0;
-        while i < self.conns_info.len() {
-            let conn = self.conns_info[i].conn;
-
-            // Remove connections related to the component
-            if conn.from.0 == idx || conn.to.0 == idx {
-                self.conns_info.remove(i);
-                continue;
-            }
-
-            // Update forward connections indices
-            if conn.from.0 > idx {
-                self.conns_info[i].conn.from.0 -= 1;
-            }
-            if conn.to.0 > idx {
-                self.conns_info[i].conn.to.0 -= 1;
-            }
-            i += 1;
-        }
+        });
 
         self.update_deps();
     }
@@ -313,60 +280,14 @@ impl Board {
         to_port: usize,
         points: Vec<Pos2>,
     ) {
-        let conn = Conn {
-            from: (from, from_port),
-            to: (to, to_port),
-        };
-        self.conns_info.push(BoardConnection { conn, points });
-
-        match &self.components[from].info.primitive {
-            Some(Primitive::Input { .. }) => {
-                let from_input = self
-                    .inputs
-                    .iter()
-                    .position(|input| input.idx == from)
-                    .unwrap();
-                self.in_addrs.push((from_input, (to, to_port)));
-            }
-            Some(Primitive::Output { .. }) => {
-                self.out_addrs.push((from, from_port));
-            }
-            _ => {}
-        }
+        self.conns.push(BoardConnection {
+            conn: Conn::new(from, from_port, to, to_port),
+            points,
+        });
     }
 
     pub fn remove_conn(&mut self, idx: usize) {
-        let info = self.conns_info.remove(idx);
-
-        // Check if connection is an input connection
-        if matches!(
-            &self.components[info.conn.from.0].info.primitive,
-            Some(Primitive::Input { .. })
-        ) {
-            let mut i = 0;
-            while i < self.in_addrs.len() {
-                if self.in_addrs[i].0 == info.conn.from.0 && self.in_addrs[i].1 == info.conn.to {
-                    self.in_addrs.remove(i);
-                    break;
-                }
-                i += 1;
-            }
-        }
-
-        // Check if connection is an output connection
-        if matches!(
-            &self.components[info.conn.to.0].info.primitive,
-            Some(Primitive::Output { .. })
-        ) {
-            let mut i = 0;
-            while i < self.out_addrs.len() {
-                if self.out_addrs[i] == info.conn.from {
-                    self.out_addrs.remove(i);
-                    break;
-                }
-                i += 1;
-            }
-        }
+        self.conns.remove(idx);
     }
 
     pub fn add_and_gate(&mut self, id: usize, in_count: usize, pos: Pos2) {

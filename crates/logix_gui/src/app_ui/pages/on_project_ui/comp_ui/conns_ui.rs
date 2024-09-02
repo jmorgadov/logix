@@ -12,8 +12,8 @@ use crate::app_ui::{
 impl BoardEditing {
     pub fn draw_comp_conns(&mut self, ui: &egui::Ui, idx: usize, over_conn: &mut Option<usize>) {
         let mut i = 0;
-        while i < self.current_sim_board().conns_info.len() {
-            let conn = self.current_sim_board().conns_info[i].conn;
+        while i < self.current_sim_board().conns.len() {
+            let conn = self.current_sim_board().conns[i].conn;
             if conn.from.0 == idx {
                 self.draw_connection(ui, &conn, i, over_conn, idx);
             }
@@ -32,7 +32,7 @@ impl BoardEditing {
         let from_port = conn.from.1;
         let mut to_add: Vec<(usize, Pos2, WireDir)> = vec![];
         let mut to_remove: Vec<usize> = vec![];
-        let points: Vec<Pos2> = self.current_sim_board().conns_info[i].points.clone();
+        let points: Vec<Pos2> = self.current_sim_board().conns[i].points.clone();
 
         for j in 0..points.len() - 1 {
             let p1 = points[j];
@@ -61,12 +61,12 @@ impl BoardEditing {
                 let delta = resp.drag_delta();
                 match c_orient {
                     WireDir::Vertical => {
-                        self.current_sim_board().conns_info[i].points[j].x += delta.x;
-                        self.current_sim_board().conns_info[i].points[j + 1].x += delta.x;
+                        self.current_sim_board().conns[i].points[j].x += delta.x;
+                        self.current_sim_board().conns[i].points[j + 1].x += delta.x;
                     }
                     WireDir::Horizontal => {
-                        self.current_sim_board().conns_info[i].points[j].y += delta.y;
-                        self.current_sim_board().conns_info[i].points[j + 1].y += delta.y;
+                        self.current_sim_board().conns[i].points[j].y += delta.y;
+                        self.current_sim_board().conns[i].points[j + 1].y += delta.y;
                     }
                 }
             }
@@ -131,15 +131,13 @@ impl BoardEditing {
         }
 
         for p in to_add {
-            self.current_sim_board().conns_info[i]
-                .points
-                .insert(p.0, p.1);
+            self.current_sim_board().conns[i].points.insert(p.0, p.1);
         }
 
         to_remove.sort_unstable();
         to_remove.reverse();
         for idx in to_remove {
-            self.current_sim_board().conns_info[i].points.remove(idx);
+            self.current_sim_board().conns[i].points.remove(idx);
         }
     }
 }

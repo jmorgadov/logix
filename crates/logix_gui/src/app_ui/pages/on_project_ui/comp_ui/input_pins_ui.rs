@@ -28,6 +28,7 @@ impl BoardEditing {
             } else {
                 Color32::LIGHT_GRAY
             };
+
             ui.painter()
                 .add(Shape::circle_filled(pin_pos, PIN_SIZE / 2.0, color));
 
