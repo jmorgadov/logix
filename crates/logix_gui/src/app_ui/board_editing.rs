@@ -47,7 +47,7 @@ impl BoardEditing {
 
         if let Some(sub) = comp.sub.as_ref() {
             for (i, subc) in sub.components.iter().enumerate() {
-                self.board.components[i].id = subc.id;
+                self.board.components[i].info.id = subc.id;
             }
         }
 
@@ -103,7 +103,7 @@ impl BoardEditing {
         let mut board = Board::load(id_map.source.as_ref().unwrap()).unwrap();
         let ids = self.sim_ids.id_walk(path).unwrap().ids();
         for (i, comp) in board.components.iter_mut().enumerate() {
-            comp.id = ids[i];
+            comp.info.id = ids[i];
         }
 
         self.sim_at = Some((path.to_vec(), board));
@@ -112,19 +112,30 @@ impl BoardEditing {
     pub fn enter_subc_sim(&mut self, id: usize) {
         if let Some((path, board)) = self.sim_at.as_mut() {
             path.push(id);
-            let comp = board.components.iter().find(|c| c.id == id).unwrap();
+            let comp = &board
+                .components
+                .iter()
+                .find(|c| c.info.id == id)
+                .unwrap()
+                .info;
             let mut new_board = Board::from_comp_info(comp);
             let ids = self.sim_ids.id_walk(path.as_slice()).unwrap().ids();
             for (i, comp) in new_board.components.iter_mut().enumerate() {
-                comp.id = ids[i];
+                comp.info.id = ids[i];
             }
             *board = new_board;
         } else {
-            let comp = self.board.components.iter().find(|c| c.id == id).unwrap();
+            let comp = &self
+                .board
+                .components
+                .iter()
+                .find(|c| c.info.id == id)
+                .unwrap()
+                .info;
             let mut new_board = Board::from_comp_info(comp);
             let ids = self.sim_ids.id_walk(&[id]).unwrap().ids();
             for (i, comp) in new_board.components.iter_mut().enumerate() {
-                comp.id = ids[i];
+                comp.info.id = ids[i];
             }
             self.sim_at = Some((vec![id], new_board));
         }
@@ -143,11 +154,11 @@ impl BoardEditing {
                 let (input_datas, output_datas) = comp
                     .get_status(
                         ids.as_ref().map_or(&[], |ids| ids.as_slice()),
-                        Some(board_comp.id),
+                        Some(board_comp.info.id),
                     )
                     .map_err(|e| SimulationError::RequestComponentData {
-                        comp_name: board_comp.name.clone(),
-                        comp_id: board_comp.id,
+                        comp_name: board_comp.info.name.clone(),
+                        comp_id: board_comp.info.id,
                         err: e,
                     })?;
                 board_comp.inputs_data = input_datas;

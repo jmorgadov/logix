@@ -11,7 +11,7 @@ use crate::app_ui::{
 
 impl BoardEditing {
     pub fn update_comp_pos(&mut self, idx: usize, new_pos: Pos2) {
-        self.board.comp_pos[idx] = new_pos;
+        self.board.components[idx].pos = new_pos;
     }
 
     pub const fn get_ghost_point(last_point: Pos2, dir: WireDir, cursor_pos: Pos2) -> Pos2 {
@@ -50,8 +50,8 @@ impl BoardEditing {
 
         let board = self.current_sim_board_ref();
 
-        let in_names = &board.components[idx].inputs_name;
-        let out_names = &board.components[idx].outputs_name;
+        let in_names = &board.components[idx].info.inputs_name;
+        let out_names = &board.components[idx].info.outputs_name;
 
         let out_names_max_len = out_names
             .iter()
@@ -75,8 +75,12 @@ impl BoardEditing {
                     // Name
                     ui.with_layout(egui::Layout::top_down(egui::Align::Min), |ui| {
                         ui.add_space(name_offset);
-                        let mut name = self.current_sim_board_ref().components[idx].name.clone();
-                        if let Some(prim) = &self.current_sim_board_ref().components[idx].primitive
+                        let mut name = self.current_sim_board_ref().components[idx]
+                            .info
+                            .name
+                            .clone();
+                        if let Some(prim) =
+                            &self.current_sim_board_ref().components[idx].info.primitive
                         {
                             match prim {
                                 Primitive::Input { bits: _ } => {
@@ -178,7 +182,7 @@ impl BoardEditing {
         // Handle dragging the component
         // -----------------------------------------------------------------------------
         if self.sim.is_none() && resp.dragged() && self.new_conn.is_none() {
-            self.update_comp_pos(idx, self.board.comp_pos[idx] + resp.drag_delta());
+            self.update_comp_pos(idx, self.board.components[idx].pos + resp.drag_delta());
         }
 
         // -----------------------------------------------------------------------------
@@ -206,9 +210,12 @@ impl BoardEditing {
         // -----------------------------------------------------------------------------
         if resp.double_clicked()
             && self.sim.is_some()
-            && self.current_sim_board().components[idx].source.is_some()
+            && self.current_sim_board().components[idx]
+                .info
+                .source
+                .is_some()
         {
-            self.enter_subc_sim(self.current_sim_board_ref().components[idx].id);
+            self.enter_subc_sim(self.current_sim_board_ref().components[idx].info.id);
         }
     }
 }

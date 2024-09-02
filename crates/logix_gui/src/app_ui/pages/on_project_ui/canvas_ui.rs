@@ -234,7 +234,7 @@ impl BoardEditing {
         let mut i = 0;
         while i < self.current_sim_board().components.len() {
             let id = egui::Area::new(id.with(("subc", i)))
-                .fixed_pos(self.current_sim_board().comp_pos[i])
+                .fixed_pos(self.current_sim_board().components[i].pos)
                 .constrain(false)
                 .show(ui.ctx(), |ui| {
                     ui.set_clip_rect(transform.inverse() * rect);

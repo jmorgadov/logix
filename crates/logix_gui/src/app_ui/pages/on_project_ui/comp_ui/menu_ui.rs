@@ -6,7 +6,7 @@ use crate::app_ui::board_editing::BoardEditing;
 impl BoardEditing {
     pub fn specific_comp_context_menu(&mut self, ui: &mut Ui, idx: usize) {
         let comp = self.board.components.get_mut(idx).unwrap();
-        if let Some(prim) = &mut comp.primitive {
+        if let Some(prim) = &mut comp.info.primitive {
             match prim {
                 Primitive::AndGate
                 | Primitive::OrGate

@@ -14,6 +14,7 @@ use super::{
     },
     board_comp::BoardComponent,
     board_conn::BoardConnection,
+    comp_info::ComponentInfo,
 };
 
 #[derive(Debug, Serialize, Deserialize, Default)]
@@ -31,9 +32,9 @@ impl IOInfo {
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct Board {
     pub name: String,
-    pub comp_pos: Vec<Pos2>,
 
     pub components: Vec<BoardComponent>,
+
     pub deps: Vec<PathBuf>,
 
     pub inputs: Vec<IOInfo>,
@@ -46,7 +47,7 @@ pub struct Board {
 }
 
 impl Board {
-    pub fn from_comp_info(comp: &BoardComponent) -> Self {
+    pub fn from_comp_info(comp: &ComponentInfo) -> Self {
         Self::load(comp.source.as_ref().unwrap()).unwrap()
     }
 
@@ -58,7 +59,7 @@ impl Board {
         let sub_comps: Vec<(IdMap, Component<ExtraInfo>)> = self
             .components
             .iter_mut()
-            .map(|c| c.build_component(last_id))
+            .map(|bc| bc.info.build_component(last_id))
             .collect::<Result<Vec<_>, _>>()?;
 
         let id = *last_id;
@@ -93,23 +94,27 @@ impl Board {
         ))
     }
 
-    pub fn board_info(&self, id: usize, source: Option<PathBuf>) -> BoardComponent {
+    pub fn board_comp(&self, id: usize, source: Option<PathBuf>) -> BoardComponent {
         BoardComponent {
-            id,
-            name: self.name.clone(),
-            source,
-            primitive: None,
-            inputs_name: self.inputs.iter().map(|input| input.name.clone()).collect(),
-            outputs_name: self
-                .outputs
-                .iter()
-                .map(|output| output.name.clone())
-                .collect(),
+            pos: Pos2::default(),
+            info: ComponentInfo {
+                id,
+                name: self.name.clone(),
+                source,
+                primitive: None,
+                inputs_name: self.inputs.iter().map(|input| input.name.clone()).collect(),
+                outputs_name: self
+                    .outputs
+                    .iter()
+                    .map(|output| output.name.clone())
+                    .collect(),
+            },
             inputs_data: self
                 .inputs
                 .iter()
                 .map(|input| {
                     assert!(self.components[input.idx]
+                        .info
                         .primitive
                         .clone()
                         .is_some_and(|p| p.is_input()));
@@ -121,14 +126,13 @@ impl Board {
                 .iter()
                 .map(|output| {
                     assert!(self.components[output.idx]
+                        .info
                         .primitive
                         .clone()
                         .is_some_and(|p| p.is_output()));
                     self.components[output.idx].inputs_data[0]
                 })
                 .collect(),
-            inputs_data_idx: self.inputs.iter().map(|_| (0, 0)).collect(),
-            outputs_data_idx: self.outputs.iter().map(|_| (0, 0)).collect(),
         }
     }
 
@@ -154,7 +158,7 @@ impl Board {
         self.deps = self
             .components
             .iter()
-            .filter_map(|c| c.source.clone())
+            .filter_map(|bc| bc.info.source.clone())
             .collect();
 
         self.deps.sort();
@@ -177,10 +181,11 @@ impl Board {
         for (comp, source) in self
             .components
             .iter_mut()
+            .map(|bc| &mut bc.info)
             .filter_map(|c| c.source.clone().map(|source| (c, source)))
         {
             let c = Self::load_comp(comp.id, source)?;
-            *comp = c;
+            *comp = c.info;
             let in_count = comp.input_count();
             let out_count = comp.output_count();
 
@@ -202,31 +207,25 @@ impl Board {
         Ok(())
     }
 
-    pub fn add_comp(&mut self, subc: BoardComponent, pos: Pos2) {
-        self.components.push(subc);
-        self.comp_pos.push(pos);
+    pub fn add_comp(&mut self, comp: BoardComponent) {
+        self.components.push(comp);
 
-        if let Some(prim) = self.components.last().unwrap().primitive.clone() {
-            match prim {
-                Primitive::Input { bits: _ } => {
-                    // self.inputs += 1;
-                    self.inputs
-                        .push(IOInfo::new(self.components.len() - 1, String::default()));
-                }
-                Primitive::Output { bits: _ } => {
-                    // self.outputs += 1;
-                    self.outputs
-                        .push(IOInfo::new(self.components.len() - 1, String::default()));
-                }
-                _ => {}
+        let idx = self.components.len() - 1;
+        match self.components[idx].info.primitive.clone() {
+            Some(Primitive::Input { bits: _ }) => {
+                self.inputs.push(IOInfo::new(idx, String::default()));
             }
+            Some(Primitive::Output { bits: _ }) => {
+                self.outputs.push(IOInfo::new(idx, String::default()));
+            }
+            _ => {}
         }
         self.update_deps();
     }
 
     pub fn load_comp(id: usize, source: PathBuf) -> Result<BoardComponent, LoadComponentError> {
         let board = Self::load(&source)?;
-        Ok(board.board_info(id, Some(source)))
+        Ok(board.board_comp(id, Some(source)))
     }
 
     pub fn import_comp(
@@ -235,25 +234,22 @@ impl Board {
         source: &Path,
         pos: Pos2,
     ) -> Result<(), LoadComponentError> {
-        let comp = Self::load_comp(id, source.to_path_buf())?;
-        self.add_comp(comp, pos);
+        let comp = Self::load_comp(id, source.to_path_buf())?.with_pos(pos);
+        self.add_comp(comp);
         Ok(())
     }
 
     pub fn remove_comp(&mut self, idx: usize) {
         let comp = self.components.remove(idx);
-        self.comp_pos.remove(idx);
 
-        if let Some(prim) = comp.primitive {
-            match prim {
-                Primitive::Input { bits: _ } => {
-                    self.inputs.retain(|input| input.idx != idx);
-                }
-                Primitive::Output { bits: _ } => {
-                    self.outputs.retain(|output| output.idx != idx);
-                }
-                _ => {}
+        match comp.info.primitive {
+            Some(Primitive::Input { bits: _ }) => {
+                self.inputs.retain(|input| input.idx != idx);
             }
+            Some(Primitive::Output { bits: _ }) => {
+                self.outputs.retain(|output| output.idx != idx);
+            }
+            _ => {}
         }
 
         // Remove input/output connections to the component
@@ -323,8 +319,8 @@ impl Board {
         };
         self.conns_info.push(BoardConnection { conn, points });
 
-        if let Some(prim) = &self.components[from].primitive {
-            if prim.is_input() {
+        match &self.components[from].info.primitive {
+            Some(Primitive::Input { .. }) => {
                 let from_input = self
                     .inputs
                     .iter()
@@ -332,117 +328,114 @@ impl Board {
                     .unwrap();
                 self.in_addrs.push((from_input, (to, to_port)));
             }
-        }
-
-        if let Some(prim) = &self.components[to].primitive {
-            if prim.is_output() {
+            Some(Primitive::Output { .. }) => {
                 self.out_addrs.push((from, from_port));
             }
+            _ => {}
         }
     }
 
     pub fn remove_conn(&mut self, idx: usize) {
-        // let conn = self.conns[idx];
-        // self.conns.remove(idx);
         let info = self.conns_info.remove(idx);
 
         // Check if connection is an input connection
-        if let Some(prim) = &self.components[info.conn.from.0].primitive {
-            if prim.is_input() {
-                let mut i = 0;
-                while i < self.in_addrs.len() {
-                    if self.in_addrs[i].0 == info.conn.from.0 && self.in_addrs[i].1 == info.conn.to
-                    {
-                        self.in_addrs.remove(i);
-                        break;
-                    }
-                    i += 1;
+        if matches!(
+            &self.components[info.conn.from.0].info.primitive,
+            Some(Primitive::Input { .. })
+        ) {
+            let mut i = 0;
+            while i < self.in_addrs.len() {
+                if self.in_addrs[i].0 == info.conn.from.0 && self.in_addrs[i].1 == info.conn.to {
+                    self.in_addrs.remove(i);
+                    break;
                 }
+                i += 1;
             }
         }
 
         // Check if connection is an output connection
-        if let Some(prim) = &self.components[info.conn.to.0].primitive {
-            if prim.is_output() {
-                let mut i = 0;
-                while i < self.out_addrs.len() {
-                    if self.out_addrs[i] == info.conn.from {
-                        self.out_addrs.remove(i);
-                        break;
-                    }
-                    i += 1;
+        if matches!(
+            &self.components[info.conn.to.0].info.primitive,
+            Some(Primitive::Output { .. })
+        ) {
+            let mut i = 0;
+            while i < self.out_addrs.len() {
+                if self.out_addrs[i] == info.conn.from {
+                    self.out_addrs.remove(i);
+                    break;
                 }
+                i += 1;
             }
         }
     }
 
     pub fn add_and_gate(&mut self, id: usize, in_count: usize, pos: Pos2) {
-        let and_gate = BoardComponent::and_gate(id, in_count);
-        self.add_comp(and_gate, pos);
+        let and_gate = BoardComponent::and_gate(id, in_count).with_pos(pos);
+        self.add_comp(and_gate);
     }
 
     pub fn add_nand_gate(&mut self, id: usize, in_count: usize, pos: Pos2) {
-        let nand_gate = BoardComponent::nand_gate(id, in_count);
-        self.add_comp(nand_gate, pos);
+        let nand_gate = BoardComponent::nand_gate(id, in_count).with_pos(pos);
+        self.add_comp(nand_gate);
     }
 
     pub fn add_or_gate(&mut self, id: usize, in_count: usize, pos: Pos2) {
-        let or_gate = BoardComponent::or_gate(id, in_count);
-        self.add_comp(or_gate, pos);
+        let or_gate = BoardComponent::or_gate(id, in_count).with_pos(pos);
+        self.add_comp(or_gate);
     }
 
     pub fn add_nor_gate(&mut self, id: usize, in_count: usize, pos: Pos2) {
-        let nor_gate = BoardComponent::nor_gate(id, in_count);
-        self.add_comp(nor_gate, pos);
+        let nor_gate = BoardComponent::nor_gate(id, in_count).with_pos(pos);
+        self.add_comp(nor_gate);
     }
 
     pub fn add_xor_gate(&mut self, id: usize, in_count: usize, pos: Pos2) {
-        let xor_gate = BoardComponent::xor_gate(id, in_count);
-        self.add_comp(xor_gate, pos);
+        let xor_gate = BoardComponent::xor_gate(id, in_count).with_pos(pos);
+        self.add_comp(xor_gate);
     }
 
     pub fn add_not_gate(&mut self, id: usize, pos: Pos2) {
-        let not_gate = BoardComponent::not_gate(id);
-        self.add_comp(not_gate, pos);
+        let not_gate = BoardComponent::not_gate(id).with_pos(pos);
+        self.add_comp(not_gate);
     }
 
     pub fn add_const_high_gate(&mut self, id: usize, pos: Pos2) {
-        let const_gate = BoardComponent::const_high_gate(id);
-        self.add_comp(const_gate, pos);
+        let const_gate = BoardComponent::const_high_gate(id).with_pos(pos);
+        self.add_comp(const_gate);
     }
 
     pub fn add_const_low_gate(&mut self, id: usize, pos: Pos2) {
-        let const_gate = BoardComponent::const_low_gate(id);
-        self.add_comp(const_gate, pos);
+        let const_gate = BoardComponent::const_low_gate(id).with_pos(pos);
+        self.add_comp(const_gate);
     }
 
     pub fn add_clock_gate(&mut self, id: usize, pos: Pos2) {
-        let clock_gate = BoardComponent::clock_gate(id);
-        self.add_comp(clock_gate, pos);
+        let clock_gate = BoardComponent::clock_gate(id).with_pos(pos);
+        self.add_comp(clock_gate);
     }
 
     pub fn add_splitter(&mut self, id: usize, bits: u8, pos: Pos2) {
-        let splitter = BoardComponent::splitter(id, bits);
-        self.add_comp(splitter, pos);
+        let splitter = BoardComponent::splitter(id, bits).with_pos(pos);
+        self.add_comp(splitter);
     }
 
     pub fn add_joiner(&mut self, id: usize, bits: u8, pos: Pos2) {
-        let joiner = BoardComponent::joiner(id, bits);
-        self.add_comp(joiner, pos);
+        let joiner = BoardComponent::joiner(id, bits).with_pos(pos);
+        self.add_comp(joiner);
     }
 
     pub fn add_input(&mut self, id: usize, bits: u8, pos: Pos2) {
-        let input = BoardComponent::input(id, bits);
-        self.add_comp(input, pos);
+        let input = BoardComponent::input(id, bits).with_pos(pos);
+        self.add_comp(input);
     }
 
     pub fn add_output(&mut self, id: usize, bits: u8, pos: Pos2) {
-        let output = BoardComponent::output(id, bits);
-        self.add_comp(output, pos);
+        let output = BoardComponent::output(id, bits).with_pos(pos);
+        self.add_comp(output);
     }
 }
 
-impl BoardComponent {
+impl ComponentInfo {
     pub fn build_primitive(
         &mut self,
         last_id: &mut usize,
@@ -455,16 +448,13 @@ impl BoardComponent {
         *last_id += 1;
         self.id = id;
 
-        self.inputs_data_idx = (0..self.inputs_name.len()).map(|i| (id, i)).collect();
-        self.outputs_data_idx = (0..self.outputs_name.len()).map(|i| (id, i)).collect();
-
         Ok((
             IdMap::new(id, self.name.clone(), None),
             Component {
                 id,
                 name: Some(self.name.clone()),
-                inputs: self.inputs_data.len(),
-                outputs: self.outputs_data.len(),
+                inputs: self.input_count(),
+                outputs: self.output_count(),
                 sub: None,
                 extra: ExtraInfo {
                     id: self.id,
@@ -489,16 +479,6 @@ impl BoardComponent {
 
         let mut board = Board::load(&source)?;
 
-        let res = board.build_component(self.source.clone(), last_id);
-
-        for (idx, (to, to_port)) in &board.in_addrs {
-            self.inputs_data_idx[*idx] = board.components[*to].inputs_data_idx[*to_port];
-        }
-
-        for (i, (from, from_port)) in board.out_addrs.iter().enumerate() {
-            self.outputs_data_idx[i] = board.components[*from].outputs_data_idx[*from_port];
-        }
-
-        res
+        board.build_component(self.source.clone(), last_id)
     }
 }

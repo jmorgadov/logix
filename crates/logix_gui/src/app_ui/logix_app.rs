@@ -51,6 +51,9 @@ impl LogixApp {
                 }
 
                 ctx.input_mut(|input| {
+                    if input.consume_shortcut(&shortcuts::SAVE_AS) && self.exist_active_board() {
+                        self.save_current_board_as();
+                    }
                     if input.consume_shortcut(&shortcuts::SAVE) && self.exist_active_board() {
                         self.save_current_board();
                     }
