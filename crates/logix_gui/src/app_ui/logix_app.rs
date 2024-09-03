@@ -66,6 +66,13 @@ impl LogixApp {
                     if input.consume_shortcut(&shortcuts::NEW_BOARD) {
                         self.new_board();
                     }
+
+                    if input.consume_shortcut(&shortcuts::UNDO) && self.exist_active_board() {
+                        self.board_editing_mut().board.undo();
+                    }
+                    if input.consume_shortcut(&shortcuts::REDO) && self.exist_active_board() {
+                        self.board_editing_mut().board.redo();
+                    }
                 });
 
                 self.top_panel(ctx);

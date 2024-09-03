@@ -26,6 +26,10 @@ impl LogixApp {
                             ui.allocate_space(egui::vec2(0.0, ui.available_height()));
                             ui.horizontal(|ui| {
                                 ui.set_max_width(150.0);
+                                if self.board_tabs[i].board.not_saved() {
+                                    ui.label("•");
+                                }
+
                                 let tab_label = if self.board_tabs[i].board.name.is_empty() {
                                     "Untitled"
                                 } else {

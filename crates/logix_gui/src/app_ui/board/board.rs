@@ -12,6 +12,7 @@ use super::{
         BoardBuildError, LoadBoardError, LoadComponentError, OpenBoardError, ReloadComponentsError,
         SaveBoardError,
     },
+    board_actions::BoardAction,
     board_comp::BoardComponent,
     board_conn::BoardConnection,
     comp_info::ComponentInfo,
@@ -26,6 +27,13 @@ pub struct Board {
     pub conns: Vec<BoardConnection>,
     pub inputs: Vec<IOInfo>,
     pub outputs: Vec<IOInfo>,
+
+    #[serde(skip)]
+    pub hist: Vec<BoardAction>,
+    #[serde(skip)]
+    pub hist_idx: Option<usize>,
+    #[serde(skip)]
+    pub saved_idx: Option<usize>,
 }
 
 impl Board {
@@ -65,7 +73,7 @@ impl Board {
             .conns
             .iter()
             .filter_map(
-                |conn| match self.components[conn.conn.from.0].info.primitive {
+                |conn| match self.components[conn.conn.to.0].info.primitive {
                     Some(Primitive::Output { .. }) => Some(conn.conn.from),
                     _ => None,
                 },
@@ -128,6 +136,7 @@ impl Board {
     pub fn save(&mut self, path: &PathBuf) -> Result<(), SaveBoardError> {
         let serialized = serde_json::to_string(self)?;
         std::fs::write(path, serialized)?;
+        self.saved_idx = self.hist_idx;
         Ok(())
     }
 
@@ -198,18 +207,7 @@ impl Board {
     }
 
     pub fn add_comp(&mut self, comp: BoardComponent) {
-        self.components.push(comp);
-
-        let idx = self.components.len() - 1;
-        match self.components[idx].info.primitive.clone() {
-            Some(Primitive::Input { bits: _ }) => {
-                self.inputs.push(IOInfo::new(idx, String::default()));
-            }
-            Some(Primitive::Output { bits: _ }) => {
-                self.outputs.push(IOInfo::new(idx, String::default()));
-            }
-            _ => {}
-        }
+        self.execute(BoardAction::add_component(comp));
         self.update_deps();
     }
 
@@ -230,44 +228,47 @@ impl Board {
     }
 
     pub fn remove_comp(&mut self, idx: usize) {
-        let comp = self.components.remove(idx);
-
-        // Update inputs/outputs if it was an IO component
-        match comp.info.primitive {
-            Some(Primitive::Input { bits: _ }) => {
-                self.inputs.retain(|input| input.idx != idx);
-            }
-            Some(Primitive::Output { bits: _ }) => {
-                self.outputs.retain(|output| output.idx != idx);
-            }
-            _ => {}
-        }
-
-        // Update indices in inputs/outputs according to the removed component
-        self.inputs.iter_mut().for_each(|input| {
-            if input.idx > idx {
-                input.idx -= 1;
-            }
-        });
-        self.outputs.iter_mut().for_each(|output| {
-            if output.idx > idx {
-                output.idx -= 1;
-            }
-        });
-
-        // Remove connections related to the removed component
-        self.conns
-            .retain(|conn| conn.conn.from.0 != idx && conn.conn.to.0 != idx);
-
-        // Update indices in connections according to the removed component
-        self.conns.iter_mut().for_each(|conn| {
-            if conn.conn.from.0 > idx {
-                conn.conn.from.0 -= 1;
-            }
-            if conn.conn.to.0 > idx {
-                conn.conn.to.0 -= 1;
-            }
-        });
+        self.execute(BoardAction::remove_component(
+            self.components[idx].clone(),
+            idx,
+        ));
+        //
+        // // Update inputs/outputs if it was an IO component
+        // match comp.info.primitive {
+        //     Some(Primitive::Input { bits: _ }) => {
+        //         self.inputs.retain(|input| input.idx != idx);
+        //     }
+        //     Some(Primitive::Output { bits: _ }) => {
+        //         self.outputs.retain(|output| output.idx != idx);
+        //     }
+        //     _ => {}
+        // }
+        //
+        // // Update indices in inputs/outputs according to the removed component
+        // self.inputs.iter_mut().for_each(|input| {
+        //     if input.idx > idx {
+        //         input.idx -= 1;
+        //     }
+        // });
+        // self.outputs.iter_mut().for_each(|output| {
+        //     if output.idx > idx {
+        //         output.idx -= 1;
+        //     }
+        // });
+        //
+        // // Remove connections related to the removed component
+        // self.conns
+        //     .retain(|conn| conn.conn.from.0 != idx && conn.conn.to.0 != idx);
+        //
+        // // Update indices in connections according to the removed component
+        // self.conns.iter_mut().for_each(|conn| {
+        //     if conn.conn.from.0 > idx {
+        //         conn.conn.from.0 -= 1;
+        //     }
+        //     if conn.conn.to.0 > idx {
+        //         conn.conn.to.0 -= 1;
+        //     }
+        // });
 
         self.update_deps();
     }
@@ -280,14 +281,14 @@ impl Board {
         to_port: usize,
         points: Vec<Pos2>,
     ) {
-        self.conns.push(BoardConnection {
+        self.execute(BoardAction::add_connection(BoardConnection {
             conn: Conn::new(from, from_port, to, to_port),
             points,
-        });
+        }));
     }
 
     pub fn remove_conn(&mut self, idx: usize) {
-        self.conns.remove(idx);
+        self.execute(BoardAction::remove_connection(self.conns[idx].clone(), idx));
     }
 
     pub fn add_and_gate(&mut self, id: usize, in_count: usize, pos: Pos2) {

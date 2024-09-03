@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use super::comp_info::ComponentInfo;
 
-#[derive(Debug, Serialize, Deserialize, Default)]
+#[derive(Debug, Serialize, Deserialize, Default, Clone)]
 pub struct BoardComponent {
     pub pos: Pos2,
     pub info: ComponentInfo,
