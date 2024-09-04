@@ -4,8 +4,10 @@ pub const NEW_BOARD: KeyboardShortcut = KeyboardShortcut::new(Modifiers::CTRL, K
 pub const SAVE: KeyboardShortcut = KeyboardShortcut::new(Modifiers::CTRL, Key::S);
 pub const SAVE_AS: KeyboardShortcut =
     KeyboardShortcut::new(Modifiers::CTRL.plus(Modifiers::SHIFT), Key::S);
-pub const RUN: KeyboardShortcut = KeyboardShortcut::new(Modifiers::NONE, Key::F5);
-pub const STOP: KeyboardShortcut = KeyboardShortcut::new(Modifiers::NONE, Key::F6);
+
+pub const RUN_SIM: KeyboardShortcut = KeyboardShortcut::new(Modifiers::NONE, Key::F5);
+pub const PAUSE_RESUME_SIM: KeyboardShortcut = KeyboardShortcut::new(Modifiers::NONE, Key::F6);
+pub const STOP_SIM: KeyboardShortcut = KeyboardShortcut::new(Modifiers::NONE, Key::F8);
 
 pub const UNDO: KeyboardShortcut = KeyboardShortcut::new(Modifiers::CTRL, Key::Z);
 pub const REDO: KeyboardShortcut = KeyboardShortcut::new(Modifiers::CTRL, Key::Y);

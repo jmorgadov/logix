@@ -60,7 +60,16 @@ impl BoardEditing {
         Ok(())
     }
 
+    pub fn pause_resume_sim(&mut self) {
+        if let Some(sim) = self.sim.as_mut() {
+            sim.pause_resume();
+        }
+    }
+
     pub fn stop_sim(&mut self) {
+        if let Some(sim) = self.sim.as_mut() {
+            sim.stop();
+        }
         self.sim = None;
         self.sim_at = None;
     }

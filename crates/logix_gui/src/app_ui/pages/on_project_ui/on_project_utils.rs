@@ -135,6 +135,10 @@ impl LogixApp {
         }
     }
 
+    pub fn pause_resume_current_sim(&mut self) {
+        self.board_editing_mut().pause_resume_sim();
+    }
+
     pub fn stop_current_sim(&mut self) {
         self.board_editing_mut().stop_sim();
         self.state = AppState::OnProject(LeftPannelState::Folders);

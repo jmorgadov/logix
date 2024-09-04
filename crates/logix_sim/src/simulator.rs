@@ -4,13 +4,14 @@ use rand::seq::SliceRandom;
 use std::{
     sync::{Arc, Mutex},
     thread,
-    time::Instant,
+    time::{Duration, Instant},
 };
 
 pub struct SimState {
     pub comp: FlattenComponent,
     to_upd: Vec<usize>,
     pub running: bool,
+    pub end: bool,
 }
 
 pub struct Simulator {
@@ -46,8 +47,8 @@ impl Simulator {
                 comp,
                 to_upd,
                 running: false,
+                end: false,
             })),
-            // on_upd,
         }
     }
 
@@ -65,6 +66,16 @@ impl Simulator {
             return on_locked(&mut state.comp);
         }
         T::default()
+    }
+
+    pub fn pause_resume(&mut self) {
+        let mut state = self.state.lock().unwrap();
+        state.running = !state.running;
+    }
+
+    pub fn stop(&mut self) {
+        let mut state = self.state.lock().unwrap();
+        state.end = true;
     }
 
     /// Starts the simulation.
@@ -87,12 +98,21 @@ impl Simulator {
                 // debug!("Update list: {:?}", self.to_upd);
 
                 let mut state = state_arc.lock().unwrap();
-                if !state.running {
+                if state.end {
                     {
                         let _x = state;
                     }
                     break;
                 }
+
+                if !state.running {
+                    {
+                        let _x = state;
+                    }
+                    thread::sleep(Duration::from_millis(100));
+                    continue;
+                }
+
                 let time = start.elapsed().as_nanos();
 
                 for idx in local_upd_list.iter() {

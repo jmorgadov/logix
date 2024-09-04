@@ -57,10 +57,15 @@ impl LogixApp {
                     if input.consume_shortcut(&shortcuts::SAVE) && self.exist_active_board() {
                         self.save_current_board();
                     }
-                    if input.consume_shortcut(&shortcuts::RUN) && self.exist_active_board() {
+                    if input.consume_shortcut(&shortcuts::RUN_SIM) && self.exist_active_board() {
                         self.run_current_sim();
                     }
-                    if input.consume_shortcut(&shortcuts::STOP) && self.exist_active_board() {
+                    if input.consume_shortcut(&shortcuts::PAUSE_RESUME_SIM)
+                        && self.exist_active_board()
+                    {
+                        self.pause_resume_current_sim();
+                    }
+                    if input.consume_shortcut(&shortcuts::STOP_SIM) && self.exist_active_board() {
                         self.stop_current_sim();
                     }
                     if input.consume_shortcut(&shortcuts::NEW_BOARD) {

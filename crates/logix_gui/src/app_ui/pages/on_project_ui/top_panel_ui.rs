@@ -3,7 +3,7 @@ use rfd::FileDialog;
 
 use crate::app_ui::{
     logix_app::LogixApp,
-    shortcuts::{RUN, SAVE, SAVE_AS, STOP},
+    shortcuts::{RUN_SIM, SAVE, SAVE_AS, STOP_SIM},
 };
 
 impl LogixApp {
@@ -66,11 +66,17 @@ impl LogixApp {
             ui.horizontal(|ui| {
                 ui.menu_button("File", |ui| self.file_menu(ui));
                 ui.menu_button("Sim", |ui| {
-                    if ui.button(Self::named_cmd_shorcut("Start", RUN)).clicked() {
+                    if ui
+                        .button(Self::named_cmd_shorcut("Start", RUN_SIM))
+                        .clicked()
+                    {
                         self.run_current_sim();
                         ui.close_menu();
                     }
-                    if ui.button(Self::named_cmd_shorcut("Stop", STOP)).clicked() {
+                    if ui
+                        .button(Self::named_cmd_shorcut("Stop", STOP_SIM))
+                        .clicked()
+                    {
                         self.stop_current_sim();
                         ui.close_menu();
                     }
