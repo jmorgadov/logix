@@ -2,6 +2,7 @@ use egui::{emath::TSTransform, Color32, Pos2, Rect, Response, Sense, Ui, Vec2};
 use logix_sim::primitives::primitive::Primitive;
 
 use crate::app_ui::{
+    board::BoardAction,
     board_editing::BoardEditing,
     pages::on_project_ui::{
         constants::{COMP_FONT_SIZE, PIN_SIZE},
@@ -170,8 +171,23 @@ impl BoardEditing {
         // -----------------------------------------------------------------------------
         // Handle dragging the component
         // -----------------------------------------------------------------------------
-        if self.sim.is_none() && resp.dragged() && self.new_conn.is_none() {
-            self.update_comp_pos(idx, self.board.components[idx].pos + resp.drag_delta());
+        if self.sim.is_none() {
+            if resp.drag_started() {
+                self.dragging_comp = Some((idx, self.board.components[idx].pos));
+            }
+            if resp.dragged() && self.new_conn.is_none() {
+                self.update_comp_pos(idx, self.board.components[idx].pos + resp.drag_delta());
+            }
+            if resp.drag_stopped() {
+                if let Some((idx, pos)) = self.dragging_comp {
+                    self.board.add_action(BoardAction::move_component(
+                        idx,
+                        pos,
+                        self.board.components[idx].pos,
+                    ));
+                }
+                self.dragging_comp = None;
+            }
         }
 
         // -----------------------------------------------------------------------------

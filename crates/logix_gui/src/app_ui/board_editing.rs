@@ -17,6 +17,8 @@ pub struct BoardEditing {
     pub new_conn: Option<(PortAddr, Vec<Pos2>)>,
     pub last_click_pos: Pos2,
     pub over_connection: Option<usize>,
+    pub dragging_comp: Option<(usize, Pos2)>,
+    pub dragging_conn_seg: Option<(usize, usize, Pos2, Pos2)>,
 
     pub sim: Option<Simulator>,
     pub sim_ids: IdMap,

@@ -1,3 +1,4 @@
+use egui::Pos2;
 use logix_sim::primitives::prelude::Primitive;
 
 use super::{board_comp::BoardComponent, board_conn::BoardConnection, io_info::IOInfo, Board};
@@ -21,6 +22,17 @@ pub enum BoardAction {
         conn: BoardConnection,
         at: usize,
     },
+    MoveComponent {
+        idx: usize,
+        from: Pos2,
+        to: Pos2,
+    },
+    MoveConnSegment {
+        conn_idx: usize,
+        seg_idx: usize,
+        from: (Pos2, Pos2),
+        to: (Pos2, Pos2),
+    },
 }
 
 impl BoardAction {
@@ -42,11 +54,40 @@ impl BoardAction {
     pub const fn remove_connection(conn: BoardConnection, at: usize) -> Self {
         Self::RemoveConnection { conn, at }
     }
+    pub const fn move_component(idx: usize, from: Pos2, to: Pos2) -> Self {
+        Self::MoveComponent { idx, from, to }
+    }
+    pub const fn move_conn_segment(
+        conn_idx: usize,
+        seg_idx: usize,
+        from: (Pos2, Pos2),
+        to: (Pos2, Pos2),
+    ) -> Self {
+        Self::MoveConnSegment {
+            conn_idx,
+            seg_idx,
+            from,
+            to,
+        }
+    }
 }
 
 impl Board {
     pub fn not_saved(&self) -> bool {
         self.hist_idx != self.saved_idx
+    }
+
+    pub fn add_action(&mut self, action: BoardAction) -> usize {
+        self.hist.truncate(self.hist_idx.unwrap_or(0) + 1);
+        self.hist.push(action);
+        let next_idx = self.hist.len() - 1;
+        self.hist_idx = Some(next_idx);
+        next_idx
+    }
+
+    pub fn execute(&mut self, action: BoardAction) {
+        let idx = self.add_action(action.clone());
+        self.hist[idx] = self._do_action(action);
     }
 
     pub fn undo(&mut self) {
@@ -164,6 +205,19 @@ impl Board {
             BoardAction::RemoveConnection { conn: _, at } => {
                 self.conns.remove(*at);
             }
+            BoardAction::MoveComponent { idx, from: _, to } => {
+                self.components[*idx].pos = *to;
+            }
+            BoardAction::MoveConnSegment {
+                conn_idx,
+                seg_idx,
+                from: _,
+                to,
+            } => {
+                let conn = &mut self.conns[*conn_idx];
+                conn.points[*seg_idx] = to.0;
+                conn.points[*seg_idx + 1] = to.1;
+            }
         }
         action
     }
@@ -225,15 +279,19 @@ impl Board {
             BoardAction::RemoveConnection { conn, at } => {
                 self.conns.insert(at, conn);
             }
+            BoardAction::MoveComponent { idx, from, to: _ } => {
+                self.components[idx].pos = from;
+            }
+            BoardAction::MoveConnSegment {
+                conn_idx,
+                seg_idx,
+                from,
+                to: _,
+            } => {
+                let conn = &mut self.conns[conn_idx];
+                conn.points[seg_idx] = from.0;
+                conn.points[seg_idx + 1] = from.1;
+            }
         }
-    }
-
-    pub fn execute(&mut self, action: BoardAction) {
-        self.hist.truncate(self.hist_idx.unwrap_or(0));
-        self.hist.push(action.clone());
-        let next_idx = self.hist.len() - 1;
-        self.hist_idx = Some(next_idx);
-
-        self.hist[next_idx] = self._do_action(action);
     }
 }

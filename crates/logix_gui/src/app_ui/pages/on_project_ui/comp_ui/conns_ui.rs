@@ -2,6 +2,7 @@ use egui::{epaint::PathShape, Color32, Pos2, Rect, Sense, Shape, Stroke};
 use logix_core::component::Conn;
 
 use crate::app_ui::{
+    board::BoardAction,
     board_editing::BoardEditing,
     pages::on_project_ui::{
         constants::{HIGH_COLOR, LOW_COLOR},
@@ -21,6 +22,7 @@ impl BoardEditing {
         }
     }
 
+    #[allow(clippy::too_many_lines)]
     fn draw_connection(
         &mut self,
         ui: &egui::Ui,
@@ -57,17 +59,34 @@ impl BoardEditing {
                 }
             }
 
-            if is_midd_wire && resp.dragged() {
-                let delta = resp.drag_delta();
-                match c_orient {
-                    WireDir::Vertical => {
-                        self.current_sim_board().conns[i].points[j].x += delta.x;
-                        self.current_sim_board().conns[i].points[j + 1].x += delta.x;
+            if self.sim.is_none() && is_midd_wire {
+                if resp.drag_started() {
+                    self.dragging_conn_seg = Some((i, j, p1, p2));
+                }
+                if resp.dragged() {
+                    let delta = resp.drag_delta();
+                    match c_orient {
+                        WireDir::Vertical => {
+                            self.board.conns[i].points[j].x += delta.x;
+                            self.board.conns[i].points[j + 1].x += delta.x;
+                        }
+                        WireDir::Horizontal => {
+                            self.board.conns[i].points[j].y += delta.y;
+                            self.board.conns[i].points[j + 1].y += delta.y;
+                        }
                     }
-                    WireDir::Horizontal => {
-                        self.current_sim_board().conns[i].points[j].y += delta.y;
-                        self.current_sim_board().conns[i].points[j + 1].y += delta.y;
-                    }
+                }
+                if resp.drag_stopped() {
+                    let (i, j, p1, p2) = self.dragging_conn_seg.expect("No dragging segment");
+                    self.board.add_action(BoardAction::move_conn_segment(
+                        i,
+                        j,
+                        (p1, p2),
+                        (
+                            self.board.conns[i].points[j],
+                            self.board.conns[i].points[j + 1],
+                        ),
+                    ));
                 }
             }
 

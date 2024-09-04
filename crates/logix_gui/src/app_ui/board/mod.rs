@@ -7,3 +7,4 @@ mod comp_info;
 mod io_info;
 
 pub use board::Board;
+pub use board_actions::BoardAction;
