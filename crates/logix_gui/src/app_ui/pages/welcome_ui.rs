@@ -55,16 +55,29 @@ impl LogixApp {
                         ui.end_row();
 
                         for (path, _) in self.get_recent_projects(10) {
-                            if ui
-                                .button(path.clone())
-                                .on_hover_text("Click to open project")
-                                .clicked()
-                                && self
-                                    .try_load_folder(&PathBuf::from_str(&path).unwrap())
-                                    .is_ok()
-                            {
-                                self.state = AppState::OnProject(LeftPannelState::Folders);
+                            let mut shorter_path = path.clone();
+                            if let Some(home_dir) = dirs::home_dir() {
+                                if path.starts_with(home_dir.to_str().unwrap()) {
+                                    shorter_path = path.replace(home_dir.to_str().unwrap(), "~");
+                                }
                             }
+                            ui.horizontal_top(|ui| {
+                                if ui.button("🗑").clicked() {
+                                    let _ = self.update_data(|data| {
+                                        data.projects_opened.remove(&path);
+                                    });
+                                }
+                                if ui
+                                    .button(shorter_path.clone())
+                                    .on_hover_text("Click to open project")
+                                    .clicked()
+                                    && self
+                                        .try_load_folder(&PathBuf::from_str(&path).unwrap())
+                                        .is_ok()
+                                {
+                                    self.state = AppState::OnProject(LeftPannelState::Folders);
+                                }
+                            });
                             ui.end_row();
                         }
                     });

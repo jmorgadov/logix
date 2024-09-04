@@ -4,7 +4,7 @@ use egui_notify::Toasts;
 use log::error;
 use logix_core::component::PortAddr;
 use logix_sim::{flatten::FlattenComponent, Simulator};
-use std::path::PathBuf;
+use std::{path::PathBuf, time::Duration};
 
 #[derive(Default)]
 pub struct BoardEditing {
@@ -37,6 +37,14 @@ impl BoardEditing {
         self.toasts.error(err).set_closable(true);
     }
 
+    pub fn notify(&mut self, err: impl Into<String>, secs: u64) {
+        self.toasts
+            .info(err)
+            .set_duration(Some(Duration::from_secs(secs)))
+            .set_show_progress_bar(false)
+            .set_closable(true);
+    }
+
     pub fn is_empty(&self) -> bool {
         self.board.components.is_empty()
     }
@@ -57,6 +65,7 @@ impl BoardEditing {
         self.sim = Some(Simulator::new(flatten));
         self.sim.as_mut().unwrap().start(true);
         self.sim_ids = sim_ids;
+        self.notify("Simulation started", 1);
         Ok(())
     }
 
@@ -72,6 +81,7 @@ impl BoardEditing {
         }
         self.sim = None;
         self.sim_at = None;
+        self.notify("Simulation ended", 1);
     }
 
     pub const fn current_sim_board_ref(&self) -> &Board {
