@@ -7,6 +7,13 @@ use crate::app_ui::{
 };
 
 impl LogixApp {
+    pub fn open_folder(&mut self) {
+        let new_folder = FileDialog::new().pick_folder();
+        if let Some(new_folder) = new_folder {
+            let _ = self.try_load_folder(&new_folder);
+        }
+    }
+
     fn file_menu(&mut self, ui: &mut Ui) {
         ui.set_max_width(200.0); // To make sure we wrap long text
 
@@ -16,10 +23,7 @@ impl LogixApp {
         }
         ui.separator();
         if ui.button("Open folder").clicked() {
-            let new_folder = FileDialog::new().pick_folder();
-            if let Some(new_folder) = new_folder {
-                let _ = self.try_load_folder(&new_folder);
-            }
+            self.open_folder();
             ui.close_menu();
         }
         ui.separator();

@@ -2,6 +2,7 @@
 pub enum LeftPannelState {
     #[default]
     Folders,
+    Design,
     Simulation,
 }
 

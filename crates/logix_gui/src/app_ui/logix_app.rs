@@ -98,6 +98,7 @@ impl LogixApp {
 
 impl eframe::App for LogixApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        egui_extras::install_image_loaders(ctx);
         self.load_config_and_data();
         ctx.set_pixels_per_point(self.settings.zoom);
         ctx.style_mut(|style| {

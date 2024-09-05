@@ -9,6 +9,8 @@ use crate::app_ui::{
     logix_app::LogixApp,
 };
 
+use super::canvas_payload::CanvasPayload;
+
 impl LogixApp {
     pub fn show_folders(&mut self, ui: &mut Ui) {
         ui.heading(
@@ -31,6 +33,10 @@ impl LogixApp {
                     }
                 }
             });
+    }
+
+    pub fn show_design_menu(&mut self, ui: &mut Ui) {
+        self.show_library(ui);
     }
 
     pub fn show_board_tree(&mut self, ui: &mut Ui) {
@@ -71,6 +77,20 @@ impl LogixApp {
                     }
 
                     if self.exist_active_board()
+                        && self.board_editing().sim.is_none()
+                        && ui
+                            .add(egui::Button::new("🖧").fill(match &self.state {
+                                AppState::OnProject(LeftPannelState::Simulation) => {
+                                    Color32::from_rgb(50, 50, 50)
+                                }
+                                _ => Color32::TRANSPARENT,
+                            }))
+                            .clicked()
+                    {
+                        self.state = AppState::OnProject(LeftPannelState::Design);
+                    }
+
+                    if self.exist_active_board()
                         && self.board_editing().sim.is_some()
                         && ui
                             .add(egui::Button::new("🖳").fill(match &self.state {
@@ -84,18 +104,25 @@ impl LogixApp {
                         self.state = AppState::OnProject(LeftPannelState::Simulation);
                     }
                 });
-                if let AppState::OnProject(state) = &mut self.state {
-                    match state {
-                        LeftPannelState::Folders => {
-                            self.show_folders(ui);
-                        }
-                        LeftPannelState::Simulation => {
-                            if self.is_sim_running() {
-                                self.show_board_tree(ui);
+                egui::ScrollArea::vertical()
+                    .scroll_bar_visibility(egui::scroll_area::ScrollBarVisibility::AlwaysHidden)
+                    .show(ui, |ui| {
+                        if let AppState::OnProject(state) = &mut self.state {
+                            match state {
+                                LeftPannelState::Folders => {
+                                    self.show_folders(ui);
+                                }
+                                LeftPannelState::Simulation => {
+                                    if self.is_sim_running() {
+                                        self.show_board_tree(ui);
+                                    }
+                                }
+                                LeftPannelState::Design => {
+                                    self.show_design_menu(ui);
+                                }
                             }
-                        }
-                    }
-                };
+                        };
+                    });
             });
     }
 }
@@ -179,7 +206,7 @@ impl Folder {
                 if resp.double_clicked() {
                     new_file = Some(file.clone());
                 }
-                resp.dnd_set_drag_payload(file.clone());
+                resp.dnd_set_drag_payload(CanvasPayload::Path(file.clone()));
             });
         }
 

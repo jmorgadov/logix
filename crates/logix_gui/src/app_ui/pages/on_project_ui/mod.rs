@@ -1,8 +1,10 @@
+mod canvas_payload;
 mod canvas_ui;
 mod comp_ui;
 mod constants;
 mod empty_ui;
 mod left_panel_ui;
+mod library_ui;
 mod on_project_utils;
 mod status_bar_ui;
 mod tabs_ui;

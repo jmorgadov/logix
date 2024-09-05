@@ -1,9 +1,11 @@
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use egui::{emath::TSTransform, epaint::PathShape, Color32, Id, Rect, Response, Shape, Stroke, Ui};
 
 use crate::app_ui::{
-    board::Board, board_editing::BoardEditing, pages::on_project_ui::wire_dir::WireDir,
+    board::Board,
+    board_editing::BoardEditing,
+    pages::on_project_ui::{canvas_payload::CanvasPayload, wire_dir::WireDir},
 };
 
 impl BoardEditing {
@@ -52,13 +54,21 @@ impl BoardEditing {
                         transform.inverse() * response.interact_pointer_pos().unwrap();
                 }
 
-                if let Some(comp) = response.dnd_release_payload::<PathBuf>() {
-                    if comp.to_path_buf() == self.file.clone() {
-                        self.notify_err("Cannot import components recursively");
-                        return;
-                    }
+                if let Some(payload) = response.dnd_release_payload::<CanvasPayload>() {
                     let pos = transform.inverse() * response.hover_pos().unwrap();
-                    self.import_comp(comp.as_path(), pos);
+                    match payload.as_ref() {
+                        CanvasPayload::Component(comp) => {
+                            self.board.add_comp(comp.clone().with_pos(pos));
+                        }
+                        CanvasPayload::Path(path) => {
+                            if path.clone() == self.file.clone() {
+                                self.notify_err("Cannot import components recursively");
+                                return;
+                            }
+                            let pos = transform.inverse() * response.hover_pos().unwrap();
+                            self.import_comp(path.as_path(), pos);
+                        }
+                    }
                 }
 
                 // Delete new connection if escape is pressed

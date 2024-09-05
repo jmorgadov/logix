@@ -8,3 +8,4 @@ mod io_info;
 
 pub use board::Board;
 pub use board_actions::BoardAction;
+pub use board_comp::BoardComponent;
