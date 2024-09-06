@@ -21,7 +21,7 @@ impl ComponentInfo {
         self.outputs_name.len()
     }
 
-    pub fn and_gate(id: usize, in_count: usize) -> Self {
+    pub fn and_gate(id: usize, in_count: u8) -> Self {
         Self {
             id,
             name: "AND".to_string(),
@@ -31,7 +31,7 @@ impl ComponentInfo {
         }
     }
 
-    pub fn nand_gate(id: usize, in_count: usize) -> Self {
+    pub fn nand_gate(id: usize, in_count: u8) -> Self {
         Self {
             id,
             name: "NAND".to_string(),
@@ -41,7 +41,7 @@ impl ComponentInfo {
         }
     }
 
-    pub fn or_gate(id: usize, in_count: usize) -> Self {
+    pub fn or_gate(id: usize, in_count: u8) -> Self {
         Self {
             id,
             name: "OR".to_string(),
@@ -51,7 +51,7 @@ impl ComponentInfo {
         }
     }
 
-    pub fn nor_gate(id: usize, in_count: usize) -> Self {
+    pub fn nor_gate(id: usize, in_count: u8) -> Self {
         Self {
             id,
             name: "NOR".to_string(),
@@ -61,7 +61,7 @@ impl ComponentInfo {
         }
     }
 
-    pub fn xor_gate(id: usize, in_count: usize) -> Self {
+    pub fn xor_gate(id: usize, in_count: u8) -> Self {
         Self {
             id,
             name: "XOR".to_string(),

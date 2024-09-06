@@ -58,12 +58,7 @@ impl Library {
                     "AND".into(),
                     BIT_RANGE
                         .iter()
-                        .map(|bit| {
-                            (
-                                format!("AND {bit}"),
-                                BoardComponent::and_gate(*bit as usize),
-                            )
-                        })
+                        .map(|bit| (format!("AND {bit}"), BoardComponent::and_gate(*bit)))
                         .collect(),
                     vec![],
                 ),
@@ -71,7 +66,7 @@ impl Library {
                     "OR".into(),
                     BIT_RANGE
                         .iter()
-                        .map(|bit| (format!("OR {bit}"), BoardComponent::or_gate(*bit as usize)))
+                        .map(|bit| (format!("OR {bit}"), BoardComponent::or_gate(*bit)))
                         .collect(),
                     vec![],
                 ),
@@ -79,12 +74,7 @@ impl Library {
                     "NAND".into(),
                     BIT_RANGE
                         .iter()
-                        .map(|bit| {
-                            (
-                                format!("NAND {bit}"),
-                                BoardComponent::nand_gate(*bit as usize),
-                            )
-                        })
+                        .map(|bit| (format!("NAND {bit}"), BoardComponent::nand_gate(*bit)))
                         .collect(),
                     vec![],
                 ),
@@ -92,12 +82,7 @@ impl Library {
                     "NOR".into(),
                     BIT_RANGE
                         .iter()
-                        .map(|bit| {
-                            (
-                                format!("NOR {bit}"),
-                                BoardComponent::nor_gate(*bit as usize),
-                            )
-                        })
+                        .map(|bit| (format!("NOR {bit}"), BoardComponent::nor_gate(*bit)))
                         .collect(),
                     vec![],
                 ),
@@ -105,12 +90,7 @@ impl Library {
                     "XOR".into(),
                     BIT_RANGE
                         .iter()
-                        .map(|bit| {
-                            (
-                                format!("XOR {bit}"),
-                                BoardComponent::xor_gate(*bit as usize),
-                            )
-                        })
+                        .map(|bit| (format!("XOR {bit}"), BoardComponent::xor_gate(*bit)))
                         .collect(),
                     vec![],
                 ),

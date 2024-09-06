@@ -3,9 +3,9 @@ mod board;
 mod board_actions;
 mod board_comp;
 mod board_conn;
+mod board_io;
 mod comp_info;
 mod comp_source;
-mod io_info;
 
 pub use board::Board;
 pub use board_actions::BoardAction;

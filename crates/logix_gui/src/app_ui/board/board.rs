@@ -15,8 +15,8 @@ use super::{
     board_actions::BoardAction,
     board_comp::BoardComponent,
     board_conn::BoardConnection,
+    board_io::BoardIO,
     comp_info::ComponentInfo,
-    io_info::IOInfo,
     CompSource,
 };
 
@@ -26,8 +26,8 @@ pub struct Board {
     pub deps: Vec<PathBuf>,
     pub components: Vec<BoardComponent>,
     pub conns: Vec<BoardConnection>,
-    pub inputs: Vec<IOInfo>,
-    pub outputs: Vec<IOInfo>,
+    pub inputs: Vec<BoardIO>,
+    pub outputs: Vec<BoardIO>,
 
     #[serde(skip)]
     pub hist: Vec<BoardAction>,
@@ -229,44 +229,6 @@ impl Board {
             self.components[idx].clone(),
             idx,
         ));
-        //
-        // // Update inputs/outputs if it was an IO component
-        // match comp.info.primitive {
-        //     Some(Primitive::Input { bits: _ }) => {
-        //         self.inputs.retain(|input| input.idx != idx);
-        //     }
-        //     Some(Primitive::Output { bits: _ }) => {
-        //         self.outputs.retain(|output| output.idx != idx);
-        //     }
-        //     _ => {}
-        // }
-        //
-        // // Update indices in inputs/outputs according to the removed component
-        // self.inputs.iter_mut().for_each(|input| {
-        //     if input.idx > idx {
-        //         input.idx -= 1;
-        //     }
-        // });
-        // self.outputs.iter_mut().for_each(|output| {
-        //     if output.idx > idx {
-        //         output.idx -= 1;
-        //     }
-        // });
-        //
-        // // Remove connections related to the removed component
-        // self.conns
-        //     .retain(|conn| conn.conn.from.0 != idx && conn.conn.to.0 != idx);
-        //
-        // // Update indices in connections according to the removed component
-        // self.conns.iter_mut().for_each(|conn| {
-        //     if conn.conn.from.0 > idx {
-        //         conn.conn.from.0 -= 1;
-        //     }
-        //     if conn.conn.to.0 > idx {
-        //         conn.conn.to.0 -= 1;
-        //     }
-        // });
-
         self.update_deps();
     }
 
@@ -288,29 +250,29 @@ impl Board {
         self.execute(BoardAction::remove_connection(self.conns[idx].clone(), idx));
     }
 
-    pub fn add_and_gate(&mut self, id: usize, in_count: usize, pos: Pos2) {
+    pub fn add_and_gate(&mut self, id: usize, in_count: u8, pos: Pos2) {
         let and_gate = BoardComponent::and_gate(in_count).with_pos(pos).with_id(id);
         self.add_comp(and_gate);
     }
 
-    pub fn add_nand_gate(&mut self, id: usize, in_count: usize, pos: Pos2) {
+    pub fn add_nand_gate(&mut self, id: usize, in_count: u8, pos: Pos2) {
         let nand_gate = BoardComponent::nand_gate(in_count)
             .with_pos(pos)
             .with_id(id);
         self.add_comp(nand_gate);
     }
 
-    pub fn add_or_gate(&mut self, id: usize, in_count: usize, pos: Pos2) {
+    pub fn add_or_gate(&mut self, id: usize, in_count: u8, pos: Pos2) {
         let or_gate = BoardComponent::or_gate(in_count).with_pos(pos).with_id(id);
         self.add_comp(or_gate);
     }
 
-    pub fn add_nor_gate(&mut self, id: usize, in_count: usize, pos: Pos2) {
+    pub fn add_nor_gate(&mut self, id: usize, in_count: u8, pos: Pos2) {
         let nor_gate = BoardComponent::nor_gate(in_count).with_pos(pos).with_id(id);
         self.add_comp(nor_gate);
     }
 
-    pub fn add_xor_gate(&mut self, id: usize, in_count: usize, pos: Pos2) {
+    pub fn add_xor_gate(&mut self, id: usize, in_count: u8, pos: Pos2) {
         let xor_gate = BoardComponent::xor_gate(in_count).with_pos(pos).with_id(id);
         self.add_comp(xor_gate);
     }

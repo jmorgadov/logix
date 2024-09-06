@@ -1,7 +1,7 @@
 use egui::Pos2;
 use logix_sim::primitives::prelude::Primitive;
 
-use super::{board_comp::BoardComponent, board_conn::BoardConnection, io_info::IOInfo, Board};
+use super::{board_comp::BoardComponent, board_conn::BoardConnection, board_io::BoardIO, Board};
 
 #[derive(Debug, Clone)]
 pub enum BoardAction {
@@ -15,8 +15,8 @@ pub enum BoardAction {
         comp: BoardComponent,
         at: usize,
         conns: Vec<(usize, BoardConnection)>,
-        input: Option<(usize, IOInfo)>,
-        output: Option<(usize, IOInfo)>,
+        input: Option<(usize, BoardIO)>,
+        output: Option<(usize, BoardIO)>,
     },
     RemoveConnection {
         conn: BoardConnection,
@@ -124,10 +124,10 @@ impl Board {
                 let idx = self.components.len() - 1;
                 match comp.info.source.primitive() {
                     Some(Primitive::Input { bits: _ }) => {
-                        self.inputs.push(IOInfo::new(idx, String::default()));
+                        self.inputs.push(BoardIO::new(idx, String::default()));
                     }
                     Some(Primitive::Output { bits: _ }) => {
-                        self.outputs.push(IOInfo::new(idx, String::default()));
+                        self.outputs.push(BoardIO::new(idx, String::default()));
                     }
                     _ => {}
                 }

@@ -45,47 +45,47 @@ impl BoardComponent {
         self
     }
 
-    pub fn and_gate(in_count: usize) -> Self {
+    pub fn and_gate(in_count: u8) -> Self {
         Self {
             pos: Pos2::default(),
             info: ComponentInfo::and_gate(0, in_count),
-            inputs_data: vec![Data::low(); in_count],
+            inputs_data: vec![Data::low(); in_count as usize],
             outputs_data: vec![Data::low()],
         }
     }
 
-    pub fn nand_gate(in_count: usize) -> Self {
+    pub fn nand_gate(in_count: u8) -> Self {
         Self {
             pos: Pos2::default(),
             info: ComponentInfo::nand_gate(0, in_count),
-            inputs_data: vec![Data::low(); in_count],
+            inputs_data: vec![Data::low(); in_count as usize],
             outputs_data: vec![Data::low()],
         }
     }
 
-    pub fn or_gate(in_count: usize) -> Self {
+    pub fn or_gate(in_count: u8) -> Self {
         Self {
             pos: Pos2::default(),
             info: ComponentInfo::or_gate(0, in_count),
-            inputs_data: vec![Data::low(); in_count],
+            inputs_data: vec![Data::low(); in_count as usize],
             outputs_data: vec![Data::low()],
         }
     }
 
-    pub fn xor_gate(in_count: usize) -> Self {
+    pub fn xor_gate(in_count: u8) -> Self {
         Self {
             pos: Pos2::default(),
             info: ComponentInfo::xor_gate(0, in_count),
-            inputs_data: vec![Data::low(); in_count],
+            inputs_data: vec![Data::low(); in_count as usize],
             outputs_data: vec![Data::low()],
         }
     }
 
-    pub fn nor_gate(in_count: usize) -> Self {
+    pub fn nor_gate(in_count: u8) -> Self {
         Self {
             pos: Pos2::default(),
             info: ComponentInfo::nor_gate(0, in_count),
-            inputs_data: vec![Data::low(); in_count],
+            inputs_data: vec![Data::low(); in_count as usize],
             outputs_data: vec![Data::low()],
         }
     }
