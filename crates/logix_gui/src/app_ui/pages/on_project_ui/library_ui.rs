@@ -5,7 +5,7 @@ use crate::app_ui::{library::Library, logix_app::LogixApp};
 use super::canvas_payload::CanvasPayload;
 
 impl LogixApp {
-    pub fn show_library(&mut self, ui: &mut Ui) {
+    pub fn show_library(&self, ui: &mut Ui) {
         self.library.show(ui);
     }
 }

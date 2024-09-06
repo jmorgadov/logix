@@ -35,7 +35,7 @@ impl LogixApp {
             });
     }
 
-    pub fn show_design_menu(&mut self, ui: &mut Ui) {
+    pub fn show_design_menu(&self, ui: &mut Ui) {
         self.show_library(ui);
     }
 

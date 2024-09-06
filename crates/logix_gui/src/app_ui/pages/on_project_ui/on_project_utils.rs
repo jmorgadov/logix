@@ -30,7 +30,7 @@ impl LogixApp {
         &mut self.board_tabs[self.current_tab]
     }
 
-    pub fn board_editing(&mut self) -> &BoardEditing {
+    pub fn board_editing(&self) -> &BoardEditing {
         assert!(
             !self.board_tabs.is_empty(),
             "There is no active board to edit"
@@ -75,9 +75,8 @@ impl LogixApp {
             }
         }
 
-        let comp = Board::open(path).map_err(|err| {
+        let comp = Board::open(path).inspect_err(|err| {
             self.notify_err(err.to_string());
-            err
         })?;
 
         let next_id = comp
@@ -124,7 +123,7 @@ impl LogixApp {
             }
             match self.board_mut().save(&new_file) {
                 Ok(()) => {
-                    self.board_editing_mut().file = new_file.clone();
+                    self.board_editing_mut().file.clone_from(&new_file);
                     self.selected_file = Some(new_file);
                 }
                 Err(err) => self.notify_err(err.to_string()),

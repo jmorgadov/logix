@@ -12,7 +12,7 @@ pub struct Library {
 pub const BIT_RANGE: [u8; 10] = [2, 3, 4, 5, 6, 7, 8, 16, 32, 64];
 
 impl Library {
-    fn new(
+    const fn new(
         name: String,
         components: IndexMap<String, BoardComponent>,
         sub_libs: Vec<Self>,

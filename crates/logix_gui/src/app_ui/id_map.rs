@@ -24,7 +24,12 @@ impl IdMap {
         self.sub_ids.iter().map(|map| map.id).collect()
     }
 
-    pub fn from_children(id: usize, name: String, source: CompSource, children: Vec<Self>) -> Self {
+    pub const fn from_children(
+        id: usize,
+        name: String,
+        source: CompSource,
+        children: Vec<Self>,
+    ) -> Self {
         Self {
             id,
             name,

@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use std::{default::Default, usize};
+use std::default::Default;
 
 /// Represents a location of a port inside a Component.
 ///
@@ -39,13 +39,13 @@ impl Conn {
     /// # Arguments
     ///
     /// * `from_idx` - An integer representing the index of the sub-component
-    /// where the connection starts.
+    ///     where the connection starts.
     /// * `from_port` - An integer representing the index of the output port
-    /// where the connection starts.
+    ///     where the connection starts.
     /// * `to_idx` - An integer representing the index of the sub-component
-    /// where the connection ends.
+    ///     where the connection ends.
     /// * `to_port` - An integer representing the index of the input port
-    /// where the connection starts.
+    ///     where the connection starts.
     pub fn new(from_idx: usize, from_port: usize, to_idx: usize, to_port: usize) -> Conn {
         Conn {
             from: (from_idx, from_port),
@@ -181,7 +181,7 @@ impl<E: Default + Clone + Serialize> ComponentBuilder<E> {
     /// # Arguments
     ///
     /// * `connections`: Vector of [`Conn`] that holds all the connections between
-    /// the sub-components.
+    ///     the sub-components.
     pub fn connections(mut self, connections: Vec<Conn>) -> Self {
         self.connections = Some(connections);
         self
