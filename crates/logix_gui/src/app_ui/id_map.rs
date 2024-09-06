@@ -1,17 +1,17 @@
-use std::path::PathBuf;
-
 use serde::{Deserialize, Serialize};
+
+use super::board::CompSource;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct IdMap {
     pub id: usize,
     pub name: String,
-    pub source: Option<PathBuf>,
+    pub source: CompSource,
     pub sub_ids: Vec<IdMap>,
 }
 
 impl IdMap {
-    pub const fn new(id: usize, name: String, source: Option<PathBuf>) -> Self {
+    pub const fn new(id: usize, name: String, source: CompSource) -> Self {
         Self {
             id,
             name,
@@ -24,12 +24,7 @@ impl IdMap {
         self.sub_ids.iter().map(|map| map.id).collect()
     }
 
-    pub fn from_children(
-        id: usize,
-        name: String,
-        source: Option<PathBuf>,
-        children: Vec<Self>,
-    ) -> Self {
+    pub fn from_children(id: usize, name: String, source: CompSource, children: Vec<Self>) -> Self {
         Self {
             id,
             name,

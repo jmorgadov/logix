@@ -10,4 +10,5 @@ mod id_map;
 mod pages;
 mod shortcuts;
 
+pub mod library;
 pub mod logix_app;

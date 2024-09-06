@@ -7,6 +7,7 @@ use super::{
     app_data::AppData,
     app_state::{AppState, LeftPannelState},
     board_editing::BoardEditing,
+    library::Library,
     shortcuts,
 };
 
@@ -19,6 +20,7 @@ pub struct LogixApp {
     pub toasts: Toasts,
     pub state: AppState,
 
+    pub library: Library,
     pub settings: AppSettings,
     pub data: AppData,
 }
@@ -31,7 +33,7 @@ impl LogixApp {
             state: AppState::OnProject(LeftPannelState::Folders),
             ..Default::default()
         };
-        app.load_config_and_data();
+        app.load_app();
         app.try_load_folder(path)?;
         Ok(app)
     }
@@ -98,8 +100,7 @@ impl LogixApp {
 
 impl eframe::App for LogixApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        egui_extras::install_image_loaders(ctx);
-        self.load_config_and_data();
+        self.load_app();
         ctx.set_pixels_per_point(self.settings.zoom);
         ctx.style_mut(|style| {
             style.visuals.button_frame = false;

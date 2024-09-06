@@ -1,10 +1,14 @@
 use log::info;
 use std::{fmt::Display, path::PathBuf};
 
-use super::{app_config::AppSettings, app_data::AppData, folder_tree::Folder, logix_app::LogixApp};
+use super::{
+    app_config::AppSettings, app_data::AppData, folder_tree::Folder, library::Library,
+    logix_app::LogixApp,
+};
 
 impl LogixApp {
-    pub fn load_config_and_data(&mut self) {
+    pub fn load_app(&mut self) {
+        // Load data
         let data_dir = Self::data_dir();
         let data = std::fs::read_to_string(data_dir);
         if let Ok(data) = data {
@@ -12,12 +16,16 @@ impl LogixApp {
             self.data = data;
         }
 
+        // Load config
         let config_dir = Self::config_dir();
         let config = std::fs::read_to_string(config_dir);
         if let Ok(config) = config {
             let config: AppSettings = serde_json::from_str(&config).unwrap_or_default();
             self.settings = config;
         }
+
+        // Load library
+        self.library = Library::load();
     }
 
     pub fn data_dir() -> PathBuf {

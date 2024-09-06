@@ -1,14 +1,13 @@
-use std::path::PathBuf;
-
 use logix_sim::primitives::{data::Data, primitive::Primitive};
 use serde::{Deserialize, Serialize};
+
+use super::CompSource;
 
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
 pub struct ComponentInfo {
     pub id: usize,
     pub name: String,
-    pub source: Option<PathBuf>,
-    pub primitive: Option<Primitive>,
+    pub source: CompSource,
     pub inputs_name: Vec<String>,
     pub outputs_name: Vec<String>,
 }
@@ -26,8 +25,7 @@ impl ComponentInfo {
         Self {
             id,
             name: "AND".to_string(),
-            source: None,
-            primitive: Some(Primitive::AndGate),
+            source: CompSource::Prim(Primitive::AndGate),
             inputs_name: (0..in_count).map(|_| String::default()).collect(),
             outputs_name: vec![String::default()],
         }
@@ -37,8 +35,7 @@ impl ComponentInfo {
         Self {
             id,
             name: "NAND".to_string(),
-            source: None,
-            primitive: Some(Primitive::NandGate),
+            source: CompSource::Prim(Primitive::NandGate),
             inputs_name: (0..in_count).map(|_| String::default()).collect(),
             outputs_name: vec![String::default()],
         }
@@ -48,8 +45,7 @@ impl ComponentInfo {
         Self {
             id,
             name: "OR".to_string(),
-            source: None,
-            primitive: Some(Primitive::OrGate),
+            source: CompSource::Prim(Primitive::OrGate),
             inputs_name: (0..in_count).map(|_| String::default()).collect(),
             outputs_name: vec![String::default()],
         }
@@ -59,8 +55,7 @@ impl ComponentInfo {
         Self {
             id,
             name: "NOR".to_string(),
-            source: None,
-            primitive: Some(Primitive::NorGate),
+            source: CompSource::Prim(Primitive::NorGate),
             inputs_name: (0..in_count).map(|_| String::default()).collect(),
             outputs_name: vec![String::default()],
         }
@@ -70,8 +65,7 @@ impl ComponentInfo {
         Self {
             id,
             name: "XOR".to_string(),
-            source: None,
-            primitive: Some(Primitive::XorGate),
+            source: CompSource::Prim(Primitive::XorGate),
             inputs_name: (0..in_count).map(|_| String::default()).collect(),
             outputs_name: vec![String::default()],
         }
@@ -81,8 +75,7 @@ impl ComponentInfo {
         Self {
             id,
             name: "NOT".to_string(),
-            source: None,
-            primitive: Some(Primitive::NotGate),
+            source: CompSource::Prim(Primitive::NotGate),
             inputs_name: vec![String::default()],
             outputs_name: vec![String::default()],
         }
@@ -92,8 +85,7 @@ impl ComponentInfo {
         Self {
             id,
             name: "HIGH".to_string(),
-            source: None,
-            primitive: Some(Primitive::Const {
+            source: CompSource::Prim(Primitive::Const {
                 value: Data::high(),
             }),
             inputs_name: vec![],
@@ -105,8 +97,7 @@ impl ComponentInfo {
         Self {
             id,
             name: "LOW".to_string(),
-            source: None,
-            primitive: Some(Primitive::Const { value: Data::low() }),
+            source: CompSource::Prim(Primitive::Const { value: Data::low() }),
             inputs_name: vec![],
             outputs_name: vec![String::default()],
         }
@@ -116,8 +107,7 @@ impl ComponentInfo {
         Self {
             id,
             name: "CLK".to_string(),
-            source: None,
-            primitive: Some(Primitive::Clock {
+            source: CompSource::Prim(Primitive::Clock {
                 period: 1_000_000_000,
             }),
             inputs_name: vec![],
@@ -129,8 +119,7 @@ impl ComponentInfo {
         Self {
             id,
             name: "SPLIT".to_string(),
-            source: None,
-            primitive: Some(Primitive::Splitter { bits }),
+            source: CompSource::Prim(Primitive::Splitter { bits }),
             inputs_name: vec![String::default()],
             outputs_name: (0..bits).map(|b| b.to_string()).collect(),
         }
@@ -140,8 +129,7 @@ impl ComponentInfo {
         Self {
             id,
             name: "JOIN".to_string(),
-            source: None,
-            primitive: Some(Primitive::Joiner { bits }),
+            source: CompSource::Prim(Primitive::Joiner { bits }),
             inputs_name: (0..bits).map(|b| b.to_string()).collect(),
             outputs_name: vec![String::default()],
         }
@@ -151,8 +139,7 @@ impl ComponentInfo {
         Self {
             id,
             name: "IN".to_string(),
-            source: None,
-            primitive: Some(Primitive::Input { bits }),
+            source: CompSource::Prim(Primitive::Input { bits }),
             inputs_name: vec![],
             outputs_name: vec![String::default()],
         }
@@ -162,8 +149,7 @@ impl ComponentInfo {
         Self {
             id,
             name: "OUT".to_string(),
-            source: None,
-            primitive: Some(Primitive::Output { bits }),
+            source: CompSource::Prim(Primitive::Output { bits }),
             inputs_name: vec![String::default()],
             outputs_name: vec![],
         }

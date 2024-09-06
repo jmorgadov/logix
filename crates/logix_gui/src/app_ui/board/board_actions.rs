@@ -122,7 +122,7 @@ impl Board {
             BoardAction::AddComponent { comp } => {
                 self.components.push(comp.clone());
                 let idx = self.components.len() - 1;
-                match comp.info.primitive.as_ref() {
+                match comp.info.source.primitive() {
                     Some(Primitive::Input { bits: _ }) => {
                         self.inputs.push(IOInfo::new(idx, String::default()));
                     }

@@ -115,9 +115,13 @@ impl LogixApp {
     }
 
     pub fn save_current_board_as(&mut self) {
-        let mut file = FileDialog::new();
-        file = file.set_directory(self.folder.current_path.clone());
-        if let Some(new_file) = file.save_file() {
+        let file = FileDialog::new()
+            .set_directory(self.folder.current_path.clone())
+            .add_filter("Logix Board", &["lgxb"]);
+        if let Some(mut new_file) = file.save_file() {
+            if new_file.extension().is_none() || new_file.extension().unwrap() != "lgxb" {
+                new_file = new_file.with_extension("lgxb");
+            }
             match self.board_mut().save(&new_file) {
                 Ok(()) => {
                     self.board_editing_mut().file = new_file.clone();

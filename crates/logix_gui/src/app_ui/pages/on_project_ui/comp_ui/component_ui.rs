@@ -80,7 +80,11 @@ impl BoardEditing {
                             .info
                             .name
                             .clone();
-                        match &self.current_sim_board_ref().components[idx].info.primitive {
+                        match &self.current_sim_board_ref().components[idx]
+                            .info
+                            .source
+                            .primitive()
+                        {
                             Some(Primitive::Input { .. }) => {
                                 let in_order = board
                                     .inputs
@@ -218,6 +222,7 @@ impl BoardEditing {
             && self.current_sim_board().components[idx]
                 .info
                 .source
+                .local()
                 .is_some()
         {
             self.enter_subc_sim(self.current_sim_board_ref().components[idx].info.id);

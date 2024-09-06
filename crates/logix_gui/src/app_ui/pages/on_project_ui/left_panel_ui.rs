@@ -154,7 +154,11 @@ impl IdMap {
                 None
             })
             .show(ui, |ui| {
-                for sub in self.sub_ids.iter_mut().filter(|sub| sub.source.is_some()) {
+                for sub in self
+                    .sub_ids
+                    .iter_mut()
+                    .filter(|sub| sub.source.local().is_some())
+                {
                     let next_current_path = current_path.get(1..).unwrap_or(&[]);
                     if let Some(new_selected_path) =
                         sub.board_tree(ui, slected_path, next_current_path)
@@ -184,8 +188,12 @@ impl Folder {
             });
         }
 
-        for file in &self.files {
-            let name = file.file_name().unwrap().to_str().unwrap();
+        for file in self
+            .files
+            .iter()
+            .filter(|file| file.extension().is_some_and(|ext| ext == "lgxb"))
+        {
+            let name = file.file_stem().unwrap().to_str().unwrap();
             let mut color = Color32::TRANSPARENT;
             if let Some(selected_file) = selected_file {
                 if file == selected_file {

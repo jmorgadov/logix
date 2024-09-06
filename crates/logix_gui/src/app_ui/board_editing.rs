@@ -1,4 +1,8 @@
-use super::{board::Board, errors::SimulationError, id_map::IdMap};
+use super::{
+    board::{Board, CompSource},
+    errors::SimulationError,
+    id_map::IdMap,
+};
 use egui::{emath::TSTransform, Pos2};
 use egui_notify::Toasts;
 use log::error;
@@ -53,7 +57,7 @@ impl BoardEditing {
         let mut initial_id = 0;
         let (sim_ids, comp) = self
             .board
-            .build_component(Some(self.file.clone()), &mut initial_id)?;
+            .build_component(CompSource::Local(self.file.clone()), &mut initial_id)?;
 
         if let Some(sub) = comp.sub.as_ref() {
             for (i, subc) in sub.components.iter().enumerate() {
@@ -105,7 +109,7 @@ impl BoardEditing {
         }
 
         let id_map = self.sim_ids.id_walk(path).unwrap();
-        if id_map.source.is_none() {
+        if id_map.source.local().is_none() {
             return;
         }
 
@@ -121,7 +125,7 @@ impl BoardEditing {
             return;
         }
 
-        let mut board = Board::load(id_map.source.as_ref().unwrap()).unwrap();
+        let mut board = Board::load(id_map.source.local().unwrap()).unwrap();
         let ids = self.sim_ids.id_walk(path).unwrap().ids();
         for (i, comp) in board.components.iter_mut().enumerate() {
             comp.info.id = ids[i];

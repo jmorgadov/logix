@@ -23,15 +23,15 @@ impl BoardComponent {
 
     pub fn is_input(&self) -> bool {
         self.info
-            .primitive
-            .as_ref()
+            .source
+            .primitive()
             .is_some_and(Primitive::is_input)
     }
 
     pub fn is_output(&self) -> bool {
         self.info
-            .primitive
-            .as_ref()
+            .source
+            .primitive()
             .is_some_and(Primitive::is_output)
     }
 
@@ -40,118 +40,123 @@ impl BoardComponent {
         self
     }
 
-    pub fn and_gate(id: usize, in_count: usize) -> Self {
+    pub const fn with_id(mut self, id: usize) -> Self {
+        self.info.id = id;
+        self
+    }
+
+    pub fn and_gate(in_count: usize) -> Self {
         Self {
             pos: Pos2::default(),
-            info: ComponentInfo::and_gate(id, in_count),
+            info: ComponentInfo::and_gate(0, in_count),
             inputs_data: vec![Data::low(); in_count],
             outputs_data: vec![Data::low()],
         }
     }
 
-    pub fn nand_gate(id: usize, in_count: usize) -> Self {
+    pub fn nand_gate(in_count: usize) -> Self {
         Self {
             pos: Pos2::default(),
-            info: ComponentInfo::nand_gate(id, in_count),
+            info: ComponentInfo::nand_gate(0, in_count),
             inputs_data: vec![Data::low(); in_count],
             outputs_data: vec![Data::low()],
         }
     }
 
-    pub fn or_gate(id: usize, in_count: usize) -> Self {
+    pub fn or_gate(in_count: usize) -> Self {
         Self {
             pos: Pos2::default(),
-            info: ComponentInfo::or_gate(id, in_count),
+            info: ComponentInfo::or_gate(0, in_count),
             inputs_data: vec![Data::low(); in_count],
             outputs_data: vec![Data::low()],
         }
     }
 
-    pub fn xor_gate(id: usize, in_count: usize) -> Self {
+    pub fn xor_gate(in_count: usize) -> Self {
         Self {
             pos: Pos2::default(),
-            info: ComponentInfo::xor_gate(id, in_count),
+            info: ComponentInfo::xor_gate(0, in_count),
             inputs_data: vec![Data::low(); in_count],
             outputs_data: vec![Data::low()],
         }
     }
 
-    pub fn nor_gate(id: usize, in_count: usize) -> Self {
+    pub fn nor_gate(in_count: usize) -> Self {
         Self {
             pos: Pos2::default(),
-            info: ComponentInfo::nor_gate(id, in_count),
+            info: ComponentInfo::nor_gate(0, in_count),
             inputs_data: vec![Data::low(); in_count],
             outputs_data: vec![Data::low()],
         }
     }
 
-    pub fn not_gate(id: usize) -> Self {
+    pub fn not_gate() -> Self {
         Self {
             pos: Pos2::default(),
-            info: ComponentInfo::not_gate(id),
+            info: ComponentInfo::not_gate(0),
             inputs_data: vec![Data::low()],
             outputs_data: vec![Data::low()],
         }
     }
 
-    pub fn const_high_gate(id: usize) -> Self {
+    pub fn const_high_gate() -> Self {
         Self {
             pos: Pos2::default(),
-            info: ComponentInfo::const_high_gate(id),
+            info: ComponentInfo::const_high_gate(0),
             inputs_data: vec![],
             outputs_data: vec![Data::high()],
         }
     }
 
-    pub fn const_low_gate(id: usize) -> Self {
+    pub fn const_low_gate() -> Self {
         Self {
             pos: Pos2::default(),
-            info: ComponentInfo::const_low_gate(id),
+            info: ComponentInfo::const_low_gate(0),
             inputs_data: vec![],
             outputs_data: vec![Data::low()],
         }
     }
 
-    pub fn clock_gate(id: usize) -> Self {
+    pub fn clock_gate() -> Self {
         Self {
             pos: Pos2::default(),
-            info: ComponentInfo::clock_gate(id),
+            info: ComponentInfo::clock_gate(0),
             inputs_data: vec![],
             outputs_data: vec![Data::low()],
         }
     }
 
-    pub fn splitter(id: usize, bits: u8) -> Self {
+    pub fn splitter(bits: u8) -> Self {
         Self {
             pos: Pos2::default(),
-            info: ComponentInfo::splitter(id, bits),
+            info: ComponentInfo::splitter(0, bits),
             inputs_data: vec![Data::new(0, bits)],
             outputs_data: vec![Data::low(); bits as usize],
         }
     }
 
-    pub fn joiner(id: usize, bits: u8) -> Self {
+    pub fn joiner(bits: u8) -> Self {
         Self {
             pos: Pos2::default(),
-            info: ComponentInfo::joiner(id, bits),
+            info: ComponentInfo::joiner(0, bits),
             inputs_data: vec![Data::low(); bits as usize],
             outputs_data: vec![Data::new(0, bits)],
         }
     }
 
-    pub fn input(id: usize, bits: u8) -> Self {
+    pub fn input(bits: u8) -> Self {
         Self {
             pos: Pos2::default(),
-            info: ComponentInfo::input(id, bits),
+            info: ComponentInfo::input(0, bits),
             inputs_data: vec![],
             outputs_data: vec![Data::new(0, bits)],
         }
     }
 
-    pub fn output(id: usize, bits: u8) -> Self {
+    pub fn output(bits: u8) -> Self {
         Self {
             pos: Pos2::default(),
-            info: ComponentInfo::output(id, bits),
+            info: ComponentInfo::output(0, bits),
             inputs_data: vec![Data::new(0, bits)],
             outputs_data: vec![],
         }

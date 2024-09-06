@@ -58,7 +58,8 @@ impl BoardEditing {
                     let pos = transform.inverse() * response.hover_pos().unwrap();
                     match payload.as_ref() {
                         CanvasPayload::Component(comp) => {
-                            self.board.add_comp(comp.clone().with_pos(pos));
+                            self.board
+                                .add_comp(comp.clone().with_pos(pos).with_id(self.next_id));
                         }
                         CanvasPayload::Path(path) => {
                             if path.clone() == self.file.clone() {
