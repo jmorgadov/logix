@@ -1,4 +1,7 @@
-use crate::{flatten::FlattenComponent, primitives::primitive::Primitive};
+use crate::{
+    flatten::FlattenComponent,
+    primitives::{prim_program::ProgramUpdateType, primitive::Primitive},
+};
 use log::debug;
 use rand::seq::SliceRandom;
 use std::{
@@ -25,13 +28,19 @@ impl Simulator {
             .iter()
             .enumerate()
             .filter_map(|(i, c)| {
-                match c.prim_type {
+                match &c.prim_type {
                     Primitive::Const { value: _v } => {
                         return Some(i);
                     }
                     Primitive::Clock { period: _p } => {
                         return Some(i);
                     }
+                    Primitive::Custom { prog } => {
+                        if let ProgramUpdateType::Always = prog.update_type {
+                            return Some(i);
+                        }
+                    }
+
                     _ => {}
                 }
                 if let Primitive::Clock { period: _p } = c.prim_type {
@@ -134,8 +143,13 @@ impl Simulator {
 
                     debug!("  New outputs: {:?}", comp_i.outputs);
 
-                    match comp_i.prim_type {
+                    match &comp_i.prim_type {
                         Primitive::Clock { period: _p } => {}
+                        Primitive::Custom { prog } => {
+                            if let ProgramUpdateType::InputChanges = prog.update_type {
+                                state.to_upd.retain(|&x| x != comp_idx);
+                            }
+                        }
                         _ => {
                             state.to_upd.retain(|&x| x != comp_idx);
                         }

@@ -106,8 +106,8 @@ impl Board {
             info: ComponentInfo {
                 id,
                 name: self.name.clone(),
+                description: None,
                 source,
-                // primitive: None,
                 inputs_name: self.inputs.iter().map(|io| io.name.clone()).collect(),
                 outputs_name: self.outputs.iter().map(|io| io.name.clone()).collect(),
             },

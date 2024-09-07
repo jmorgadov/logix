@@ -2,7 +2,7 @@ use std::fmt::{Display, Formatter};
 
 use serde::{Deserialize, Serialize};
 
-use super::data::Data;
+use super::{data::Data, prim_program::PrimProgram};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Primitive {
@@ -18,6 +18,7 @@ pub enum Primitive {
     Joiner { bits: u8 },
     Clock { period: u128 },
     Const { value: Data },
+    Custom { prog: PrimProgram },
 }
 
 impl Primitive {
@@ -29,6 +30,7 @@ impl Primitive {
             | Primitive::NandGate
             | Primitive::NorGate
             | Primitive::Joiner { bits: _ }
+            | Primitive::Custom { .. }
             | Primitive::XorGate => Some(Data::low()),
             Primitive::Output { bits: b } => Some(Data::new(0, b)),
             Primitive::Splitter { bits: b } => Some(Data::new(0, b)),
@@ -47,6 +49,7 @@ impl Primitive {
             | Primitive::NorGate
             | Primitive::Clock { period: _ }
             | Primitive::Splitter { bits: _ }
+            | Primitive::Custom { .. }
             | Primitive::XorGate => Some(Data::low()),
             Primitive::Input { bits: b } => Some(Data::new(0, b)),
             Primitive::Joiner { bits: b } => Some(Data::new(0, b)),
@@ -79,7 +82,7 @@ impl PrimitiveComponent {
     }
 
     pub fn update(&mut self, time: u128) {
-        match self.prim_type {
+        match &mut self.prim_type {
             Primitive::AndGate => {
                 self.outputs[0].set_bit(self.inputs.iter().fold(true, |acc, &x| acc & x.as_bool()));
             }
@@ -113,7 +116,7 @@ impl PrimitiveComponent {
                 self.outputs[0].set_from(self.inputs[0]);
             }
             Primitive::Splitter { bits: b } => {
-                for bit_idx in (0..b).rev() {
+                for bit_idx in (0..*b).rev() {
                     self.outputs[bit_idx as usize].set_bit(self.inputs[0].get_bit_at(bit_idx));
                 }
             }
@@ -126,9 +129,38 @@ impl PrimitiveComponent {
                 );
             }
             Primitive::Clock { period } => {
-                self.outputs[0].set_bit((time % (period * 2)) > period);
+                self.outputs[0].set_bit((time % (*period * 2)) > *period);
             }
             Primitive::Const { value: _v } => (),
+            Primitive::Custom { prog } => {
+                // Set inputs and outputs in program state for internal access
+                self.inputs.iter().enumerate().for_each(|(idx, input)| {
+                    prog.state.vars.insert(format!("_i_{idx}"), *input);
+                });
+                self.outputs.iter().enumerate().for_each(|(idx, output)| {
+                    prog.state.vars.insert(format!("_o_{idx}"), *output);
+                });
+
+                prog.run(time);
+
+                // Update outputs from program state
+                self.outputs
+                    .iter_mut()
+                    .enumerate()
+                    .for_each(|(idx, output)| {
+                        *output = prog.state.vars[&format!("_o_{idx}")];
+                    });
+            }
+        }
+    }
+
+    pub fn custom(id: usize, prog: PrimProgram, in_count: usize, out_count: usize) -> Self {
+        PrimitiveComponent {
+            id,
+            name: "Custom".to_string(),
+            prim_type: Primitive::Custom { prog },
+            inputs: vec![Data::low(); in_count],
+            outputs: vec![Data::low(); out_count],
         }
     }
 

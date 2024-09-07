@@ -28,86 +28,102 @@ impl Library {
     pub fn load() -> Self {
         Self::new(
             String::new(),
-            [
-                ("CLK".into(), BoardComponent::clock_gate()),
-                ("NOT".into(), BoardComponent::not_gate()),
-                ("HIGH".into(), BoardComponent::const_high_gate()),
-                ("LOW".into(), BoardComponent::const_low_gate()),
-            ]
-            .iter()
-            .cloned()
-            .collect(),
+            [("CLK".into(), BoardComponent::clock_gate())].into(),
             vec![
                 Self::new(
-                    "Inputs".into(),
-                    BIT_RANGE
-                        .iter()
-                        .map(|bit| (format!("IN {bit}"), BoardComponent::input(*bit)))
-                        .collect(),
-                    vec![],
+                    "Gates".into(),
+                    [
+                        ("HIGH".into(), BoardComponent::const_high_gate()),
+                        ("LOW".into(), BoardComponent::const_low_gate()),
+                        ("NOT".into(), BoardComponent::not_gate()),
+                    ]
+                    .iter()
+                    .cloned()
+                    .collect(),
+                    vec![
+                        Self::new(
+                            "Inputs".into(),
+                            BIT_RANGE
+                                .iter()
+                                .map(|bit| (format!("IN {bit}"), BoardComponent::input(*bit)))
+                                .collect(),
+                            vec![],
+                        ),
+                        Self::new(
+                            "Outputs".into(),
+                            BIT_RANGE
+                                .iter()
+                                .map(|bit| (format!("OUT {bit}"), BoardComponent::output(*bit)))
+                                .collect(),
+                            vec![],
+                        ),
+                        Self::new(
+                            "AND".into(),
+                            BIT_RANGE
+                                .iter()
+                                .map(|bit| (format!("AND {bit}"), BoardComponent::and_gate(*bit)))
+                                .collect(),
+                            vec![],
+                        ),
+                        Self::new(
+                            "OR".into(),
+                            BIT_RANGE
+                                .iter()
+                                .map(|bit| (format!("OR {bit}"), BoardComponent::or_gate(*bit)))
+                                .collect(),
+                            vec![],
+                        ),
+                        Self::new(
+                            "NAND".into(),
+                            BIT_RANGE
+                                .iter()
+                                .map(|bit| (format!("NAND {bit}"), BoardComponent::nand_gate(*bit)))
+                                .collect(),
+                            vec![],
+                        ),
+                        Self::new(
+                            "NOR".into(),
+                            BIT_RANGE
+                                .iter()
+                                .map(|bit| (format!("NOR {bit}"), BoardComponent::nor_gate(*bit)))
+                                .collect(),
+                            vec![],
+                        ),
+                        Self::new(
+                            "XOR".into(),
+                            BIT_RANGE
+                                .iter()
+                                .map(|bit| (format!("XOR {bit}"), BoardComponent::xor_gate(*bit)))
+                                .collect(),
+                            vec![],
+                        ),
+                        Self::new(
+                            "Joiner".into(),
+                            BIT_RANGE
+                                .iter()
+                                .map(|bit| (format!("Joiner {bit}"), BoardComponent::joiner(*bit)))
+                                .collect(),
+                            vec![],
+                        ),
+                        Self::new(
+                            "Splitter".into(),
+                            BIT_RANGE
+                                .iter()
+                                .map(|bit| {
+                                    (format!("Splitter {bit}"), BoardComponent::splitter(*bit))
+                                })
+                                .collect(),
+                            vec![],
+                        ),
+                    ],
                 ),
                 Self::new(
-                    "Outputs".into(),
-                    BIT_RANGE
-                        .iter()
-                        .map(|bit| (format!("OUT {bit}"), BoardComponent::output(*bit)))
-                        .collect(),
-                    vec![],
-                ),
-                Self::new(
-                    "AND".into(),
-                    BIT_RANGE
-                        .iter()
-                        .map(|bit| (format!("AND {bit}"), BoardComponent::and_gate(*bit)))
-                        .collect(),
-                    vec![],
-                ),
-                Self::new(
-                    "OR".into(),
-                    BIT_RANGE
-                        .iter()
-                        .map(|bit| (format!("OR {bit}"), BoardComponent::or_gate(*bit)))
-                        .collect(),
-                    vec![],
-                ),
-                Self::new(
-                    "NAND".into(),
-                    BIT_RANGE
-                        .iter()
-                        .map(|bit| (format!("NAND {bit}"), BoardComponent::nand_gate(*bit)))
-                        .collect(),
-                    vec![],
-                ),
-                Self::new(
-                    "NOR".into(),
-                    BIT_RANGE
-                        .iter()
-                        .map(|bit| (format!("NOR {bit}"), BoardComponent::nor_gate(*bit)))
-                        .collect(),
-                    vec![],
-                ),
-                Self::new(
-                    "XOR".into(),
-                    BIT_RANGE
-                        .iter()
-                        .map(|bit| (format!("XOR {bit}"), BoardComponent::xor_gate(*bit)))
-                        .collect(),
-                    vec![],
-                ),
-                Self::new(
-                    "Joiner".into(),
-                    BIT_RANGE
-                        .iter()
-                        .map(|bit| (format!("Joiner {bit}"), BoardComponent::joiner(*bit)))
-                        .collect(),
-                    vec![],
-                ),
-                Self::new(
-                    "Splitter".into(),
-                    BIT_RANGE
-                        .iter()
-                        .map(|bit| (format!("Splitter {bit}"), BoardComponent::splitter(*bit)))
-                        .collect(),
+                    "Flip Flops".into(),
+                    [(
+                        "JK Master-Slave (Falling edge)".into(),
+                        BoardComponent::jkms_flip_flop(),
+                    )]
+                    .into(),
                     vec![],
                 ),
             ],

@@ -1,4 +1,4 @@
-use logix_sim::primitives::{data::Data, primitive::Primitive};
+use logix_sim::primitives::{data::Data, prim_program::PrimProgram, primitive::Primitive};
 use serde::{Deserialize, Serialize};
 
 use super::CompSource;
@@ -7,6 +7,7 @@ use super::CompSource;
 pub struct ComponentInfo {
     pub id: usize,
     pub name: String,
+    pub description: Option<String>,
     pub source: CompSource,
     pub inputs_name: Vec<String>,
     pub outputs_name: Vec<String>,
@@ -21,6 +22,23 @@ impl ComponentInfo {
         self.outputs_name.len()
     }
 
+    pub fn custom(
+        id: usize,
+        name: &str,
+        inputs_name: Vec<String>,
+        outputs_name: Vec<String>,
+        prog: PrimProgram,
+    ) -> Self {
+        Self {
+            id,
+            name: name.to_string(),
+            source: CompSource::Prim(Primitive::Custom { prog }),
+            inputs_name,
+            outputs_name,
+            description: None,
+        }
+    }
+
     pub fn and_gate(id: usize, in_count: u8) -> Self {
         Self {
             id,
@@ -28,6 +46,7 @@ impl ComponentInfo {
             source: CompSource::Prim(Primitive::AndGate),
             inputs_name: (0..in_count).map(|_| String::default()).collect(),
             outputs_name: vec![String::default()],
+            description: None,
         }
     }
 
@@ -38,6 +57,7 @@ impl ComponentInfo {
             source: CompSource::Prim(Primitive::NandGate),
             inputs_name: (0..in_count).map(|_| String::default()).collect(),
             outputs_name: vec![String::default()],
+            description: None,
         }
     }
 
@@ -48,6 +68,7 @@ impl ComponentInfo {
             source: CompSource::Prim(Primitive::OrGate),
             inputs_name: (0..in_count).map(|_| String::default()).collect(),
             outputs_name: vec![String::default()],
+            description: None,
         }
     }
 
@@ -58,6 +79,7 @@ impl ComponentInfo {
             source: CompSource::Prim(Primitive::NorGate),
             inputs_name: (0..in_count).map(|_| String::default()).collect(),
             outputs_name: vec![String::default()],
+            description: None,
         }
     }
 
@@ -68,6 +90,7 @@ impl ComponentInfo {
             source: CompSource::Prim(Primitive::XorGate),
             inputs_name: (0..in_count).map(|_| String::default()).collect(),
             outputs_name: vec![String::default()],
+            description: None,
         }
     }
 
@@ -78,6 +101,7 @@ impl ComponentInfo {
             source: CompSource::Prim(Primitive::NotGate),
             inputs_name: vec![String::default()],
             outputs_name: vec![String::default()],
+            description: None,
         }
     }
 
@@ -90,6 +114,7 @@ impl ComponentInfo {
             }),
             inputs_name: vec![],
             outputs_name: vec![String::default()],
+            description: None,
         }
     }
 
@@ -100,6 +125,7 @@ impl ComponentInfo {
             source: CompSource::Prim(Primitive::Const { value: Data::low() }),
             inputs_name: vec![],
             outputs_name: vec![String::default()],
+            description: None,
         }
     }
 
@@ -112,6 +138,7 @@ impl ComponentInfo {
             }),
             inputs_name: vec![],
             outputs_name: vec![String::default()],
+            description: None,
         }
     }
 
@@ -122,6 +149,7 @@ impl ComponentInfo {
             source: CompSource::Prim(Primitive::Splitter { bits }),
             inputs_name: vec![String::default()],
             outputs_name: (0..bits).map(|b| b.to_string()).collect(),
+            description: None,
         }
     }
 
@@ -132,6 +160,7 @@ impl ComponentInfo {
             source: CompSource::Prim(Primitive::Joiner { bits }),
             inputs_name: (0..bits).map(|b| b.to_string()).collect(),
             outputs_name: vec![String::default()],
+            description: None,
         }
     }
 
@@ -142,6 +171,7 @@ impl ComponentInfo {
             source: CompSource::Prim(Primitive::Input { bits }),
             inputs_name: vec![],
             outputs_name: vec![String::default()],
+            description: None,
         }
     }
 
@@ -152,6 +182,7 @@ impl ComponentInfo {
             source: CompSource::Prim(Primitive::Output { bits }),
             inputs_name: vec![String::default()],
             outputs_name: vec![],
+            description: None,
         }
     }
 }

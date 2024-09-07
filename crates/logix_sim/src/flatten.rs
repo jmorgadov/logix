@@ -220,6 +220,7 @@ fn flat_comp(comp: &Component<ExtraInfo>) -> (Vec<PrimitiveComponent>, Vec<Conn>
     assert!(comp.extra.primitive.is_some());
 
     let in_count = comp.inputs;
+    let out_count = comp.outputs;
     let id = comp.extra.id;
     let new_comp = match comp.extra.primitive.as_ref().unwrap() {
         Primitive::AndGate => PrimitiveComponent::and_gate(id, in_count),
@@ -234,6 +235,9 @@ fn flat_comp(comp: &Component<ExtraInfo>) -> (Vec<PrimitiveComponent>, Vec<Conn>
         Primitive::Joiner { bits } => PrimitiveComponent::joiner(id, *bits),
         Primitive::Clock { period } => PrimitiveComponent::clock(id, *period),
         Primitive::Const { value } => PrimitiveComponent::const_gate(id, *value),
+        Primitive::Custom { prog } => {
+            PrimitiveComponent::custom(id, prog.clone(), in_count, out_count)
+        }
     };
 
     (vec![new_comp], vec![])

@@ -1,4 +1,5 @@
 pub mod data;
+pub mod prim_program;
 pub mod primitive;
 pub mod primitive_builders;
 

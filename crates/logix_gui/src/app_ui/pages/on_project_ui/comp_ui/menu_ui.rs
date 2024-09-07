@@ -14,9 +14,10 @@ impl BoardEditing {
                 | Primitive::NandGate
                 | Primitive::NorGate
                 | Primitive::XorGate
-                | Primitive::Splitter { bits: _ }
-                | Primitive::Joiner { bits: _ }
-                | Primitive::Const { value: _ } => {}
+                | Primitive::Custom { .. }
+                | Primitive::Splitter { .. }
+                | Primitive::Joiner { .. }
+                | Primitive::Const { .. } => {}
                 Primitive::Clock { period: current_p } => {
                     ui.add(
                         egui::Slider::from_get_set(1e-6..=1e9, |val| {

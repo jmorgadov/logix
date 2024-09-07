@@ -9,6 +9,33 @@ pub struct Data {
     pub size: u8,
 }
 
+impl From<bool> for Data {
+    fn from(value: bool) -> Self {
+        Data::new(value as usize, 1)
+    }
+}
+
+impl From<usize> for Data {
+    fn from(value: usize) -> Self {
+        Data::new(value, 64)
+    }
+}
+
+impl From<&str> for Data {
+    fn from(value: &str) -> Self {
+        let size = value.len() as u8;
+        let value = value
+            .chars()
+            .map(|c| match c {
+                '0' => 0,
+                '1' => 1,
+                _ => panic!("Invalid character"),
+            })
+            .fold(0, |acc, x| (acc << 1) | x);
+        Data::new(value, size)
+    }
+}
+
 impl Data {
     pub fn new(value: usize, size: u8) -> Self {
         Data { value, size }
