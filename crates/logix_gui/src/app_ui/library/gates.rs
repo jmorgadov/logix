@@ -17,7 +17,7 @@ pub fn gates_lib() -> Library {
                 Library::new(
                     BIT_RANGE
                         .iter()
-                        .map(|bit| (format!("IN {bit}"), ComponentInfo::input(*bit)))
+                        .map(|bit| (format!("{bit} bits"), ComponentInfo::input(*bit)))
                         .collect(),
                     [],
                 ),
@@ -27,7 +27,7 @@ pub fn gates_lib() -> Library {
                 Library::new(
                     BIT_RANGE
                         .iter()
-                        .map(|bit| (format!("OUT {bit}"), ComponentInfo::output(*bit)))
+                        .map(|bit| (format!("{bit} bits"), ComponentInfo::output(*bit)))
                         .collect(),
                     [],
                 ),
@@ -37,7 +37,8 @@ pub fn gates_lib() -> Library {
                 Library::new(
                     BIT_RANGE
                         .iter()
-                        .map(|bit| (format!("AND {bit}"), ComponentInfo::and_gate(*bit)))
+                        .skip(1)
+                        .map(|bit| (format!("{bit} bits"), ComponentInfo::and_gate(*bit)))
                         .collect(),
                     [],
                 ),
@@ -47,7 +48,8 @@ pub fn gates_lib() -> Library {
                 Library::new(
                     BIT_RANGE
                         .iter()
-                        .map(|bit| (format!("OR {bit}"), ComponentInfo::or_gate(*bit)))
+                        .skip(1)
+                        .map(|bit| (format!("{bit} bits"), ComponentInfo::or_gate(*bit)))
                         .collect(),
                     [],
                 ),
@@ -57,7 +59,8 @@ pub fn gates_lib() -> Library {
                 Library::new(
                     BIT_RANGE
                         .iter()
-                        .map(|bit| (format!("NAND {bit}"), ComponentInfo::nand_gate(*bit)))
+                        .skip(1)
+                        .map(|bit| (format!("{bit} bits"), ComponentInfo::nand_gate(*bit)))
                         .collect(),
                     [],
                 ),
@@ -67,7 +70,8 @@ pub fn gates_lib() -> Library {
                 Library::new(
                     BIT_RANGE
                         .iter()
-                        .map(|bit| (format!("NOR {bit}"), ComponentInfo::nor_gate(*bit)))
+                        .skip(1)
+                        .map(|bit| (format!("{bit} bits"), ComponentInfo::nor_gate(*bit)))
                         .collect(),
                     [],
                 ),
@@ -77,7 +81,8 @@ pub fn gates_lib() -> Library {
                 Library::new(
                     BIT_RANGE
                         .iter()
-                        .map(|bit| (format!("XOR {bit}"), ComponentInfo::xor_gate(*bit)))
+                        .skip(1)
+                        .map(|bit| (format!("{bit} bits"), ComponentInfo::xor_gate(*bit)))
                         .collect(),
                     [],
                 ),
@@ -87,7 +92,8 @@ pub fn gates_lib() -> Library {
                 Library::new(
                     BIT_RANGE
                         .iter()
-                        .map(|bit| (format!("Joiner {bit}"), ComponentInfo::joiner(*bit)))
+                        .skip(1)
+                        .map(|bit| (format!("{bit} bits"), ComponentInfo::joiner(*bit)))
                         .collect(),
                     [],
                 ),
@@ -97,7 +103,8 @@ pub fn gates_lib() -> Library {
                 Library::new(
                     BIT_RANGE
                         .iter()
-                        .map(|bit| (format!("Splitter {bit}"), ComponentInfo::splitter(*bit)))
+                        .skip(1)
+                        .map(|bit| (format!("{bit} bits"), ComponentInfo::splitter(*bit)))
                         .collect(),
                     [],
                 ),

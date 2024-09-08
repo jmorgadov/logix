@@ -63,7 +63,13 @@ impl Board {
             .conns
             .iter()
             .filter_map(|conn| match self.components[conn.conn.from.0].info.source {
-                CompSource::Prim(Primitive::Input { .. }) => Some((conn.conn.from.0, conn.conn.to)),
+                CompSource::Prim(Primitive::Input { .. }) => {
+                    let pos = self
+                        .inputs
+                        .iter()
+                        .position(|io| io.idx == conn.conn.from.0)?;
+                    Some((pos, conn.conn.to))
+                }
                 _ => None,
             })
             .collect();
@@ -194,7 +200,7 @@ impl Board {
             .filter_map(|c| c.info.source.local().cloned().map(|source| (c, source)))
         {
             let c = Self::load_comp(comp.id, source)?;
-            *comp = c;
+            *comp = c.with_pos(comp.pos).with_id(comp.id);
             let in_count = comp.input_count();
             let out_count = comp.output_count();
 

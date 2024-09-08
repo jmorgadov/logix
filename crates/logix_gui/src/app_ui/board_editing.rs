@@ -171,6 +171,7 @@ impl BoardEditing {
                 None => (None, &mut self.board),
             };
             board.components.iter_mut().try_for_each(|board_comp| {
+                println!("Updating component values: {:?}", board_comp.info.name);
                 let (input_datas, output_datas) = comp
                     .get_status(
                         ids.as_ref().map_or(&[], |ids| ids.as_slice()),
