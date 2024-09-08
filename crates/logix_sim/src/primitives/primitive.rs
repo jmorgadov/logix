@@ -2,7 +2,7 @@ use std::fmt::{Display, Formatter};
 
 use serde::{Deserialize, Serialize};
 
-use super::{data::Data, prim_program::PrimProgram};
+use super::{data::Data, pasm::PASM};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Primitive {
@@ -18,7 +18,7 @@ pub enum Primitive {
     Joiner { bits: u8 },
     Clock { period: u128 },
     Const { value: Data },
-    Custom { prog: PrimProgram },
+    Custom { prog: PASM },
 }
 
 impl Primitive {
@@ -154,7 +154,7 @@ impl PrimitiveComponent {
         }
     }
 
-    pub fn custom(id: usize, prog: PrimProgram, in_count: usize, out_count: usize) -> Self {
+    pub fn custom(id: usize, prog: PASM, in_count: usize, out_count: usize) -> Self {
         PrimitiveComponent {
             id,
             name: "Custom".to_string(),

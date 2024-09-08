@@ -3,7 +3,7 @@ use std::path::Path;
 use egui::{emath::TSTransform, epaint::PathShape, Color32, Id, Rect, Response, Shape, Stroke, Ui};
 
 use crate::app_ui::{
-    board::Board,
+    board::BoardComponent,
     board_editing::BoardEditing,
     pages::on_project_ui::{canvas_payload::CanvasPayload, wire_dir::WireDir},
 };
@@ -58,8 +58,11 @@ impl BoardEditing {
                     let pos = transform.inverse() * response.hover_pos().unwrap();
                     match payload.as_ref() {
                         CanvasPayload::Component(comp) => {
-                            self.board
-                                .add_comp(comp.clone().with_pos(pos).with_id(self.next_id));
+                            self.board.add_comp(
+                                BoardComponent::from_comp_info(comp.clone())
+                                    .with_pos(pos)
+                                    .with_id(self.next_id),
+                            );
                         }
                         CanvasPayload::Path(path) => {
                             if path.clone() == self.file.clone() {
@@ -97,120 +100,16 @@ impl BoardEditing {
             });
     }
 
-    pub fn add_comp_button(
-        &mut self,
-        ui: &mut Ui,
-        name: &str,
-        add_fn: impl FnOnce(&mut Board, usize),
-    ) {
-        if ui.button(name).clicked() {
-            add_fn(&mut self.board, self.next_id);
-            self.next_id += 1;
-            ui.close_menu();
-        }
-    }
-
-    pub fn editing_menu(&mut self, ui: &mut Ui) {
-        ui.label("Board name");
-        if ui
-            .add(egui::TextEdit::singleline(&mut self.board.name))
-            .lost_focus()
-        {
-            ui.close_menu();
-        };
-
-        let cursor_pos = self.last_click_pos;
-
-        ui.separator();
-
-        self.add_comp_button(ui, "Clock", |board, id| {
-            board.add_clock_gate(id, cursor_pos);
-        });
-        self.add_comp_button(ui, "High Const", |board, id| {
-            board.add_const_high_gate(id, cursor_pos);
-        });
-        self.add_comp_button(ui, "Low Const", |board, id| {
-            board.add_const_low_gate(id, cursor_pos);
-        });
-        self.add_comp_button(ui, "Not", |board, id| board.add_not_gate(id, cursor_pos));
-
-        ui.menu_button("Input", |ui| {
-            for i in 1..=8 {
-                self.add_comp_button(ui, format!("{i} Bits").as_str(), |board, id| {
-                    board.add_input(id, i, cursor_pos);
-                });
-            }
-        });
-
-        ui.menu_button("Output", |ui| {
-            for i in 1..=8 {
-                self.add_comp_button(ui, format!("{i} Bits").as_str(), |board, id| {
-                    board.add_output(id, i, cursor_pos);
-                });
-            }
-        });
-
-        ui.menu_button("And Gate", |ui| {
-            for i in 2..=8 {
-                self.add_comp_button(ui, format!("{i} Inputs").as_str(), |board, id| {
-                    board.add_and_gate(id, i, cursor_pos);
-                });
-            }
-        });
-
-        ui.menu_button("Nand Gate", |ui| {
-            for i in 2..=8 {
-                self.add_comp_button(ui, format!("{i} Inputs").as_str(), |board, id| {
-                    board.add_nand_gate(id, i, cursor_pos);
-                });
-            }
-        });
-
-        ui.menu_button("Or Gate", |ui| {
-            for i in 2..=8 {
-                self.add_comp_button(ui, format!("{i} Inputs").as_str(), |board, id| {
-                    board.add_or_gate(id, i, cursor_pos);
-                });
-            }
-        });
-
-        ui.menu_button("Nor Gate", |ui| {
-            for i in 2..=8 {
-                self.add_comp_button(ui, format!("{i} Inputs").as_str(), |board, id| {
-                    board.add_nor_gate(id, i, cursor_pos);
-                });
-            }
-        });
-
-        ui.menu_button("Xor Gate", |ui| {
-            for i in 2..=8 {
-                self.add_comp_button(ui, format!("{i} Inputs").as_str(), |board, id| {
-                    board.add_xor_gate(id, i, cursor_pos);
-                });
-            }
-        });
-
-        ui.menu_button("Joiner", |ui| {
-            for i in 2..=8 {
-                self.add_comp_button(ui, format!("{i} Inputs").as_str(), |board, id| {
-                    board.add_joiner(id, i, cursor_pos);
-                });
-            }
-        });
-
-        ui.menu_button("Splitter", |ui| {
-            for i in 2..=8 {
-                self.add_comp_button(ui, format!("{i} Outputs").as_str(), |board, id| {
-                    board.add_splitter(id, i, cursor_pos);
-                });
-            }
-        });
-    }
-
     pub fn draw_canvas_menu(&mut self, response: &Response) {
         response.context_menu(|ui| {
             ui.set_max_width(150.0);
-            self.editing_menu(ui);
+            ui.label("Board name");
+            if ui
+                .add(egui::TextEdit::singleline(&mut self.board.name))
+                .lost_focus()
+            {
+                ui.close_menu();
+            };
         });
     }
 

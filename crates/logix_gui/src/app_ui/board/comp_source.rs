@@ -6,7 +6,6 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum CompSource {
     Local(PathBuf),
-    Library(String),
     Prim(Primitive),
 }
 
@@ -21,41 +20,28 @@ impl CompSource {
     pub fn local_mut(&mut self) -> Option<&mut PathBuf> {
         match self {
             Self::Local(path) => Some(path),
-            _ => None,
-        }
-    }
-
-    pub fn library_mut(&mut self) -> Option<&mut String> {
-        match self {
-            Self::Library(lib) => Some(lib),
-            _ => None,
+            Self::Prim(_) => None,
         }
     }
 
     pub fn primitive_mut(&mut self) -> Option<&mut Primitive> {
         match self {
             Self::Prim(prim) => Some(prim),
-            _ => None,
-        }
-    }
-    pub const fn local(&self) -> Option<&PathBuf> {
-        match self {
-            Self::Local(path) => Some(path),
-            _ => None,
+            Self::Local(_) => None,
         }
     }
 
-    pub const fn library(&self) -> Option<&String> {
+    pub const fn local(&self) -> Option<&PathBuf> {
         match self {
-            Self::Library(lib) => Some(lib),
-            _ => None,
+            Self::Local(path) => Some(path),
+            Self::Prim(_) => None,
         }
     }
 
     pub const fn primitive(&self) -> Option<&Primitive> {
         match self {
             Self::Prim(prim) => Some(prim),
-            _ => None,
+            Self::Local(_) => None,
         }
     }
 }

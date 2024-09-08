@@ -82,7 +82,7 @@ impl LogixApp {
         let next_id = comp
             .components
             .iter()
-            .map(|c| c.info.id)
+            .map(|c| c.id)
             .max()
             .unwrap_or_default()
             + 1;

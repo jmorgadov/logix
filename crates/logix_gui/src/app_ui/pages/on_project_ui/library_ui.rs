@@ -23,17 +23,17 @@ impl Library {
         }
     }
 
-    pub fn show_sub_libs(&self, ui: &mut Ui) {
+    pub fn show_sub_libs(&self, ui: &mut Ui, name: &str) {
         for lib in &self.sub_libs {
-            ui.collapsing(lib.name.clone(), |ui| {
-                lib.show_components(ui);
-                lib.show_sub_libs(ui);
+            ui.collapsing(name, |ui| {
+                lib.1.show_components(ui);
+                lib.1.show_sub_libs(ui, lib.0);
             });
         }
     }
 
     pub fn show(&self, ui: &mut Ui) {
         self.show_components(ui);
-        self.show_sub_libs(ui);
+        self.show_sub_libs(ui, "");
     }
 }

@@ -16,7 +16,7 @@ use super::{
     board_comp::BoardComponent,
     board_conn::BoardConnection,
     board_io::BoardIO,
-    comp_info::ComponentInfo,
+    comp_info::{ComponentInfo, IOInfo},
     CompSource,
 };
 
@@ -50,7 +50,7 @@ impl Board {
         let sub_comps: Vec<(IdMap, Component<ExtraInfo>)> = self
             .components
             .iter_mut()
-            .map(|bc| bc.info.build_component(last_id))
+            .map(|bc| bc.build_component(last_id))
             .collect::<Result<Vec<_>, _>>()?;
 
         let (ids, sub_comps) = sub_comps.into_iter().unzip();
@@ -103,13 +103,28 @@ impl Board {
     pub fn board_comp(&self, id: usize, source: CompSource) -> BoardComponent {
         BoardComponent {
             pos: Pos2::default(),
+            id,
             info: ComponentInfo {
-                id,
                 name: self.name.clone(),
                 description: None,
                 source,
-                inputs_name: self.inputs.iter().map(|io| io.name.clone()).collect(),
-                outputs_name: self.outputs.iter().map(|io| io.name.clone()).collect(),
+                inputs: self
+                    .inputs
+                    .iter()
+                    .map(|io| {
+                        IOInfo::new(
+                            io.name.clone(),
+                            self.components[io.idx].outputs_data[0].size,
+                        )
+                    })
+                    .collect(),
+                outputs: self
+                    .outputs
+                    .iter()
+                    .map(|io| {
+                        IOInfo::new(io.name.clone(), self.components[io.idx].inputs_data[0].size)
+                    })
+                    .collect(),
             },
             inputs_data: self
                 .inputs
@@ -176,11 +191,10 @@ impl Board {
         for (comp, source) in self
             .components
             .iter_mut()
-            .map(|bc| &mut bc.info)
-            .filter_map(|c| c.source.local().cloned().map(|source| (c, source)))
+            .filter_map(|c| c.info.source.local().cloned().map(|source| (c, source)))
         {
             let c = Self::load_comp(comp.id, source)?;
-            *comp = c.info;
+            *comp = c;
             let in_count = comp.input_count();
             let out_count = comp.output_count();
 
@@ -248,125 +262,5 @@ impl Board {
 
     pub fn remove_conn(&mut self, idx: usize) {
         self.execute(BoardAction::remove_connection(self.conns[idx].clone(), idx));
-    }
-
-    pub fn add_and_gate(&mut self, id: usize, in_count: u8, pos: Pos2) {
-        let and_gate = BoardComponent::and_gate(in_count).with_pos(pos).with_id(id);
-        self.add_comp(and_gate);
-    }
-
-    pub fn add_nand_gate(&mut self, id: usize, in_count: u8, pos: Pos2) {
-        let nand_gate = BoardComponent::nand_gate(in_count)
-            .with_pos(pos)
-            .with_id(id);
-        self.add_comp(nand_gate);
-    }
-
-    pub fn add_or_gate(&mut self, id: usize, in_count: u8, pos: Pos2) {
-        let or_gate = BoardComponent::or_gate(in_count).with_pos(pos).with_id(id);
-        self.add_comp(or_gate);
-    }
-
-    pub fn add_nor_gate(&mut self, id: usize, in_count: u8, pos: Pos2) {
-        let nor_gate = BoardComponent::nor_gate(in_count).with_pos(pos).with_id(id);
-        self.add_comp(nor_gate);
-    }
-
-    pub fn add_xor_gate(&mut self, id: usize, in_count: u8, pos: Pos2) {
-        let xor_gate = BoardComponent::xor_gate(in_count).with_pos(pos).with_id(id);
-        self.add_comp(xor_gate);
-    }
-
-    pub fn add_not_gate(&mut self, id: usize, pos: Pos2) {
-        let not_gate = BoardComponent::not_gate().with_pos(pos).with_id(id);
-        self.add_comp(not_gate);
-    }
-
-    pub fn add_const_high_gate(&mut self, id: usize, pos: Pos2) {
-        let const_gate = BoardComponent::const_high_gate().with_pos(pos).with_id(id);
-        self.add_comp(const_gate);
-    }
-
-    pub fn add_const_low_gate(&mut self, id: usize, pos: Pos2) {
-        let const_gate = BoardComponent::const_low_gate().with_pos(pos).with_id(id);
-        self.add_comp(const_gate);
-    }
-
-    pub fn add_clock_gate(&mut self, id: usize, pos: Pos2) {
-        let clock_gate = BoardComponent::clock_gate().with_pos(pos).with_id(id);
-        self.add_comp(clock_gate);
-    }
-
-    pub fn add_splitter(&mut self, id: usize, bits: u8, pos: Pos2) {
-        let splitter = BoardComponent::splitter(bits).with_pos(pos).with_id(id);
-        self.add_comp(splitter);
-    }
-
-    pub fn add_joiner(&mut self, id: usize, bits: u8, pos: Pos2) {
-        let joiner = BoardComponent::joiner(bits).with_pos(pos).with_id(id);
-        self.add_comp(joiner);
-    }
-
-    pub fn add_input(&mut self, id: usize, bits: u8, pos: Pos2) {
-        let input = BoardComponent::input(bits).with_pos(pos).with_id(id);
-        self.add_comp(input);
-    }
-
-    pub fn add_output(&mut self, id: usize, bits: u8, pos: Pos2) {
-        let output = BoardComponent::output(bits).with_pos(pos).with_id(id);
-        self.add_comp(output);
-    }
-}
-
-impl ComponentInfo {
-    pub fn build_primitive(
-        &mut self,
-        last_id: &mut usize,
-    ) -> Result<(IdMap, Component<ExtraInfo>), BoardBuildError> {
-        if self.source.primitive().is_none() {
-            return Err(BoardBuildError::PrimitiveNotSpecified);
-        }
-
-        let id = *last_id;
-        *last_id += 1;
-        self.id = id;
-
-        Ok((
-            IdMap::new(
-                id,
-                self.name.clone(),
-                CompSource::Prim(self.source.primitive().cloned().unwrap()),
-            ),
-            Component {
-                id,
-                name: Some(self.name.clone()),
-                inputs: self.input_count(),
-                outputs: self.output_count(),
-                sub: None,
-                extra: ExtraInfo {
-                    id: self.id,
-                    primitive: self.source.primitive().cloned(),
-                },
-            },
-        ))
-    }
-
-    pub fn build_component(
-        &mut self,
-        last_id: &mut usize,
-    ) -> Result<(IdMap, Component<ExtraInfo>), BoardBuildError> {
-        if self.source.primitive().is_some() {
-            return self.build_primitive(last_id);
-        }
-
-        let source = self
-            .source
-            .local()
-            .cloned()
-            .ok_or(BoardBuildError::SourceNotSpecified)?;
-
-        let mut board = Board::load(&source)?;
-
-        board.build_component(self.source.clone(), last_id)
     }
 }

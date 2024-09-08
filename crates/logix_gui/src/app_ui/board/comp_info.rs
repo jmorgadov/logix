@@ -1,187 +1,198 @@
-use logix_sim::primitives::{data::Data, prim_program::PrimProgram, primitive::Primitive};
+use logix_sim::primitives::{data::Data, pasm::PASM, primitive::Primitive};
 use serde::{Deserialize, Serialize};
 
 use super::CompSource;
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct IOInfo {
+    pub name: String,
+    pub size: u8,
+}
+
+impl IOInfo {
+    pub fn new(name: impl Into<String>, bits: u8) -> Self {
+        Self {
+            name: name.into(),
+            size: bits,
+        }
+    }
+
+    pub fn single(name: impl Into<String>) -> Self {
+        Self::new(name, 1)
+    }
+}
+
+impl std::default::Default for IOInfo {
+    fn default() -> Self {
+        Self {
+            name: String::default(),
+            size: 1,
+        }
+    }
+}
+
+impl From<(String, u8)> for IOInfo {
+    fn from((name, bits): (String, u8)) -> Self {
+        Self { name, size: bits }
+    }
+}
+
+impl From<&str> for IOInfo {
+    fn from(name: &str) -> Self {
+        Self::single(name)
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
 pub struct ComponentInfo {
-    pub id: usize,
     pub name: String,
     pub description: Option<String>,
     pub source: CompSource,
-    pub inputs_name: Vec<String>,
-    pub outputs_name: Vec<String>,
+    pub inputs: Vec<IOInfo>,
+    pub outputs: Vec<IOInfo>,
 }
 
 impl ComponentInfo {
-    pub fn input_count(&self) -> usize {
-        self.inputs_name.len()
-    }
-
-    pub fn output_count(&self) -> usize {
-        self.outputs_name.len()
-    }
-
-    pub fn custom(
-        id: usize,
-        name: &str,
-        inputs_name: Vec<String>,
-        outputs_name: Vec<String>,
-        prog: PrimProgram,
-    ) -> Self {
+    pub fn custom(name: &str, inputs: Vec<IOInfo>, outputs: Vec<IOInfo>, prog: PASM) -> Self {
         Self {
-            id,
             name: name.to_string(),
             source: CompSource::Prim(Primitive::Custom { prog }),
-            inputs_name,
-            outputs_name,
+            inputs,
+            outputs,
             description: None,
         }
     }
 
-    pub fn and_gate(id: usize, in_count: u8) -> Self {
+    pub fn and_gate(in_count: u8) -> Self {
         Self {
-            id,
             name: "AND".to_string(),
             source: CompSource::Prim(Primitive::AndGate),
-            inputs_name: (0..in_count).map(|_| String::default()).collect(),
-            outputs_name: vec![String::default()],
+            inputs: (0..in_count).map(|_| IOInfo::default()).collect(),
+            outputs: vec![IOInfo::default()],
             description: None,
         }
     }
 
-    pub fn nand_gate(id: usize, in_count: u8) -> Self {
+    pub fn nand_gate(in_count: u8) -> Self {
         Self {
-            id,
             name: "NAND".to_string(),
             source: CompSource::Prim(Primitive::NandGate),
-            inputs_name: (0..in_count).map(|_| String::default()).collect(),
-            outputs_name: vec![String::default()],
+            inputs: (0..in_count).map(|_| IOInfo::default()).collect(),
+            outputs: vec![IOInfo::default()],
             description: None,
         }
     }
 
-    pub fn or_gate(id: usize, in_count: u8) -> Self {
+    pub fn or_gate(in_count: u8) -> Self {
         Self {
-            id,
             name: "OR".to_string(),
             source: CompSource::Prim(Primitive::OrGate),
-            inputs_name: (0..in_count).map(|_| String::default()).collect(),
-            outputs_name: vec![String::default()],
+            inputs: (0..in_count).map(|_| IOInfo::default()).collect(),
+            outputs: vec![IOInfo::default()],
             description: None,
         }
     }
 
-    pub fn nor_gate(id: usize, in_count: u8) -> Self {
+    pub fn nor_gate(in_count: u8) -> Self {
         Self {
-            id,
             name: "NOR".to_string(),
             source: CompSource::Prim(Primitive::NorGate),
-            inputs_name: (0..in_count).map(|_| String::default()).collect(),
-            outputs_name: vec![String::default()],
+            inputs: (0..in_count).map(|_| IOInfo::default()).collect(),
+            outputs: vec![IOInfo::default()],
             description: None,
         }
     }
 
-    pub fn xor_gate(id: usize, in_count: u8) -> Self {
+    pub fn xor_gate(in_count: u8) -> Self {
         Self {
-            id,
             name: "XOR".to_string(),
             source: CompSource::Prim(Primitive::XorGate),
-            inputs_name: (0..in_count).map(|_| String::default()).collect(),
-            outputs_name: vec![String::default()],
+            inputs: (0..in_count).map(|_| IOInfo::default()).collect(),
+            outputs: vec![IOInfo::default()],
             description: None,
         }
     }
 
-    pub fn not_gate(id: usize) -> Self {
+    pub fn not_gate() -> Self {
         Self {
-            id,
             name: "NOT".to_string(),
             source: CompSource::Prim(Primitive::NotGate),
-            inputs_name: vec![String::default()],
-            outputs_name: vec![String::default()],
+            inputs: vec![IOInfo::default()],
+            outputs: vec![IOInfo::default()],
             description: None,
         }
     }
 
-    pub fn const_high_gate(id: usize) -> Self {
+    pub fn const_high_gate() -> Self {
         Self {
-            id,
             name: "HIGH".to_string(),
             source: CompSource::Prim(Primitive::Const {
                 value: Data::high(),
             }),
-            inputs_name: vec![],
-            outputs_name: vec![String::default()],
+            inputs: vec![],
+            outputs: vec![IOInfo::default()],
             description: None,
         }
     }
 
-    pub fn const_low_gate(id: usize) -> Self {
+    pub fn const_low_gate() -> Self {
         Self {
-            id,
             name: "LOW".to_string(),
             source: CompSource::Prim(Primitive::Const { value: Data::low() }),
-            inputs_name: vec![],
-            outputs_name: vec![String::default()],
+            inputs: vec![],
+            outputs: vec![IOInfo::default()],
             description: None,
         }
     }
 
-    pub fn clock_gate(id: usize) -> Self {
+    pub fn clock_gate() -> Self {
         Self {
-            id,
             name: "CLK".to_string(),
             source: CompSource::Prim(Primitive::Clock {
                 period: 1_000_000_000,
             }),
-            inputs_name: vec![],
-            outputs_name: vec![String::default()],
+            inputs: vec![],
+            outputs: vec![IOInfo::default()],
             description: None,
         }
     }
 
-    pub fn splitter(id: usize, bits: u8) -> Self {
+    pub fn splitter(bits: u8) -> Self {
         Self {
-            id,
             name: "SPLIT".to_string(),
             source: CompSource::Prim(Primitive::Splitter { bits }),
-            inputs_name: vec![String::default()],
-            outputs_name: (0..bits).map(|b| b.to_string()).collect(),
+            inputs: vec![IOInfo::default()],
+            outputs: (0..bits).map(|b| IOInfo::single(b.to_string())).collect(),
             description: None,
         }
     }
 
-    pub fn joiner(id: usize, bits: u8) -> Self {
+    pub fn joiner(bits: u8) -> Self {
         Self {
-            id,
             name: "JOIN".to_string(),
             source: CompSource::Prim(Primitive::Joiner { bits }),
-            inputs_name: (0..bits).map(|b| b.to_string()).collect(),
-            outputs_name: vec![String::default()],
+            inputs: (0..bits).map(|b| IOInfo::single(b.to_string())).collect(),
+            outputs: vec![IOInfo::default()],
             description: None,
         }
     }
 
-    pub fn input(id: usize, bits: u8) -> Self {
+    pub fn input(bits: u8) -> Self {
         Self {
-            id,
             name: "IN".to_string(),
             source: CompSource::Prim(Primitive::Input { bits }),
-            inputs_name: vec![],
-            outputs_name: vec![String::default()],
+            inputs: vec![],
+            outputs: vec![IOInfo::default()],
             description: None,
         }
     }
 
-    pub fn output(id: usize, bits: u8) -> Self {
+    pub fn output(bits: u8) -> Self {
         Self {
-            id,
             name: "OUT".to_string(),
             source: CompSource::Prim(Primitive::Output { bits }),
-            inputs_name: vec![String::default()],
-            outputs_name: vec![],
+            inputs: vec![IOInfo::default()],
+            outputs: vec![],
             description: None,
         }
     }

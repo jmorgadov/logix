@@ -22,6 +22,7 @@ impl BoardEditing {
         }
     }
 
+    #[allow(clippy::too_many_lines)]
     pub fn _draw_comp(
         &mut self,
         ui: &mut Ui,
@@ -51,8 +52,18 @@ impl BoardEditing {
 
         let board = self.current_sim_board_ref();
 
-        let in_names = &board.components[idx].info.inputs_name;
-        let out_names = &board.components[idx].info.outputs_name;
+        let in_names = &board.components[idx]
+            .info
+            .inputs
+            .iter()
+            .map(|x| x.name.clone())
+            .collect::<Vec<String>>();
+        let out_names = &board.components[idx]
+            .info
+            .outputs
+            .iter()
+            .map(|x| x.name.clone())
+            .collect::<Vec<String>>();
 
         let out_names_max_len = out_names
             .iter()
@@ -225,7 +236,7 @@ impl BoardEditing {
                 .local()
                 .is_some()
         {
-            self.enter_subc_sim(self.current_sim_board_ref().components[idx].info.id);
+            self.enter_subc_sim(self.current_sim_board_ref().components[idx].id);
         }
     }
 }

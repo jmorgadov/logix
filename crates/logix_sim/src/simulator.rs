@@ -1,6 +1,6 @@
 use crate::{
     flatten::FlattenComponent,
-    primitives::{prim_program::ProgramUpdateType, primitive::Primitive},
+    primitives::{pasm::ProgramUpdateType, primitive::Primitive},
 };
 use log::debug;
 use rand::seq::SliceRandom;

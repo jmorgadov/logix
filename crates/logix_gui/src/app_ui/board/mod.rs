@@ -10,4 +10,5 @@ mod comp_source;
 pub use board::Board;
 pub use board_actions::BoardAction;
 pub use board_comp::BoardComponent;
+pub use comp_info::ComponentInfo;
 pub use comp_source::CompSource;

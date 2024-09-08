@@ -1,9 +1,9 @@
 use std::path::PathBuf;
 
-use crate::app_ui::board::BoardComponent;
+use crate::app_ui::board::ComponentInfo;
 
 #[derive(Debug)]
 pub enum CanvasPayload {
-    Component(BoardComponent),
+    Component(ComponentInfo),
     Path(PathBuf),
 }
