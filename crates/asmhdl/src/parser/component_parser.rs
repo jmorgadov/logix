@@ -19,7 +19,6 @@ pub enum AsmCmdDecl {
     Label,
     Goto,
     Cmp,
-    Jmp,
     Je,
     Jne,
     Jg,
@@ -56,6 +55,7 @@ impl AsmComponent {
         line.trim().to_string()
     }
 
+    /// Parse an ASM component from a code source string
     pub fn parse(code: &str) -> AsmComponent {
         let mut state = ParseState::Info;
         let mut ast = AsmComponent::default();
@@ -94,9 +94,9 @@ impl AsmComponent {
                         .next()
                         .expect("Expected info command");
                     if info_cmd == "name" {
-                        ast.info.name = line.split(" ").skip(1).collect();
+                        ast.name = line.split(" ").skip(1).collect();
                     } else if info_cmd == "description" {
-                        ast.info.description = Some(
+                        ast.description = Some(
                             line.split(" ")
                                 .skip(1)
                                 .fold(String::new(), |acc, x| acc + " " + x)
@@ -111,9 +111,9 @@ impl AsmComponent {
                             .trim()
                             .to_string();
                         if update_type == "input_changes" {
-                            ast.info.update_type = AsmProgramUpdateType::InputChanges;
+                            ast.update_type = AsmProgramUpdateType::InputChanges;
                         } else if update_type == "always" {
-                            ast.info.update_type = AsmProgramUpdateType::Always;
+                            ast.update_type = AsmProgramUpdateType::Always;
                         } else {
                             panic!("Invalid update type");
                         }
@@ -184,13 +184,6 @@ pub fn cmd_from_args(cmd: AsmCmdDecl, args: Vec<AsmCommandArg>) -> AsmCommand {
             };
             pcmd!(cmp, v1, v2)
         }
-        AsmCmdDecl::Jmp => {
-            let label = match args.first() {
-                Some(AsmCommandArg::Var(name)) => name,
-                _ => panic!("Invalid argument"),
-            };
-            pcmd!(jmp, label)
-        }
         AsmCmdDecl::Je => {
             let label = match args.first() {
                 Some(AsmCommandArg::Var(name)) => name,
@@ -258,7 +251,6 @@ mod tests {
             AsmCommand::Label { .. } => AsmCmdDecl::Label,
             AsmCommand::Goto { .. } => AsmCmdDecl::Goto,
             AsmCommand::Cmp { .. } => AsmCmdDecl::Cmp,
-            AsmCommand::Jmp { .. } => AsmCmdDecl::Jmp,
             AsmCommand::Je { .. } => AsmCmdDecl::Je,
             AsmCommand::Jne { .. } => AsmCmdDecl::Jne,
             AsmCommand::Jg { .. } => AsmCmdDecl::Jg,

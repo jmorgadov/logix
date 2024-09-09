@@ -7,17 +7,31 @@ use crate::value::AsmValue;
 const FLAG_EQUAL: usize = 0;
 const FLAG_LESS: usize = 1;
 
+/// Program that describes a component's behavior
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AsmProgram {
+    /// Sequence of commands to execute
     pub cmds: Vec<AsmCommand>,
+
+    /// Update type of the program
     pub update_type: AsmProgramUpdateType,
+
+    /// Current state of the program
+    ///
+    /// This state is modified as the program is executed
     pub state: AsmProgramState,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+/// Update type of the program
+#[derive(Debug, Clone, Serialize, Deserialize, Default, Copy)]
 pub enum AsmProgramUpdateType {
+    /// Only update when the input values change
     #[default]
     InputChanges,
+
+    /// Update constantly
+    ///
+    /// Good for defining a clock signal
     Always,
 }
 
@@ -42,47 +56,98 @@ pub struct AsmProgramState {
     pub waiting_from: Option<u128>,
 }
 
+/// AsmHDL expression
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum AsmExpr {
+    /// Logical not
     Not(Box<AsmExpr>),
+    /// Logical and
     And(Vec<AsmExpr>),
+    /// Logical or
     Or(Vec<AsmExpr>),
+    /// Logical nand
     Nand(Vec<AsmExpr>),
+    /// Logical nor
     Nor(Vec<AsmExpr>),
+    /// Logical xor
     Xor(Vec<AsmExpr>),
+    /// Concatenation of bits
     BitVec(Vec<AsmExpr>),
+    /// variable
+    ///
+    /// From the program state
     Var(String),
+    /// Constant value
     Const(AsmValue),
 }
 
+/// AsmHDL command
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum AsmCommand {
-    // Move a value into a variable
-    Mov { name: String, value: AsmExpr },
-    // Declares a label
-    Label { name: String },
-    // Goto a label
-    Goto { label: String },
-    // Compares two values (this sets the flags)
-    Cmp { v1: AsmExpr, v2: AsmExpr },
-    // Jumps to a label
-    Jmp { label: String },
-    // Jumps to a label if the cmp flags was 'equal'
-    Je { label: String },
-    // Jumps to a label if the cmp flags was 'not equal'
-    Jne { label: String },
-    // Jumps to a label if the cmp flags was 'greater than'
-    Jg { label: String },
-    // Jumps to a label if the cmp flags was 'less than'
-    Jl { label: String },
-    // Jumps to a label if the cmp flags was 'greater than or equal'
-    Jge { label: String },
-    // Jumps to a label if the cmp flags was 'less than or equal'
-    Jle { label: String },
-    // Waits for a certain amount of time (ns)
-    Wait { time: u128 },
+    /// Sets a value to a variable
+    Mov {
+        /// Variable name
+        name: String,
+        /// Value to set
+        value: AsmExpr,
+    },
+    /// Declares a label
+    Label {
+        /// Label name
+        name: String,
+    },
+    /// Goto a label
+    Goto {
+        /// Label to go to
+        label: String,
+    },
+    /// Compares two values (this sets the flags)
+    Cmp {
+        /// First value
+        v1: AsmExpr,
+        /// Second value
+        v2: AsmExpr,
+    },
+    /// Jumps to a label if the cmp flags was 'equal'
+    Je {
+        /// Label to jump to
+        label: String,
+    },
+    /// Jumps to a label if the cmp flags was 'not equal'
+    Jne {
+        /// Label to jump to
+        label: String,
+    },
+
+    /// Jumps to a label if the cmp flags was 'greater than'
+    Jg {
+        /// Label to jump to
+        label: String,
+    },
+
+    /// Jumps to a label if the cmp flags was 'less than'
+    Jl {
+        /// Label to jump to
+        label: String,
+    },
+    /// Jumps to a label if the cmp flags was 'greater than or equal'
+    Jge {
+        /// Label to jump to
+        label: String,
+    },
+    /// Jumps to a label if the cmp flags was 'less than or equal'
+    Jle {
+        /// Label to jump to
+        label: String,
+    },
+    /// Waits for a certain amount of time (ns)
+    Wait {
+        /// Time to wait
+        time: u128,
+    },
 }
 
+/// Macro to create an AsmExpr
 #[macro_export]
 macro_rules! pexp {
     (val, $val:expr) => {
@@ -117,6 +182,7 @@ macro_rules! pexp {
     };
 }
 
+/// Macro to create an AsmCommand
 #[macro_export]
 macro_rules! pcmd {
     (mov, $name:expr, $val:expr) => {
@@ -137,11 +203,6 @@ macro_rules! pcmd {
     };
     (cmp, $v1:expr, $v2:expr) => {
         $crate::AsmCommand::Cmp { v1: $v1, v2: $v2 }
-    };
-    (jmp, $label:expr) => {
-        $crate::AsmCommand::Jmp {
-            label: $label.to_string(),
-        }
     };
     (je, $label:expr) => {
         $crate::AsmCommand::Je {
@@ -179,6 +240,7 @@ macro_rules! pcmd {
 }
 
 impl AsmProgram {
+    /// Creates a new program with the given update type and commands
     pub fn new(update_type: AsmProgramUpdateType, cmds: Vec<AsmCommand>) -> Self {
         let mut label_pos = HashMap::new();
         for (i, cmd) in cmds.iter().enumerate() {
@@ -199,6 +261,7 @@ impl AsmProgram {
         }
     }
 
+    /// Sets the default variables of the program
     pub fn with_default_vars(
         mut self,
         vars: HashMap<impl Into<String>, impl Into<AsmValue>>,
@@ -210,7 +273,7 @@ impl AsmProgram {
         self
     }
 
-    pub fn set_flag(&mut self, bit: usize, val: bool) {
+    fn set_flag(&mut self, bit: usize, val: bool) {
         if val {
             self.state.flags |= 1 << bit;
         } else {
@@ -218,11 +281,11 @@ impl AsmProgram {
         }
     }
 
-    pub fn flag_at(&self, bit: usize) -> bool {
+    fn flag_at(&self, bit: usize) -> bool {
         (self.state.flags & (1 << bit)) != 0
     }
 
-    pub fn eval_expr(&mut self, expr: &AsmExpr) -> AsmValue {
+    fn eval_expr(&mut self, expr: &AsmExpr) -> AsmValue {
         match expr {
             AsmExpr::Not(expr) => !self.eval_expr(expr),
             AsmExpr::And(exprs) => exprs
@@ -253,6 +316,10 @@ impl AsmProgram {
         }
     }
 
+    /// Runs the program
+    ///
+    /// This will execute the commands of the program until it finishes or it waits for some
+    /// time.
     pub fn run(&mut self, curr_time: u128) {
         let mut running = true;
         while running {
@@ -277,10 +344,6 @@ impl AsmProgram {
                     self.set_flag(FLAG_EQUAL, v1 == v2);
                     self.set_flag(FLAG_LESS, v1.value < v2.value);
                     self.state.pc += 1;
-                }
-                AsmCommand::Jmp { label } => {
-                    let pos = self.state.label_pos[&label];
-                    self.state.pc = pos;
                 }
                 AsmCommand::Je { label } => {
                     if self.flag_at(FLAG_EQUAL) {

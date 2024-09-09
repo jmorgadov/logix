@@ -293,6 +293,7 @@ name = "asmhdl"
 version = "0.1.0"
 dependencies = [
  "env_logger",
+ "indexmap",
  "lalrpop 0.21.0",
  "lalrpop-util 0.21.0",
  "log",

@@ -1,25 +1,38 @@
 use serde::{Deserialize, Serialize};
 use std::ops as std_ops;
 
+/// A value with a fixed size in bits.
 #[derive(Debug, Clone, Copy, PartialEq, Default, Serialize, Deserialize)]
 pub struct AsmValue {
+    /// Value of the data
     pub value: usize,
+    /// Size of the data in bits
     pub size: usize,
 }
 
 impl AsmValue {
+    /// Creates a new value with the given value and size
     pub fn new(value: usize, size: usize) -> Self {
         Self { value, size }
     }
 
+    /// Returns a value representing true
+    ///
+    /// Value: 1
+    /// Size: 1
     pub fn true_val() -> Self {
         Self::new(1, 1)
     }
 
+    /// Returns a value representing false
+    ///
+    /// Value: 0
+    /// Size: 1
     pub fn false_val() -> Self {
         Self::new(0, 1)
     }
 
+    /// Sets the value of a bit
     pub fn set_bit(&mut self, bit: usize, value: bool) {
         if bit >= self.size {
             panic!("Bit index out of range");
@@ -27,6 +40,7 @@ impl AsmValue {
         self.value = (self.value & !(1 << bit)) | ((value as usize) << bit);
     }
 
+    /// False if the value is 0, true otherwise
     pub fn as_bool(&self) -> bool {
         self.value != 0
     }

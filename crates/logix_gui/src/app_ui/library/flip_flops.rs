@@ -46,19 +46,19 @@ pub fn flip_flops_lib() -> Library {
                         pcmd!(je, "CASE_11"),
                         //
                         pcmd!(label, "CASE_00"),
-                        pcmd!(jne, "END"),
+                        pcmd!(goto, "END"),
                         //
                         pcmd!(label, "CASE_01"),
                         pcmd!(mov, "_o_0", pexp!(val, 0)),
-                        pcmd!(jne, "END"),
+                        pcmd!(goto, "END"),
                         //
                         pcmd!(label, "CASE_10"),
                         pcmd!(mov, "_o_0", pexp!(val, 1)),
-                        pcmd!(jne, "END"),
+                        pcmd!(goto, "END"),
                         //
                         pcmd!(label, "CASE_11"),
                         pcmd!(mov, "_o_0", pexp!(not, pexp!(var, "_o_0"))),
-                        pcmd!(jne, "END"),
+                        pcmd!(goto, "END"),
                         //
                         pcmd!(label, "END"),
                         // Update !Q

@@ -15,7 +15,6 @@ pub CmdType: AsmCmdDecl = {
     "label" => AsmCmdDecl::Label,
     "goto" => AsmCmdDecl::Goto,
     "cmp" => AsmCmdDecl::Cmp,
-    "jmp" => AsmCmdDecl::Jmp,
     "je" => AsmCmdDecl::Je,
     "jne" => AsmCmdDecl::Jne,
     "jg" => AsmCmdDecl::Jg,
