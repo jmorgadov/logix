@@ -2,28 +2,29 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
-use super::data::Data;
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct PASM {
-    pub cmds: Vec<PASMCommand>,
-    pub update_type: ProgramUpdateType,
-    pub state: PASMProgramState,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum ProgramUpdateType {
-    InputChanges,
-    Always,
-}
+use crate::value::AsmValue;
 
 const FLAG_EQUAL: usize = 0;
 const FLAG_LESS: usize = 1;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct PASMProgramState {
+pub struct AsmProgram {
+    pub cmds: Vec<AsmCommand>,
+    pub update_type: AsmProgramUpdateType,
+    pub state: AsmProgramState,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub enum AsmProgramUpdateType {
+    #[default]
+    InputChanges,
+    Always,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AsmProgramState {
     // Declared variables
-    pub vars: HashMap<String, Data>,
+    pub vars: HashMap<String, AsmValue>,
 
     // Program counter
     pub pc: usize,
@@ -42,28 +43,30 @@ pub struct PASMProgramState {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum PASMExpr {
-    Not(Box<PASMExpr>),
-    And(Vec<PASMExpr>),
-    Or(Vec<PASMExpr>),
-    Nand(Vec<PASMExpr>),
-    Nor(Vec<PASMExpr>),
-    Xor(Vec<PASMExpr>),
-    BitVec(Vec<PASMExpr>),
+pub enum AsmExpr {
+    Not(Box<AsmExpr>),
+    And(Vec<AsmExpr>),
+    Or(Vec<AsmExpr>),
+    Nand(Vec<AsmExpr>),
+    Nor(Vec<AsmExpr>),
+    Xor(Vec<AsmExpr>),
+    BitVec(Vec<AsmExpr>),
     Var(String),
-    Const(Data),
+    Const(AsmValue),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum PASMCommand {
+pub enum AsmCommand {
     // Move a value into a variable
-    Mov { name: String, value: PASMExpr },
+    Mov { name: String, value: AsmExpr },
     // Declares a label
     Label { name: String },
     // Goto a label
     Goto { label: String },
     // Compares two values (this sets the flags)
-    Cmp { v1: PASMExpr, v2: PASMExpr },
+    Cmp { v1: AsmExpr, v2: AsmExpr },
+    // Jumps to a label
+    Jmp { label: String },
     // Jumps to a label if the cmp flags was 'equal'
     Je { label: String },
     // Jumps to a label if the cmp flags was 'not equal'
@@ -82,103 +85,111 @@ pub enum PASMCommand {
 
 #[macro_export]
 macro_rules! pexp {
-    (data, $data:expr) => {
-        logix_sim::primitives::pasm::PASMExpr::Const($data.into())
+    (val, $val:expr) => {
+        $crate::AsmExpr::Const($val.into())
     };
     (var, $name:expr) => {
-        logix_sim::primitives::pasm::PASMExpr::Var($name.to_string())
+        $crate::AsmExpr::Var($name.to_string())
     };
     (not, $expr:expr) => {
-        logix_sim::primitives::pasm::PASMExpr::Not(Box::new($expr))
+        $crate::AsmExpr::Not(Box::new($expr))
     };
     (and, $($expr:expr),*) => {
-        logix_sim::primitives::pasm::PASMExpr::And(vec![$($expr),*])
+        $crate::AsmExpr::And(vec![$($expr),*])
     };
     (or, $($expr:expr),*) => {
-        logix_sim::primitives::pasm::PASMExpr::Or(vec![$($expr),*])
+        $crate::AsmExpr::Or(vec![$($expr),*])
     };
     (nand, $($expr:expr),*) => {
-        logix_sim::primitives::pasm::PASMExpr::Nand(vec![$($expr),*])
+        $crate::AsmExpr::Nand(vec![$($expr),*])
     };
     (nor, $($expr:expr),*) => {
-        logix_sim::primitives::pasm::PASMExpr::Nor(vec![$($expr),*])
+        $crate::AsmExpr::Nor(vec![$($expr),*])
     };
     (xor, $($expr:expr),*) => {
-        logix_sim::primitives::pasm::PASMExpr::Xor(vec![$($expr),*])
+        $crate::AsmExpr::Xor(vec![$($expr),*])
     };
     (bit_vec, $($expr:expr),*) => {
-        logix_sim::primitives::pasm::PASMExpr::BitVec(vec![$($expr),*])
+        $crate::AsmExpr::BitVec(vec![$($expr),*])
+    };
+    (bit_vecv, $exprs:expr) => {
+        $crate::AsmExpr::BitVec($exprs)
     };
 }
 
 #[macro_export]
 macro_rules! pcmd {
     (mov, $name:expr, $val:expr) => {
-        logix_sim::primitives::pasm::PASMCommand::Mov {
+        $crate::AsmCommand::Mov {
             name: $name.to_string(),
             value: $val,
         }
     };
     (label, $name:expr) => {
-        logix_sim::primitives::pasm::PASMCommand::Label {
+        $crate::AsmCommand::Label {
             name: $name.to_string(),
         }
     };
     (goto, $label:expr) => {
-        logix_sim::primitives::pasm::PASMCommand::Goto {
+        $crate::AsmCommand::Goto {
             label: $label.to_string(),
         }
     };
     (cmp, $v1:expr, $v2:expr) => {
-        logix_sim::primitives::pasm::PASMCommand::Cmp { v1: $v1, v2: $v2 }
+        $crate::AsmCommand::Cmp { v1: $v1, v2: $v2 }
+    };
+    (jmp, $label:expr) => {
+        $crate::AsmCommand::Jmp {
+            label: $label.to_string(),
+        }
     };
     (je, $label:expr) => {
-        logix_sim::primitives::pasm::PASMCommand::Je {
+        $crate::AsmCommand::Je {
             label: $label.to_string(),
         }
     };
     (jne, $label:expr) => {
-        logix_sim::primitives::pasm::PASMCommand::Jne {
+        $crate::AsmCommand::Jne {
             label: $label.to_string(),
         }
     };
     (jg, $label:expr) => {
-        logix_sim::primitives::pasm::PASMCommand::Jg {
+        $crate::AsmCommand::Jg {
             label: $label.to_string(),
         }
     };
     (jl, $label:expr) => {
-        logix_sim::primitives::pasm::PASMCommand::Jl {
+        $crate::AsmCommand::Jl {
             label: $label.to_string(),
         }
     };
     (jge, $label:expr) => {
-        logix_sim::primitives::pasm::PASMCommand::Jge {
+        $crate::AsmCommand::Jge {
             label: $label.to_string(),
         }
     };
     (jle, $label:expr) => {
-        logix_sim::primitives::pasm::PASMCommand::Jle {
+        $crate::AsmCommand::Jle {
             label: $label.to_string(),
         }
     };
     (wait, $time:expr) => {
-        logix_sim::primitives::pasm::PASMCommand::Wait { time: $time }
+        $crate::AsmCommand::Wait { time: $time }
     };
 }
 
-impl PASM {
-    pub fn new(update_type: ProgramUpdateType, cmds: Vec<PASMCommand>) -> Self {
+impl AsmProgram {
+    pub fn new(update_type: AsmProgramUpdateType, cmds: Vec<AsmCommand>) -> Self {
         let mut label_pos = HashMap::new();
         for (i, cmd) in cmds.iter().enumerate() {
-            if let PASMCommand::Label { name } = cmd {
+            if let AsmCommand::Label { name } = cmd {
                 label_pos.insert(name.clone(), i);
             }
         }
         Self {
             cmds,
             update_type,
-            state: PASMProgramState {
+            state: AsmProgramState {
                 vars: HashMap::new(),
                 pc: 0,
                 flags: 0,
@@ -188,7 +199,10 @@ impl PASM {
         }
     }
 
-    pub fn with_default_vars(mut self, vars: HashMap<impl Into<String>, impl Into<Data>>) -> Self {
+    pub fn with_default_vars(
+        mut self,
+        vars: HashMap<impl Into<String>, impl Into<AsmValue>>,
+    ) -> Self {
         self.state.vars = vars
             .into_iter()
             .map(|(k, v)| (k.into(), v.into()))
@@ -208,31 +222,31 @@ impl PASM {
         (self.state.flags & (1 << bit)) != 0
     }
 
-    pub fn eval_expr(&mut self, expr: &PASMExpr) -> Data {
+    pub fn eval_expr(&mut self, expr: &AsmExpr) -> AsmValue {
         match expr {
-            PASMExpr::Not(expr) => !self.eval_expr(expr),
-            PASMExpr::And(exprs) => exprs
+            AsmExpr::Not(expr) => !self.eval_expr(expr),
+            AsmExpr::And(exprs) => exprs
                 .iter()
-                .fold(Data::high(), |acc, x| acc & self.eval_expr(x)),
-            PASMExpr::Or(exprs) => exprs
+                .fold(AsmValue::true_val(), |acc, x| acc & self.eval_expr(x)),
+            AsmExpr::Or(exprs) => exprs
                 .iter()
-                .fold(Data::low(), |acc, x| acc | self.eval_expr(x)),
-            PASMExpr::Nand(exprs) => exprs
+                .fold(AsmValue::false_val(), |acc, x| acc | self.eval_expr(x)),
+            AsmExpr::Nand(exprs) => !exprs
                 .iter()
-                .fold(Data::high(), |acc, x| acc & self.eval_expr(x)),
-            PASMExpr::Nor(exprs) => exprs
+                .fold(AsmValue::true_val(), |acc, x| acc & self.eval_expr(x)),
+            AsmExpr::Nor(exprs) => !exprs
                 .iter()
-                .fold(Data::low(), |acc, x| acc | self.eval_expr(x)),
-            PASMExpr::Xor(exprs) => exprs
+                .fold(AsmValue::false_val(), |acc, x| acc | self.eval_expr(x)),
+            AsmExpr::Xor(exprs) => exprs
                 .iter()
                 .skip(1)
                 .fold(self.eval_expr(&exprs[0]), |acc, x| acc ^ self.eval_expr(x)),
-            PASMExpr::Var(name) => self.state.vars[name],
-            PASMExpr::Const(value) => *value,
-            PASMExpr::BitVec(exprs) => {
-                let mut data = Data::new(0, exprs.len() as u8);
+            AsmExpr::Var(name) => self.state.vars[name],
+            AsmExpr::Const(value) => *value,
+            AsmExpr::BitVec(exprs) => {
+                let mut data = AsmValue::new(0, exprs.len());
                 for (i, expr) in exprs.iter().enumerate() {
-                    data.set_bit_at(i as u8, self.eval_expr(expr).as_bool());
+                    data.set_bit(i, self.eval_expr(expr).as_bool());
                 }
                 data
             }
@@ -245,26 +259,30 @@ impl PASM {
             let pc = self.state.pc;
 
             match self.cmds[pc].clone() {
-                PASMCommand::Mov { name, value } => {
+                AsmCommand::Mov { name, value } => {
                     let val = self.eval_expr(&value);
                     self.state.vars.insert(name, val);
                     self.state.pc += 1;
                 }
-                PASMCommand::Label { .. } => {
+                AsmCommand::Label { .. } => {
                     self.state.pc += 1;
                 }
-                PASMCommand::Goto { label } => {
+                AsmCommand::Goto { label } => {
                     let pos = self.state.label_pos[&label];
                     self.state.pc = pos;
                 }
-                PASMCommand::Cmp { v1, v2 } => {
+                AsmCommand::Cmp { v1, v2 } => {
                     let v1 = self.eval_expr(&v1);
                     let v2 = self.eval_expr(&v2);
                     self.set_flag(FLAG_EQUAL, v1 == v2);
                     self.set_flag(FLAG_LESS, v1.value < v2.value);
                     self.state.pc += 1;
                 }
-                PASMCommand::Je { label } => {
+                AsmCommand::Jmp { label } => {
+                    let pos = self.state.label_pos[&label];
+                    self.state.pc = pos;
+                }
+                AsmCommand::Je { label } => {
                     if self.flag_at(FLAG_EQUAL) {
                         let pos = self.state.label_pos[&label];
                         self.state.pc = pos;
@@ -272,7 +290,7 @@ impl PASM {
                         self.state.pc += 1;
                     }
                 }
-                PASMCommand::Jne { label } => {
+                AsmCommand::Jne { label } => {
                     if !self.flag_at(FLAG_EQUAL) {
                         let pos = self.state.label_pos[&label];
                         self.state.pc = pos;
@@ -280,7 +298,7 @@ impl PASM {
                         self.state.pc += 1;
                     }
                 }
-                PASMCommand::Jg { label } => {
+                AsmCommand::Jg { label } => {
                     if !self.flag_at(FLAG_LESS) {
                         let pos = self.state.label_pos[&label];
                         self.state.pc = pos;
@@ -288,7 +306,7 @@ impl PASM {
                         self.state.pc += 1;
                     }
                 }
-                PASMCommand::Jl { label } => {
+                AsmCommand::Jl { label } => {
                     if self.flag_at(FLAG_LESS) {
                         let pos = self.state.label_pos[&label];
                         self.state.pc = pos;
@@ -296,7 +314,7 @@ impl PASM {
                         self.state.pc += 1;
                     }
                 }
-                PASMCommand::Jge { label } => {
+                AsmCommand::Jge { label } => {
                     if self.flag_at(FLAG_EQUAL) || !self.flag_at(FLAG_LESS) {
                         let pos = self.state.label_pos[&label];
                         self.state.pc = pos;
@@ -304,7 +322,7 @@ impl PASM {
                         self.state.pc += 1;
                     }
                 }
-                PASMCommand::Jle { label } => {
+                AsmCommand::Jle { label } => {
                     if self.flag_at(FLAG_EQUAL) || self.flag_at(FLAG_LESS) {
                         let pos = self.state.label_pos[&label];
                         self.state.pc = pos;
@@ -312,7 +330,7 @@ impl PASM {
                         self.state.pc += 1;
                     }
                 }
-                PASMCommand::Wait { time } => {
+                AsmCommand::Wait { time } => {
                     if let Some(from) = self.state.waiting_from {
                         if from + time <= curr_time {
                             self.state.waiting_from = None;

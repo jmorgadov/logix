@@ -116,9 +116,10 @@ impl BoardEditing {
     pub fn import_comp<P: AsRef<Path>>(&mut self, file: P, pos: egui::Pos2) {
         let buf = file.as_ref().to_path_buf();
         if let Ok(comp_file) = buf.strip_prefix(self.project_folder.clone()) {
-            if self.board.import_comp(self.next_id, comp_file, pos).is_ok() {
-                self.next_id += 1;
-            }
+            self.board
+                .import_comp(self.next_id, comp_file, pos)
+                .expect("Error importing component");
+            self.next_id += 1;
         }
     }
 

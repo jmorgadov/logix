@@ -1,4 +1,5 @@
-use logix_sim::primitives::{data::Data, pasm::PASM, primitive::Primitive};
+use asmhdl::AsmProgram;
+use logix_sim::primitives::{data::Data, primitive::Primitive};
 use serde::{Deserialize, Serialize};
 
 use super::CompSource;
@@ -53,7 +54,7 @@ pub struct ComponentInfo {
 }
 
 impl ComponentInfo {
-    pub fn custom(name: &str, inputs: Vec<IOInfo>, outputs: Vec<IOInfo>, prog: PASM) -> Self {
+    pub fn custom(name: &str, inputs: Vec<IOInfo>, outputs: Vec<IOInfo>, prog: AsmProgram) -> Self {
         Self {
             name: name.to_string(),
             source: CompSource::Prim(Primitive::Custom { prog }),
@@ -161,7 +162,7 @@ impl ComponentInfo {
         Self {
             name: "SPLIT".to_string(),
             source: CompSource::Prim(Primitive::Splitter { bits }),
-            inputs: vec![IOInfo::default()],
+            inputs: vec![IOInfo::new("", bits)],
             outputs: (0..bits).map(|b| IOInfo::single(b.to_string())).collect(),
             description: None,
         }
@@ -172,7 +173,7 @@ impl ComponentInfo {
             name: "JOIN".to_string(),
             source: CompSource::Prim(Primitive::Joiner { bits }),
             inputs: (0..bits).map(|b| IOInfo::single(b.to_string())).collect(),
-            outputs: vec![IOInfo::default()],
+            outputs: vec![IOInfo::new("", bits)],
             description: None,
         }
     }
@@ -182,7 +183,7 @@ impl ComponentInfo {
             name: "IN".to_string(),
             source: CompSource::Prim(Primitive::Input { bits }),
             inputs: vec![],
-            outputs: vec![IOInfo::default()],
+            outputs: vec![IOInfo::new("", bits)],
             description: None,
         }
     }
@@ -191,7 +192,7 @@ impl ComponentInfo {
         Self {
             name: "OUT".to_string(),
             source: CompSource::Prim(Primitive::Output { bits }),
-            inputs: vec![IOInfo::default()],
+            inputs: vec![IOInfo::new("", bits)],
             outputs: vec![],
             description: None,
         }

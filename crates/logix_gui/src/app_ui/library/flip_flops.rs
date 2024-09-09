@@ -1,7 +1,4 @@
-use logix_sim::{
-    pcmd, pexp,
-    primitives::pasm::{ProgramUpdateType, PASM},
-};
+use asmhdl::{pcmd, pexp, AsmProgram, AsmProgramUpdateType};
 
 use crate::app_ui::board::ComponentInfo;
 
@@ -15,8 +12,8 @@ pub fn flip_flops_lib() -> Library {
                 "JKMS",
                 vec!["J".into(), "CLK".into(), "K".into()],
                 vec!["Q".into(), "!Q".into()],
-                PASM::new(
-                    ProgramUpdateType::InputChanges,
+                AsmProgram::new(
+                    AsmProgramUpdateType::InputChanges,
                     vec![
                         // Estimate falling edge
                         pcmd!(
@@ -28,7 +25,7 @@ pub fn flip_flops_lib() -> Library {
                         // Update last clk with current clk value
                         pcmd!(mov, "last_clk", pexp!(var, "_i_1")),
                         // Check if falling edge
-                        pcmd!(cmp, pexp!(var, "falling_edge"), pexp!(data, true)),
+                        pcmd!(cmp, pexp!(var, "falling_edge"), pexp!(val, true)),
                         // If not rising edge, jump to END
                         pcmd!(jne, "END"),
                         // Else ...
@@ -39,24 +36,24 @@ pub fn flip_flops_lib() -> Library {
                             pexp!(bit_vec, pexp!(var, "_i_0"), pexp!(var, "_i_2"))
                         ),
                         // Check JK value and jump to the corresponding case
-                        pcmd!(cmp, pexp!(var, "JK"), pexp!(data, "00")),
+                        pcmd!(cmp, pexp!(var, "JK"), pexp!(val, "00")),
                         pcmd!(je, "CASE_00"),
-                        pcmd!(cmp, pexp!(var, "JK"), pexp!(data, "10")),
-                        pcmd!(je, "CASE_10"),
-                        pcmd!(cmp, pexp!(var, "JK"), pexp!(data, "01")),
+                        pcmd!(cmp, pexp!(var, "JK"), pexp!(val, "01")),
                         pcmd!(je, "CASE_01"),
-                        pcmd!(cmp, pexp!(var, "JK"), pexp!(data, "11")),
+                        pcmd!(cmp, pexp!(var, "JK"), pexp!(val, "10")),
+                        pcmd!(je, "CASE_10"),
+                        pcmd!(cmp, pexp!(var, "JK"), pexp!(val, "11")),
                         pcmd!(je, "CASE_11"),
                         //
                         pcmd!(label, "CASE_00"),
                         pcmd!(jne, "END"),
                         //
                         pcmd!(label, "CASE_01"),
-                        pcmd!(mov, "_o_0", pexp!(data, false)),
+                        pcmd!(mov, "_o_0", pexp!(val, 0)),
                         pcmd!(jne, "END"),
                         //
                         pcmd!(label, "CASE_10"),
-                        pcmd!(mov, "_o_0", pexp!(data, true)),
+                        pcmd!(mov, "_o_0", pexp!(val, 1)),
                         pcmd!(jne, "END"),
                         //
                         pcmd!(label, "CASE_11"),

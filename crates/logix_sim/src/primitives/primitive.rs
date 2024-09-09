@@ -1,8 +1,9 @@
 use std::fmt::{Display, Formatter};
 
+use asmhdl::AsmProgram;
 use serde::{Deserialize, Serialize};
 
-use super::{data::Data, pasm::PASM};
+use super::data::Data;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Primitive {
@@ -18,7 +19,7 @@ pub enum Primitive {
     Joiner { bits: u8 },
     Clock { period: u128 },
     Const { value: Data },
-    Custom { prog: PASM },
+    Custom { prog: AsmProgram },
 }
 
 impl Primitive {
@@ -135,10 +136,14 @@ impl PrimitiveComponent {
             Primitive::Custom { prog } => {
                 // Set inputs and outputs in program state for internal access
                 self.inputs.iter().enumerate().for_each(|(idx, input)| {
-                    prog.state.vars.insert(format!("_i_{idx}"), *input);
+                    prog.state
+                        .vars
+                        .insert(format!("_i_{idx}"), input.as_asm_val());
                 });
                 self.outputs.iter().enumerate().for_each(|(idx, output)| {
-                    prog.state.vars.insert(format!("_o_{idx}"), *output);
+                    prog.state
+                        .vars
+                        .insert(format!("_o_{idx}"), output.as_asm_val());
                 });
 
                 prog.run(time);
@@ -148,13 +153,13 @@ impl PrimitiveComponent {
                     .iter_mut()
                     .enumerate()
                     .for_each(|(idx, output)| {
-                        *output = prog.state.vars[&format!("_o_{idx}")];
+                        *output = prog.state.vars[&format!("_o_{idx}")].into();
                     });
             }
         }
     }
 
-    pub fn custom(id: usize, prog: PASM, in_count: usize, out_count: usize) -> Self {
+    pub fn custom(id: usize, prog: AsmProgram, in_count: usize, out_count: usize) -> Self {
         PrimitiveComponent {
             id,
             name: "Custom".to_string(),

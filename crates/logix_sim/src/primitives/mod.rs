@@ -1,5 +1,4 @@
 pub mod data;
-pub mod pasm;
 pub mod primitive;
 pub mod primitive_builders;
 

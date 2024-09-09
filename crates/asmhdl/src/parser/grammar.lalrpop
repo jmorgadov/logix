@@ -1,0 +1,92 @@
+use crate::program::{AsmCommand, AsmExpr};
+use crate::pexp;
+use crate::parser::component_parser::{AsmCommandArg, AsmCmdDecl, cmd_from_args};
+
+grammar;
+
+pub ID: String = {
+    <s:r"[a-zA-Z_][a-zA-Z0-9_]*"> => s.to_string(),
+};
+
+pub Num: usize = <s:r"[0-9]+"> => s.parse::<usize>().unwrap();
+
+pub CmdType: AsmCmdDecl = {
+    "mov" => AsmCmdDecl::Mov,
+    "label" => AsmCmdDecl::Label,
+    "goto" => AsmCmdDecl::Goto,
+    "cmp" => AsmCmdDecl::Cmp,
+    "jmp" => AsmCmdDecl::Jmp,
+    "je" => AsmCmdDecl::Je,
+    "jne" => AsmCmdDecl::Jne,
+    "jg" => AsmCmdDecl::Jg,
+    "jge" => AsmCmdDecl::Jge,
+    "jl" => AsmCmdDecl::Jl,
+    "jle" => AsmCmdDecl::Jle,
+    "wait" => AsmCmdDecl::Wait,
+}
+
+pub CmdArg: AsmCommandArg = {
+    <id:ID> => AsmCommandArg::Var(id),
+    <num:Num> => AsmCommandArg::Num(num),
+    "(" <expr:Expr> ")" => AsmCommandArg::Expr(expr),
+    "!" <expr: ValExpr> => AsmCommandArg::Expr(pexp!(not, expr)),
+    <vexp: BitVecExpr> => AsmCommandArg::Expr(vexp),
+};
+
+
+pub ValIdExpr: AsmExpr = {
+    <id:ID> => pexp!(var, id),
+}
+
+pub BitVecExpr: AsmExpr = {
+    "[" <expr: (ValIdExpr)+> "]" => pexp!(bit_vecv, expr)
+}
+
+pub ValTermExpr: AsmExpr = {
+  ValIdExpr,
+    "(" <expr:ValExpr> ")" => expr,
+}
+
+pub ValNotExpr: AsmExpr = {
+  "!" <expr: ValTermExpr> => pexp!(not, expr),
+  <expr: ValTermExpr> => expr,
+}
+
+pub ValXorExpr: AsmExpr = {
+    <expr1: ValXorExpr> "xor" <expr2: ValNotExpr> => pexp!(xor, expr1, expr2),
+    <expr: ValNotExpr> => expr,
+}
+
+pub ValNandExpr: AsmExpr = {
+    <expr1: ValNandExpr> "nand" <expr2: ValXorExpr> => pexp!(nand, expr1, expr2),
+    <expr: ValXorExpr> => expr,
+}
+
+pub ValNorExpr: AsmExpr = {
+    <expr1: ValNorExpr> "nor" <expr2: ValNandExpr> => pexp!(nor, expr1, expr2),
+    <expr: ValNandExpr> => expr,
+}
+
+pub ValAndExpr: AsmExpr = {
+    <expr1: ValAndExpr> "and" <expr2: ValNorExpr> => pexp!(and, expr1, expr2),
+    <expr: ValNorExpr> => expr,
+}
+
+pub ValOrExpr: AsmExpr = {
+    <expr1: ValOrExpr> "or" <expr2: ValAndExpr> => pexp!(or, expr1, expr2),
+    <expr: ValAndExpr> => expr,
+}
+
+pub ValExpr: AsmExpr = {
+    <expr: ValOrExpr> => expr,
+};
+
+pub Expr: AsmExpr = {
+    <e: BitVecExpr> => e,
+    <e: ValExpr> => e,
+}
+
+pub Command: AsmCommand = {
+    <id: ID> ":" => AsmCommand::Label { name: id },
+    <cmd: CmdType>  <args: (CmdArg)*> => cmd_from_args(cmd, args),
+};

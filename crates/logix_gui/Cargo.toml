@@ -12,6 +12,7 @@ keywords = ["circuits", "simulation", "gui"]
 [dependencies]
 logix_core = { path = "../logix_core" }
 logix_sim = { path = "../logix_sim" }
+asmhdl = { path = "../asmhdl" }
 eframe = "0.28.1"
 egui = { version = "0.28.1", features = ["serde"] }
 indexmap = "2.5.0"

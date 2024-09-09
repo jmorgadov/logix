@@ -1,12 +1,19 @@
 use std::fmt::Display;
 use std::ops as std_ops;
 
+use asmhdl::AsmValue;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Default, Serialize, Deserialize)]
 pub struct Data {
     pub value: usize,
     pub size: u8,
+}
+
+impl From<AsmValue> for Data {
+    fn from(value: AsmValue) -> Self {
+        Data::new(value.value, value.size as u8)
+    }
 }
 
 impl From<bool> for Data {
@@ -53,6 +60,13 @@ impl Data {
         Data {
             value: value as usize,
             size: 1,
+        }
+    }
+
+    pub fn as_asm_val(&self) -> AsmValue {
+        AsmValue {
+            value: self.value,
+            size: self.size as usize,
         }
     }
 

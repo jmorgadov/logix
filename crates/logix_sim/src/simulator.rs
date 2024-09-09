@@ -1,7 +1,5 @@
-use crate::{
-    flatten::FlattenComponent,
-    primitives::{pasm::ProgramUpdateType, primitive::Primitive},
-};
+use crate::{flatten::FlattenComponent, primitives::primitive::Primitive};
+use asmhdl::AsmProgramUpdateType;
 use log::debug;
 use rand::seq::SliceRandom;
 use std::{
@@ -36,7 +34,7 @@ impl Simulator {
                         return Some(i);
                     }
                     Primitive::Custom { prog } => {
-                        if let ProgramUpdateType::Always = prog.update_type {
+                        if let AsmProgramUpdateType::Always = prog.update_type {
                             return Some(i);
                         }
                     }
@@ -146,7 +144,7 @@ impl Simulator {
                     match &comp_i.prim_type {
                         Primitive::Clock { period: _p } => {}
                         Primitive::Custom { prog } => {
-                            if let ProgramUpdateType::InputChanges = prog.update_type {
+                            if let AsmProgramUpdateType::InputChanges = prog.update_type {
                                 state.to_upd.retain(|&x| x != comp_idx);
                             }
                         }
