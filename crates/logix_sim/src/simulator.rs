@@ -33,8 +33,8 @@ impl Simulator {
                     Primitive::Clock { period: _p } => {
                         return Some(i);
                     }
-                    Primitive::Custom { prog } => {
-                        if let AsmProgramUpdateType::Always = prog.update_type {
+                    Primitive::Custom { comp, state: _ } => {
+                        if let AsmProgramUpdateType::Always = comp.update_type {
                             return Some(i);
                         }
                     }
@@ -143,8 +143,8 @@ impl Simulator {
 
                     match &comp_i.prim_type {
                         Primitive::Clock { period: _p } => {}
-                        Primitive::Custom { prog } => {
-                            if let AsmProgramUpdateType::InputChanges = prog.update_type {
+                        Primitive::Custom { comp, state: _ } => {
+                            if let AsmProgramUpdateType::InputChanges = comp.update_type {
                                 state.to_upd.retain(|&x| x != comp_idx);
                             }
                         }

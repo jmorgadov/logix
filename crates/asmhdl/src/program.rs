@@ -7,21 +7,6 @@ use crate::value::AsmValue;
 const FLAG_EQUAL: usize = 0;
 const FLAG_LESS: usize = 1;
 
-/// Program that describes a component's behavior
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct AsmProgram {
-    /// Sequence of commands to execute
-    pub cmds: Vec<AsmCommand>,
-
-    /// Update type of the program
-    pub update_type: AsmProgramUpdateType,
-
-    /// Current state of the program
-    ///
-    /// This state is modified as the program is executed
-    pub state: AsmProgramState,
-}
-
 /// Update type of the program
 #[derive(Debug, Clone, Serialize, Deserialize, Default, Copy)]
 pub enum AsmProgramUpdateType {
@@ -35,24 +20,28 @@ pub enum AsmProgramUpdateType {
     Always,
 }
 
+/// Represents a running state of an AsmHDL program
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AsmProgramState {
-    // Declared variables
+    /// Commands
+    pub cmds: Vec<AsmCommand>,
+
+    /// Declared variables
     pub vars: HashMap<String, AsmValue>,
 
-    // Program counter
+    /// Program counter
     pub pc: usize,
 
-    // Flags
-    //  bit\val   0        1
-    //    0       equal    not equal
-    //    1       greater  less
+    /// Flags
+    ///  bit\val   0        1
+    ///    0       equal    not equal
+    ///    1       greater  less
     pub flags: usize,
 
-    // Line position of labels
+    /// Line position of labels
     pub label_pos: HashMap<String, usize>,
 
-    // Time to wait from
+    /// Time to wait from
     pub waiting_from: Option<u128>,
 }
 
@@ -239,25 +228,22 @@ macro_rules! pcmd {
     };
 }
 
-impl AsmProgram {
-    /// Creates a new program with the given update type and commands
-    pub fn new(update_type: AsmProgramUpdateType, cmds: Vec<AsmCommand>) -> Self {
+impl AsmProgramState {
+    /// Creates a new program state with the given update type and commands
+    pub fn new(cmds: Vec<AsmCommand>) -> Self {
         let mut label_pos = HashMap::new();
         for (i, cmd) in cmds.iter().enumerate() {
             if let AsmCommand::Label { name } = cmd {
                 label_pos.insert(name.clone(), i);
             }
         }
-        Self {
+        AsmProgramState {
             cmds,
-            update_type,
-            state: AsmProgramState {
-                vars: HashMap::new(),
-                pc: 0,
-                flags: 0,
-                label_pos,
-                waiting_from: None,
-            },
+            vars: HashMap::new(),
+            pc: 0,
+            flags: 0,
+            label_pos,
+            waiting_from: None,
         }
     }
 
@@ -266,7 +252,7 @@ impl AsmProgram {
         mut self,
         vars: HashMap<impl Into<String>, impl Into<AsmValue>>,
     ) -> Self {
-        self.state.vars = vars
+        self.vars = vars
             .into_iter()
             .map(|(k, v)| (k.into(), v.into()))
             .collect();
@@ -275,14 +261,14 @@ impl AsmProgram {
 
     fn set_flag(&mut self, bit: usize, val: bool) {
         if val {
-            self.state.flags |= 1 << bit;
+            self.flags |= 1 << bit;
         } else {
-            self.state.flags &= !(1 << bit);
+            self.flags &= !(1 << bit);
         }
     }
 
     fn flag_at(&self, bit: usize) -> bool {
-        (self.state.flags & (1 << bit)) != 0
+        (self.flags & (1 << bit)) != 0
     }
 
     fn eval_expr(&mut self, expr: &AsmExpr) -> AsmValue {
@@ -304,11 +290,11 @@ impl AsmProgram {
                 .iter()
                 .skip(1)
                 .fold(self.eval_expr(&exprs[0]), |acc, x| acc ^ self.eval_expr(x)),
-            AsmExpr::Var(name) => self.state.vars[name],
+            AsmExpr::Var(name) => self.vars[name],
             AsmExpr::Const(value) => *value,
             AsmExpr::BitVec(exprs) => {
                 let mut data = AsmValue::new(0, exprs.len());
-                for (i, expr) in exprs.iter().enumerate() {
+                for (i, expr) in exprs.iter().rev().enumerate() {
                     data.set_bit(i, self.eval_expr(expr).as_bool());
                 }
                 data
@@ -323,86 +309,86 @@ impl AsmProgram {
     pub fn run(&mut self, curr_time: u128) {
         let mut running = true;
         while running {
-            let pc = self.state.pc;
+            let pc = self.pc;
 
             match self.cmds[pc].clone() {
                 AsmCommand::Mov { name, value } => {
                     let val = self.eval_expr(&value);
-                    self.state.vars.insert(name, val);
-                    self.state.pc += 1;
+                    self.vars.insert(name, val);
+                    self.pc += 1;
                 }
                 AsmCommand::Label { .. } => {
-                    self.state.pc += 1;
+                    self.pc += 1;
                 }
                 AsmCommand::Goto { label } => {
-                    let pos = self.state.label_pos[&label];
-                    self.state.pc = pos;
+                    let pos = self.label_pos[&label];
+                    self.pc = pos;
                 }
                 AsmCommand::Cmp { v1, v2 } => {
                     let v1 = self.eval_expr(&v1);
                     let v2 = self.eval_expr(&v2);
-                    self.set_flag(FLAG_EQUAL, v1 == v2);
+                    self.set_flag(FLAG_EQUAL, v1.value == v2.value);
                     self.set_flag(FLAG_LESS, v1.value < v2.value);
-                    self.state.pc += 1;
+                    self.pc += 1;
                 }
                 AsmCommand::Je { label } => {
                     if self.flag_at(FLAG_EQUAL) {
-                        let pos = self.state.label_pos[&label];
-                        self.state.pc = pos;
+                        let pos = self.label_pos[&label];
+                        self.pc = pos;
                     } else {
-                        self.state.pc += 1;
+                        self.pc += 1;
                     }
                 }
                 AsmCommand::Jne { label } => {
                     if !self.flag_at(FLAG_EQUAL) {
-                        let pos = self.state.label_pos[&label];
-                        self.state.pc = pos;
+                        let pos = self.label_pos[&label];
+                        self.pc = pos;
                     } else {
-                        self.state.pc += 1;
+                        self.pc += 1;
                     }
                 }
                 AsmCommand::Jg { label } => {
                     if !self.flag_at(FLAG_LESS) {
-                        let pos = self.state.label_pos[&label];
-                        self.state.pc = pos;
+                        let pos = self.label_pos[&label];
+                        self.pc = pos;
                     } else {
-                        self.state.pc += 1;
+                        self.pc += 1;
                     }
                 }
                 AsmCommand::Jl { label } => {
                     if self.flag_at(FLAG_LESS) {
-                        let pos = self.state.label_pos[&label];
-                        self.state.pc = pos;
+                        let pos = self.label_pos[&label];
+                        self.pc = pos;
                     } else {
-                        self.state.pc += 1;
+                        self.pc += 1;
                     }
                 }
                 AsmCommand::Jge { label } => {
                     if self.flag_at(FLAG_EQUAL) || !self.flag_at(FLAG_LESS) {
-                        let pos = self.state.label_pos[&label];
-                        self.state.pc = pos;
+                        let pos = self.label_pos[&label];
+                        self.pc = pos;
                     } else {
-                        self.state.pc += 1;
+                        self.pc += 1;
                     }
                 }
                 AsmCommand::Jle { label } => {
                     if self.flag_at(FLAG_EQUAL) || self.flag_at(FLAG_LESS) {
-                        let pos = self.state.label_pos[&label];
-                        self.state.pc = pos;
+                        let pos = self.label_pos[&label];
+                        self.pc = pos;
                     } else {
-                        self.state.pc += 1;
+                        self.pc += 1;
                     }
                 }
                 AsmCommand::Wait { time } => {
-                    if let Some(from) = self.state.waiting_from {
+                    if let Some(from) = self.waiting_from {
                         if from + time <= curr_time {
-                            self.state.waiting_from = None;
-                            self.state.pc += 1;
+                            self.waiting_from = None;
+                            self.pc += 1;
                         } else {
                             running = false;
                         }
                     } else {
-                        self.state.waiting_from = Some(curr_time);
+                        self.waiting_from = Some(curr_time);
                         running = false;
                     }
                 }
@@ -410,7 +396,7 @@ impl AsmProgram {
 
             if pc >= self.cmds.len() - 1 {
                 // Just start again in the next update (run)
-                self.state.pc = 0;
+                self.pc = 0;
                 running = false;
             }
         }

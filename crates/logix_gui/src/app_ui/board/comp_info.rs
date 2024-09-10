@@ -1,4 +1,4 @@
-use asmhdl::{AsmComponent, AsmProgram};
+use asmhdl::AsmComponent;
 use logix_sim::primitives::{data::Data, primitive::Primitive};
 use serde::{Deserialize, Serialize};
 
@@ -56,26 +56,25 @@ pub struct ComponentInfo {
 impl ComponentInfo {
     pub fn from_asm_comp_code(asm_comp_code: &str) -> Self {
         let asm_comp = AsmComponent::from_code(asm_comp_code);
-        Self::custom(
-            &asm_comp.name,
-            asm_comp
-                .inputs
-                .iter()
-                .map(|(name, size)| IOInfo::new(name, *size))
-                .collect(),
-            asm_comp
-                .outputs
-                .iter()
-                .map(|(name, size)| IOInfo::new(name, *size))
-                .collect(),
-            asm_comp.program(),
-        )
+        Self::custom(asm_comp)
     }
 
-    pub fn custom(name: &str, inputs: Vec<IOInfo>, outputs: Vec<IOInfo>, prog: AsmProgram) -> Self {
+    pub fn custom(comp: AsmComponent) -> Self {
+        let name = comp.name.clone();
+        let state = comp.new_program_state();
+        let inputs = comp
+            .inputs
+            .iter()
+            .map(|(name, size)| IOInfo::new(name, *size))
+            .collect();
+        let outputs = comp
+            .outputs
+            .iter()
+            .map(|(name, size)| IOInfo::new(name, *size))
+            .collect();
         Self {
-            name: name.to_string(),
-            source: CompSource::Prim(Primitive::Custom { prog }),
+            name,
+            source: CompSource::Prim(Primitive::Custom { comp, state }),
             inputs,
             outputs,
             description: None,

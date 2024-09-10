@@ -18,5 +18,5 @@ mod program;
 mod value;
 
 pub use component::AsmComponent;
-pub use program::{AsmCommand, AsmExpr, AsmProgram, AsmProgramUpdateType};
+pub use program::{AsmCommand, AsmExpr, AsmProgramState, AsmProgramUpdateType};
 pub use value::AsmValue;

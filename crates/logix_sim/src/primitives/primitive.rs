@@ -1,6 +1,6 @@
 use std::fmt::{Display, Formatter};
 
-use asmhdl::AsmProgram;
+use asmhdl::{AsmComponent, AsmProgramState};
 use serde::{Deserialize, Serialize};
 
 use super::data::Data;
@@ -13,13 +13,28 @@ pub enum Primitive {
     NandGate,
     NorGate,
     XorGate,
-    Input { bits: u8 },
-    Output { bits: u8 },
-    Splitter { bits: u8 },
-    Joiner { bits: u8 },
-    Clock { period: u128 },
-    Const { value: Data },
-    Custom { prog: AsmProgram },
+    Input {
+        bits: u8,
+    },
+    Output {
+        bits: u8,
+    },
+    Splitter {
+        bits: u8,
+    },
+    Joiner {
+        bits: u8,
+    },
+    Clock {
+        period: u128,
+    },
+    Const {
+        value: Data,
+    },
+    Custom {
+        comp: AsmComponent,
+        state: AsmProgramState,
+    },
 }
 
 impl Primitive {
@@ -133,37 +148,43 @@ impl PrimitiveComponent {
                 self.outputs[0].set_bit((time % (*period * 2)) > *period);
             }
             Primitive::Const { value: _v } => (),
-            Primitive::Custom { prog } => {
+            Primitive::Custom { comp, state } => {
                 // Set inputs and outputs in program state for internal access
-                self.inputs.iter().enumerate().for_each(|(idx, input)| {
-                    prog.state
+                comp.inputs.iter().enumerate().for_each(|(idx, (name, _))| {
+                    state
                         .vars
-                        .insert(format!("_i_{idx}"), input.as_asm_val());
+                        .insert(name.clone(), self.inputs[idx].as_asm_val());
                 });
-                self.outputs.iter().enumerate().for_each(|(idx, output)| {
-                    prog.state
-                        .vars
-                        .insert(format!("_o_{idx}"), output.as_asm_val());
-                });
+                comp.outputs
+                    .iter()
+                    .enumerate()
+                    .for_each(|(idx, (name, _))| {
+                        state
+                            .vars
+                            .insert(name.clone(), self.outputs[idx].as_asm_val());
+                    });
 
-                prog.run(time);
+                state.run(time);
 
                 // Update outputs from program state
-                self.outputs
+                comp.outputs
                     .iter_mut()
                     .enumerate()
-                    .for_each(|(idx, output)| {
-                        *output = prog.state.vars[&format!("_o_{idx}")].into();
+                    .for_each(|(idx, (name, _))| {
+                        self.outputs[idx] = state.vars[name].into();
                     });
             }
         }
     }
 
-    pub fn custom(id: usize, prog: AsmProgram, in_count: usize, out_count: usize) -> Self {
+    pub fn custom(id: usize, comp: AsmComponent) -> Self {
+        let in_count = comp.inputs.len();
+        let out_count = comp.outputs.len();
+        let state = comp.new_program_state();
         PrimitiveComponent {
             id,
             name: "Custom".to_string(),
-            prim_type: Primitive::Custom { prog },
+            prim_type: Primitive::Custom { comp, state },
             inputs: vec![Data::low(); in_count],
             outputs: vec![Data::low(); out_count],
         }

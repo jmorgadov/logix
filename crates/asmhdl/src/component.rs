@@ -1,12 +1,13 @@
 use crate::{
-    program::{AsmCommand, AsmProgramUpdateType},
-    AsmProgram, AsmValue,
+    program::{AsmCommand, AsmProgramState, AsmProgramUpdateType},
+    AsmValue,
 };
 use indexmap::IndexMap;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// Component definition
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Serialize, Deserialize, Clone)]
 pub struct AsmComponent {
     /// Component name
     pub name: String,
@@ -52,8 +53,8 @@ impl AsmComponent {
     }
 
     /// Generates an [`AsmProgram`] from the component information
-    pub fn program(&self) -> AsmProgram {
-        AsmProgram::new(self.update_type, self.cmds.clone())
+    pub fn new_program_state(&self) -> AsmProgramState {
+        AsmProgramState::new(self.cmds.clone()).with_default_vars(self.defaults.clone())
     }
 
     /// Creates a new empty component with the given name
