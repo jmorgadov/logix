@@ -36,6 +36,13 @@ DSL that allows the creation of circuits.
 See example
 [here](https://github.com/jmorgadov/logix/blob/main/crates/logix_lang/examples/main.lgx).
 
+### `asmhdl`
+
+Simple Assembly-like Hardware Description Language.
+
+See a JK Master-Slave flip flop implementation example
+[here](https://github.com/jmorgadov/logix/blob/main/crates/logix_gui/src/app_ui/library/asmhdl_components/jkff_ms_fe.asmhdl)
+
 ---
 
 > :construction: This project is in its early stages and constantly evolving.  All names, structures, etc. may change in the future.

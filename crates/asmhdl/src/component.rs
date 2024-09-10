@@ -1,6 +1,6 @@
 use crate::{
     program::{AsmCommand, AsmProgramUpdateType},
-    AsmValue,
+    AsmProgram, AsmValue,
 };
 use indexmap::IndexMap;
 use std::collections::HashMap;
@@ -21,13 +21,13 @@ pub struct AsmComponent {
     ///
     /// Key: Port name
     /// Value: Port size in bits
-    pub inputs: IndexMap<String, usize>,
+    pub inputs: IndexMap<String, u8>,
 
     /// Output ports
     ///
     /// Key: Port name
     /// Value: Port size in bits
-    pub outputs: IndexMap<String, usize>,
+    pub outputs: IndexMap<String, u8>,
 
     /// Variables defined in by default in the component
     ///
@@ -44,6 +44,16 @@ impl AsmComponent {
     pub fn from_file(path: &str) -> Self {
         let text = std::fs::read_to_string(path).expect("Failed to read file");
         Self::parse(&text)
+    }
+
+    /// Parses a component from an asmhdl code
+    pub fn from_code(code: &str) -> Self {
+        Self::parse(code)
+    }
+
+    /// Generates an [`AsmProgram`] from the component information
+    pub fn program(&self) -> AsmProgram {
+        AsmProgram::new(self.update_type, self.cmds.clone())
     }
 
     /// Creates a new empty component with the given name
@@ -71,7 +81,7 @@ impl AsmComponent {
     /// Adds an input port to the component
     ///
     /// The order of the calls to this method will define the order of the input ports
-    pub fn with_input(mut self, name: &str, size: usize) -> Self {
+    pub fn with_input(mut self, name: &str, size: u8) -> Self {
         self.inputs.insert(name.to_string(), size);
         self
     }
@@ -79,7 +89,7 @@ impl AsmComponent {
     /// Adds an output port to the component
     ///
     /// The order of the calls to this method will define the order of the output ports
-    pub fn with_output(mut self, name: &str, size: usize) -> Self {
+    pub fn with_output(mut self, name: &str, size: u8) -> Self {
         self.outputs.insert(name.to_string(), size);
         self
     }

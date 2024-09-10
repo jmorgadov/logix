@@ -1,0 +1,50 @@
+_info:
+name JKMS⬇
+description JK master-slave falling edge triggered
+update input_changes
+
+_inputs:
+J 1       // J input of 1 bit
+CLK 1     // Clock input of 1 bit
+K 1       // K input of 1 bit
+
+_outputs:
+Q 1       // Q output of 1 bit
+!Q 1      // !Q output of 1 bit
+
+_defaults:
+last_clk 0   // Last clock value (to check for falling edge)
+
+_start:
+mov f_edge (!_i_1 and last_clk)   // Estimate the falling edge
+mov last_clk _i_1                 // Save the current clock value
+cmp f_edge 1                      // Check if the falling edge was detected
+jne _end                          // If not, terminate
+mov JK [_i_1 _i_0]                // JK is concat of _i_1 and _i_0
+
+// Check the value of J and K and jmp to the corresponding case
+cmp JK 00
+je case_00
+cmp JK 01
+je case_01
+cmp JK 10
+je case_10
+cmp JK 11
+je case_11
+
+case_00:          // If J and K are 0, Q remains the same
+goto end
+
+case_01:          // If J=0 and K=1, Q is set to 0
+mov _o_0 0
+goto end
+
+case_10:          // If J=1 and K=0, Q is set to 1
+mov _o_0 1
+goto end
+
+case_11:          // If J and K are 1, toggle Q
+mov _o_0 !_o_0
+
+end:
+mov _o_1 !_o_0    // Set !Q the inverted value of Q
