@@ -54,11 +54,6 @@ pub struct ComponentInfo {
 }
 
 impl ComponentInfo {
-    pub fn from_asm_comp_code(asm_comp_code: &str) -> Self {
-        let asm_comp = AsmComponent::from_code(asm_comp_code);
-        Self::custom(asm_comp)
-    }
-
     pub fn custom(comp: AsmComponent) -> Self {
         let name = comp.name.clone();
         let state = comp.new_program_state();

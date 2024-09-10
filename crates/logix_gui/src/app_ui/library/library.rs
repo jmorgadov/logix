@@ -1,3 +1,4 @@
+use asmhdl::AsmComponent;
 use indexmap::IndexMap;
 
 use crate::app_ui::board::ComponentInfo;
@@ -31,5 +32,15 @@ impl Library {
                 ("Flip Flops".into(), flip_flops_lib()),
             ],
         )
+    }
+
+    pub fn entry_from_code(code: &str) -> (String, ComponentInfo) {
+        let comp = AsmComponent::from_code(code);
+        let entry_name = match &comp.description {
+            Some(desc) => desc.clone(),
+            None => comp.name.clone(),
+        };
+        let info = ComponentInfo::custom(comp);
+        (entry_name, info)
     }
 }
