@@ -2,7 +2,7 @@ use egui::{emath::TSTransform, Color32, Pos2, Rect, Response, Sense, Ui, Vec2};
 use logix_sim::primitives::primitive::Primitive;
 
 use crate::app_ui::{
-    board::BoardAction,
+    board::{BoardAction, CompSource},
     board_editing::BoardEditing,
     pages::on_project_ui::{
         constants::{COMP_FONT_SIZE, PIN_SIZE},
@@ -182,6 +182,21 @@ impl BoardEditing {
         // Draw the new connection being created if there is one
         // -----------------------------------------------------------------------------
         self.draw_new_connection(ui, idx, transform);
+
+        // -----------------------------------------------------------------------------
+        // Handle clciking on the component
+        // -----------------------------------------------------------------------------
+        let inside_sim = self.sim.is_some();
+        if resp.clicked()
+            && inside_sim
+            && matches!(
+                self.current_sim_board().components[idx].info.source,
+                CompSource::Prim(Primitive::Switch)
+            )
+        {
+            self.current_sim_board().components[idx].outputs_data[0] =
+                !self.current_sim_board().components[idx].outputs_data[0];
+        }
 
         // -----------------------------------------------------------------------------
         // Handle dragging the component

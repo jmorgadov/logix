@@ -121,6 +121,13 @@ impl FlattenComponent {
             .unwrap_or_else(|| panic!("Component {} not found", id))]
     }
 
+    pub fn comp_by_id_mut(&mut self, id: usize) -> &mut PrimitiveComponent {
+        &mut self.components[*self
+            .id_to_idx
+            .get_mut(&id)
+            .unwrap_or_else(|| panic!("Component {} not found", id))]
+    }
+
     pub fn get_input_status_at(&self, id: usize, idx: usize) -> Result<Data, DataRequestError> {
         let c_idx = *self
             .id_to_idx
@@ -228,6 +235,7 @@ fn flat_comp(comp: &Component<ExtraInfo>) -> (Vec<PrimitiveComponent>, Vec<Conn>
         Primitive::NandGate => PrimitiveComponent::nand_gate(id, in_count),
         Primitive::NorGate => PrimitiveComponent::nor_gate(id, in_count),
         Primitive::XorGate => PrimitiveComponent::xor_gate(id, in_count),
+        Primitive::Switch => PrimitiveComponent::switch(id),
         Primitive::Input { bits } => PrimitiveComponent::input(id, *bits),
         Primitive::Output { bits } => PrimitiveComponent::output(id, *bits),
         Primitive::Splitter { bits } => PrimitiveComponent::splitter(id, *bits),

@@ -10,7 +10,7 @@ use std::{
 
 pub struct SimState {
     pub comp: FlattenComponent,
-    to_upd: Vec<usize>,
+    pub to_upd: Vec<usize>,
     pub running: bool,
     pub end: bool,
 }
@@ -59,18 +59,15 @@ impl Simulator {
         }
     }
 
-    pub fn component<T>(&mut self, on_locked: impl FnOnce(&mut FlattenComponent) -> T) -> T {
+    pub fn state<T>(&mut self, on_locked: impl FnOnce(&mut SimState) -> T) -> T {
         let mut state = self.state.lock().unwrap();
-        on_locked(&mut state.comp)
+        on_locked(&mut state)
     }
 
-    pub fn try_component<T: Default>(
-        &mut self,
-        on_locked: impl FnOnce(&mut FlattenComponent) -> T,
-    ) -> T {
+    pub fn try_state<T: Default>(&mut self, on_locked: impl FnOnce(&mut SimState) -> T) -> T {
         let state = self.state.try_lock();
         if let Ok(mut state) = state {
-            return on_locked(&mut state.comp);
+            return on_locked(&mut state);
         }
         T::default()
     }

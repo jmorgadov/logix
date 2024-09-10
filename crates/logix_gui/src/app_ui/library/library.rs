@@ -26,7 +26,11 @@ impl Library {
 
     pub fn load() -> Self {
         Self::new(
-            [("CLK".into(), ComponentInfo::clock_gate())].into(),
+            [
+                ("CLK".into(), ComponentInfo::clock_gate()),
+                ("Switch".into(), ComponentInfo::switch()),
+            ]
+            .into(),
             [
                 ("Gates".into(), gates_lib()),
                 ("Flip Flops".into(), flip_flops_lib()),

@@ -17,7 +17,8 @@ impl BoardEditing {
                 | Primitive::Custom { .. }
                 | Primitive::Splitter { .. }
                 | Primitive::Joiner { .. }
-                | Primitive::Const { .. } => {}
+                | Primitive::Const { .. }
+                | Primitive::Switch { .. } => {}
                 Primitive::Clock { period: current_p } => {
                     ui.add(
                         egui::Slider::from_get_set(1e-6..=1e9, |val| {

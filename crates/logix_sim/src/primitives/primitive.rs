@@ -13,6 +13,7 @@ pub enum Primitive {
     NandGate,
     NorGate,
     XorGate,
+    Switch,
     Input {
         bits: u8,
     },
@@ -47,6 +48,7 @@ impl Primitive {
             | Primitive::NorGate
             | Primitive::Joiner { bits: _ }
             | Primitive::Custom { .. }
+            | Primitive::Switch
             | Primitive::XorGate => Some(Data::low()),
             Primitive::Output { bits: b } => Some(Data::new(0, b)),
             Primitive::Splitter { bits: b } => Some(Data::new(0, b)),
@@ -63,6 +65,7 @@ impl Primitive {
             | Primitive::NotGate
             | Primitive::NandGate
             | Primitive::NorGate
+            | Primitive::Switch
             | Primitive::Clock { period: _ }
             | Primitive::Splitter { bits: _ }
             | Primitive::Custom { .. }
@@ -174,6 +177,7 @@ impl PrimitiveComponent {
                         self.outputs[idx] = state.vars[name].into();
                     });
             }
+            Primitive::Switch { .. } => {} // Switch only changes on user input
         }
     }
 
@@ -246,6 +250,16 @@ impl PrimitiveComponent {
             name: "Xor".to_string(),
             prim_type: Primitive::XorGate,
             inputs: vec![Data::low(); in_count],
+            outputs: vec![Data::low()],
+        }
+    }
+
+    pub fn switch(id: usize) -> Self {
+        PrimitiveComponent {
+            id,
+            name: "Switch".to_string(),
+            prim_type: Primitive::Switch,
+            inputs: vec![],
             outputs: vec![Data::low()],
         }
     }

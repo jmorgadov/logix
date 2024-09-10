@@ -95,10 +95,10 @@ fn main() {
     let mut sim = Simulator::new(flat);
     sim.start(false);
     loop {
-        sim.component(|comp| {
+        sim.state(|state| {
             print!("{}[2J", 27 as char);
             print!("{esc}[2J{esc}[1;1H", esc = 27 as char);
-            show_full(comp, &id_map);
+            show_full(&state.comp, &id_map);
         });
         thread::sleep(std::time::Duration::from_millis(5));
     }

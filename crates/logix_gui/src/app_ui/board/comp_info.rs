@@ -190,6 +190,16 @@ impl ComponentInfo {
         }
     }
 
+    pub fn switch() -> Self {
+        Self {
+            name: "SW".to_string(),
+            source: CompSource::Prim(Primitive::Switch),
+            inputs: vec![],
+            outputs: vec![IOInfo::single("")],
+            description: None,
+        }
+    }
+
     pub fn input(bits: u8) -> Self {
         Self {
             name: "IN".to_string(),

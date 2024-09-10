@@ -7,7 +7,7 @@ use egui::{emath::TSTransform, Pos2};
 use egui_notify::Toasts;
 use log::error;
 use logix_core::component::PortAddr;
-use logix_sim::{flatten::FlattenComponent, Simulator};
+use logix_sim::{flatten::FlattenComponent, primitives::prelude::Primitive, Simulator};
 use std::{path::PathBuf, time::Duration};
 
 #[derive(Default)]
@@ -165,13 +165,21 @@ impl BoardEditing {
         let Some(sim) = self.sim.as_mut() else {
             return;
         };
-        let res: Result<(), SimulationError> = sim.component(|comp| {
+        let res: Result<(), SimulationError> = sim.state(|state| {
             let (ids, board) = match self.sim_at.as_mut() {
                 Some((path, board)) => (Some(path), board),
                 None => (None, &mut self.board),
             };
             board.components.iter_mut().try_for_each(|board_comp| {
-                let (input_datas, output_datas) = comp
+                if matches!(board_comp.info.source, CompSource::Prim(Primitive::Switch)) {
+                    let c = state.comp.comp_by_id_mut(board_comp.id);
+                    c.outputs[0] = board_comp.outputs_data[0];
+                    state.to_upd.push(board_comp.id);
+                    return Ok(());
+                }
+
+                let (input_datas, output_datas) = state
+                    .comp
                     .get_status(
                         ids.as_ref().map_or(&[], |ids| ids.as_slice()),
                         Some(board_comp.id),
