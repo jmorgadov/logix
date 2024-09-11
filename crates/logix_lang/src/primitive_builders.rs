@@ -77,12 +77,12 @@ pub fn output(id: usize, bits: usize) -> Component<ExtraInfo> {
 
 pub fn splitter(id: usize, bits: usize) -> Component<ExtraInfo> {
     let prim = Primitive::Splitter { bits };
-    base_component_extra(id, 1, bits as usize, ExtraInfo::from_primitive(id, prim))
+    base_component_extra(id, 1, bits, ExtraInfo::from_primitive(id, prim))
 }
 
 pub fn joiner(id: usize, bits: usize) -> Component<ExtraInfo> {
     let prim = Primitive::Joiner { bits };
-    base_component_extra(id, bits as usize, 1, ExtraInfo::from_primitive(id, prim))
+    base_component_extra(id, bits, 1, ExtraInfo::from_primitive(id, prim))
 }
 
 pub fn clock(id: usize, frec: f64) -> Component<ExtraInfo> {

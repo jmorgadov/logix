@@ -18,19 +18,19 @@ lalrpop_mod!(pub grammar);
 #[derive(Debug, Clone, Error)]
 pub enum BuildError {
     #[error("No main component found")]
-    NoMainComponentError,
+    NoMainComponentFound,
 
     #[error("Component declaration not found: {0}")]
-    ComponentDeclNotFoundError(String),
+    ComponentDeclNotFound(String),
 
     #[error("Component reference not found: {0}")]
-    ComponentRefNotFoundError(String),
+    ComponentRefNotFound(String),
 
     #[error("Input pin not found: {0}")]
-    InputPinNotFoundError(String),
+    InputPinNotFound(String),
 
     #[error("Output pin not found: {0}")]
-    OutputPinNotFoundError(String),
+    OutputPinNotFound(String),
 
     #[error("Subcircuit module not found: {0}")]
     ImportError(String),
@@ -46,7 +46,7 @@ pub fn build_from_file(
     let comp_map = get_comp_map(main_path.to_string())?;
     let main = comp_map
         .get("Main")
-        .ok_or(BuildError::NoMainComponentError)?;
+        .ok_or(BuildError::NoMainComponentFound)?;
     let mut last_id: usize = 0;
     let mut id_map: HashMap<usize, String> = HashMap::new();
     let comp = comp_decl_to_comp(main, "main", &comp_map, &mut last_id, &mut id_map)?;
@@ -73,7 +73,7 @@ fn get_loc(loc: usize, text: &str) -> (usize, usize) {
 fn get_comp_map(lgx_path: String) -> Result<HashMap<String, Box<CompDecl>>, BuildError> {
     debug!("Getting component map from: {}", lgx_path);
 
-    let text = std::fs::read_to_string(lgx_path.to_string())
+    let text = std::fs::read_to_string(lgx_path.clone())
         .map_err(|_| BuildError::ImportError(lgx_path.to_string()))?;
 
     debug!("Parsing file: {}", lgx_path);
@@ -90,10 +90,7 @@ fn get_comp_map(lgx_path: String) -> Result<HashMap<String, Box<CompDecl>>, Buil
             lalrpop_util::ParseError::ExtraToken { token: _ } => todo!(),
             lalrpop_util::ParseError::User { error: _ } => todo!(),
         };
-        BuildError::ModuleSintaxError(
-            lgx_path.to_string(),
-            format!("[{}:{}] {}", line, col, e.to_string()),
-        )
+        BuildError::ModuleSintaxError(lgx_path.to_string(), format!("[{}:{}] {}", line, col, e))
     })?;
 
     debug!("Building component map");
@@ -148,38 +145,35 @@ fn comp_decl_to_comp(
 
     let subc: Vec<Component<ExtraInfo>> = subc
         .iter()
-        .map(|((subc_name, _), sub_comp)| {
-            let sub_c = match sub_comp {
-                Comp::Primitive(prim) => {
-                    *last_id += 1;
-                    let prim = match prim {
-                        Primitive::And(ins_count) => and_gate(*last_id, *ins_count),
-                        Primitive::Or(ins_count) => or_gate(*last_id, *ins_count),
-                        Primitive::Not => not_gate(*last_id),
-                        Primitive::Nand(ins_count) => nand_gate(*last_id, *ins_count),
-                        Primitive::Nor(ins_count) => nor_gate(*last_id, *ins_count),
-                        Primitive::HighConst => high_const(*last_id),
-                        Primitive::LowConst => low_const(*last_id),
-                        Primitive::Clock(frec) => clock(*last_id, *frec),
-                        Primitive::Xor(ins_count) => xor_gate(*last_id, *ins_count),
-                        Primitive::Input(bits) => input(*last_id, *bits),
-                        Primitive::Output(bits) => output(*last_id, *bits),
-                        Primitive::Splitter(bits) => splitter(*last_id, *bits),
-                        Primitive::Joiner(bits) => joiner(*last_id, *bits),
-                    };
-                    id_map.insert(*last_id, subc_name.to_string());
-                    debug!("Creating primitive: {} with id {}", subc_name, *last_id);
-                    Ok(prim)
-                }
-                Comp::Composite(name) => {
-                    let decl = comp_map
-                        .get(name)
-                        .ok_or(BuildError::ComponentDeclNotFoundError(name.to_string()))?;
-                    let compose = comp_decl_to_comp(decl, subc_name, comp_map, last_id, id_map)?;
-                    Ok(compose)
-                }
-            };
-            sub_c
+        .map(|((subc_name, _), sub_comp)| match sub_comp {
+            Comp::Primitive(prim) => {
+                *last_id += 1;
+                let prim = match prim {
+                    Primitive::And(ins_count) => and_gate(*last_id, *ins_count),
+                    Primitive::Or(ins_count) => or_gate(*last_id, *ins_count),
+                    Primitive::Not => not_gate(*last_id),
+                    Primitive::Nand(ins_count) => nand_gate(*last_id, *ins_count),
+                    Primitive::Nor(ins_count) => nor_gate(*last_id, *ins_count),
+                    Primitive::HighConst => high_const(*last_id),
+                    Primitive::LowConst => low_const(*last_id),
+                    Primitive::Clock(frec) => clock(*last_id, *frec),
+                    Primitive::Xor(ins_count) => xor_gate(*last_id, *ins_count),
+                    Primitive::Input(bits) => input(*last_id, *bits),
+                    Primitive::Output(bits) => output(*last_id, *bits),
+                    Primitive::Splitter(bits) => splitter(*last_id, *bits),
+                    Primitive::Joiner(bits) => joiner(*last_id, *bits),
+                };
+                id_map.insert(*last_id, subc_name.to_string());
+                debug!("Creating primitive: {} with id {}", subc_name, *last_id);
+                Ok(prim)
+            }
+            Comp::Composite(name) => {
+                let decl = comp_map
+                    .get(name)
+                    .ok_or(BuildError::ComponentDeclNotFound(name.to_string()))?;
+                let compose = comp_decl_to_comp(decl, subc_name, comp_map, last_id, id_map)?;
+                Ok(compose)
+            }
         })
         .collect::<Result<Vec<Component<ExtraInfo>>, BuildError>>()?;
 
@@ -228,40 +222,40 @@ fn get_connections(
     let get_subc_idx = |name: &str| -> Result<usize, BuildError> {
         subc_map
             .get(name)
-            .ok_or(BuildError::ComponentRefNotFoundError(name.to_string()))
-            .map(|x| *x)
+            .ok_or(BuildError::ComponentRefNotFound(name.to_string()))
+            .copied()
     };
 
     let get_pin_idx =
         |comp_name: &str, pin_name: &str, is_input: bool| -> Result<usize, BuildError> {
             let comp = get_comp_decl(comp, comp_name, comp_map)
-                .map_err(|_| BuildError::ComponentRefNotFoundError(comp_name.to_string()))?;
+                .map_err(|_| BuildError::ComponentRefNotFound(comp_name.to_string()))?;
             if is_input {
                 comp.out_idx_by_name
                     .get(pin_name)
-                    .map(|x| *x)
-                    .ok_or(BuildError::InputPinNotFoundError(pin_name.to_string()))
+                    .copied()
+                    .ok_or(BuildError::InputPinNotFound(pin_name.to_string()))
             } else {
                 comp.in_idx_by_name
                     .get(pin_name)
-                    .map(|x| *x)
-                    .ok_or(BuildError::OutputPinNotFoundError(pin_name.to_string()))
+                    .copied()
+                    .ok_or(BuildError::OutputPinNotFound(pin_name.to_string()))
             }
         };
 
     for conn in &comp.design {
         debug!("|  Processing connection: {:?}", conn);
 
-        let src_comp_idx = get_subc_idx(&conn.src.name())?;
-        let dest_comp_idx = get_subc_idx(&conn.dest.name())?;
+        let src_comp_idx = get_subc_idx(conn.src.name())?;
+        let dest_comp_idx = get_subc_idx(conn.dest.name())?;
 
         let src_pin_idx = match &conn.src {
-            PinAddr::ByName(_, n) => get_pin_idx(&conn.src.name(), n, true)?,
+            PinAddr::ByName(_, n) => get_pin_idx(conn.src.name(), n, true)?,
             PinAddr::ByIdx(_, idx) => *idx,
         };
 
         let dest_pin_idx = match &conn.dest {
-            PinAddr::ByName(_, n) => get_pin_idx(&conn.dest.name(), n, false)?,
+            PinAddr::ByName(_, n) => get_pin_idx(conn.dest.name(), n, false)?,
             PinAddr::ByIdx(_, idx) => *idx,
         };
 
@@ -291,7 +285,7 @@ fn get_comp_decl<'a>(
         .iter()
         .filter_map(|((n, _), c)| if n == name { Some(c) } else { None })
         .next()
-        .ok_or(BuildError::ComponentRefNotFoundError(name.to_string()))?;
+        .ok_or(BuildError::ComponentRefNotFound(name.to_string()))?;
 
     let subc_type = match subc {
         Comp::Primitive(prim) => prim.to_string(),
@@ -299,7 +293,7 @@ fn get_comp_decl<'a>(
     };
     let comp_decl = comp_map
         .get(&subc_type)
-        .ok_or(BuildError::ComponentDeclNotFoundError(subc_type.clone()))?;
+        .ok_or(BuildError::ComponentDeclNotFound(subc_type.clone()))?;
 
     Ok(comp_decl)
 }

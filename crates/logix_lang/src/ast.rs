@@ -53,17 +53,11 @@ impl Comp {
     }
 
     pub fn is_input(&self) -> bool {
-        match self {
-            Comp::Primitive(Primitive::Input(_)) => true,
-            _ => false,
-        }
+        matches!(self, Comp::Primitive(Primitive::Input(_)))
     }
 
     pub fn is_output(&self) -> bool {
-        match self {
-            Comp::Primitive(Primitive::Output(_)) => true,
-            _ => false,
-        }
+        matches!(self, Comp::Primitive(Primitive::Output(_)))
     }
 }
 
