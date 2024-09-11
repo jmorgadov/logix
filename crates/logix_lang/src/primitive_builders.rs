@@ -1,5 +1,8 @@
-use super::{data::Data, prelude::ExtraInfo, primitive::Primitive};
 use logix_core::prelude::*;
+use logix_sim::primitives::{
+    data::Data,
+    prelude::{ExtraInfo, Primitive},
+};
 
 fn base_component_extra(
     id: usize,

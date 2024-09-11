@@ -1,5 +1,6 @@
 mod ast;
 mod builder;
+mod primitive_builders;
 
 use std::{collections::HashMap, path::Path, thread};
 

@@ -181,10 +181,9 @@ impl PrimitiveComponent {
         }
     }
 
-    pub fn custom(id: usize, comp: AsmComponent) -> Self {
+    pub fn custom(id: usize, comp: AsmComponent, state: AsmProgramState) -> Self {
         let in_count = comp.inputs.len();
         let out_count = comp.outputs.len();
-        let state = comp.new_program_state();
         PrimitiveComponent {
             id,
             name: "Custom".to_string(),

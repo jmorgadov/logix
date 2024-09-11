@@ -185,30 +185,19 @@ impl FlattenComponent {
             }
         }
 
-        match comp {
-            NestedConfig::Compose(_, _, _, ins, outs) => {
-                let mut in_bits = vec![];
-                let mut out_bits = vec![];
-                for addr in ins {
-                    in_bits.push(self.components[addr.0].inputs[addr.1]);
-                }
-                for addr in outs {
-                    out_bits.push(self.components[addr.0].outputs[addr.1]);
-                }
-                Ok((in_bits, out_bits))
-            }
-            NestedConfig::Single(_, _, ins, outs) => {
-                let mut in_bits = vec![];
-                let mut out_bits = vec![];
-                for addr in ins {
-                    in_bits.push(self.components[addr.0].inputs[addr.1]);
-                }
-                for addr in outs {
-                    out_bits.push(self.components[addr.0].outputs[addr.1]);
-                }
-                Ok((in_bits, out_bits))
-            }
-        }
+        let (ins, outs) = match comp {
+            NestedConfig::Single(_, _, ins, outs) => (ins, outs),
+            NestedConfig::Compose(_, _, _, ins, outs) => (ins, outs),
+        };
+        let in_bits = ins
+            .iter()
+            .map(|(idx, port)| self.components[*idx].inputs[*port])
+            .collect();
+        let out_bits = outs
+            .iter()
+            .map(|(idx, port)| self.components[*idx].outputs[*port])
+            .collect();
+        Ok((in_bits, out_bits))
     }
 }
 
@@ -242,7 +231,9 @@ fn flat_comp(comp: &Component<ExtraInfo>) -> (Vec<PrimitiveComponent>, Vec<Conn>
         Primitive::Joiner { bits } => PrimitiveComponent::joiner(id, *bits),
         Primitive::Clock { period } => PrimitiveComponent::clock(id, *period),
         Primitive::Const { value } => PrimitiveComponent::const_gate(id, *value),
-        Primitive::Custom { comp, state: _ } => PrimitiveComponent::custom(id, comp.clone()),
+        Primitive::Custom { comp, state } => {
+            PrimitiveComponent::custom(id, comp.clone(), state.clone())
+        }
     };
 
     (vec![new_comp], vec![])

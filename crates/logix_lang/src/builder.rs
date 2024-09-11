@@ -4,14 +4,12 @@ use std::collections::HashMap;
 use std::path::Path;
 use thiserror::Error;
 
-use logix_core::component::{Component, ComponentBuilder, Conn, PortAddr};
-use logix_sim::primitives::{
-    primitive::ExtraInfo,
-    primitive_builders::{
-        and_gate, clock, high_const, input, joiner, low_const, nand_gate, nor_gate, not_gate,
-        or_gate, output, splitter, xor_gate,
-    },
+use crate::primitive_builders::{
+    and_gate, clock, high_const, input, joiner, low_const, nand_gate, nor_gate, not_gate, or_gate,
+    output, splitter, xor_gate,
 };
+use logix_core::component::{Component, ComponentBuilder, Conn, PortAddr};
+use logix_sim::primitives::primitive::ExtraInfo;
 
 use crate::ast::prelude::*;
 
