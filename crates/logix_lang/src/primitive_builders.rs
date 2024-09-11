@@ -1,8 +1,6 @@
+use asmhdl::Data;
 use logix_core::prelude::*;
-use logix_sim::primitives::{
-    data::Data,
-    prelude::{ExtraInfo, Primitive},
-};
+use logix_sim::primitives::prelude::{ExtraInfo, Primitive};
 
 fn base_component_extra(
     id: usize,
@@ -67,22 +65,22 @@ pub fn xor_gate(id: usize, in_count: usize) -> Component<ExtraInfo> {
     )
 }
 
-pub fn input(id: usize, bits: u8) -> Component<ExtraInfo> {
+pub fn input(id: usize, bits: usize) -> Component<ExtraInfo> {
     let prim = Primitive::Input { bits };
     base_component_extra(id, 1, 1, ExtraInfo::from_primitive(id, prim))
 }
 
-pub fn output(id: usize, bits: u8) -> Component<ExtraInfo> {
+pub fn output(id: usize, bits: usize) -> Component<ExtraInfo> {
     let prim = Primitive::Output { bits };
     base_component_extra(id, 1, 1, ExtraInfo::from_primitive(id, prim))
 }
 
-pub fn splitter(id: usize, bits: u8) -> Component<ExtraInfo> {
+pub fn splitter(id: usize, bits: usize) -> Component<ExtraInfo> {
     let prim = Primitive::Splitter { bits };
     base_component_extra(id, 1, bits as usize, ExtraInfo::from_primitive(id, prim))
 }
 
-pub fn joiner(id: usize, bits: u8) -> Component<ExtraInfo> {
+pub fn joiner(id: usize, bits: usize) -> Component<ExtraInfo> {
     let prim = Primitive::Joiner { bits };
     base_component_extra(id, bits as usize, 1, ExtraInfo::from_primitive(id, prim))
 }

@@ -1,9 +1,7 @@
+use asmhdl::Data;
 use egui::Pos2;
 use logix_core::prelude::Component;
-use logix_sim::primitives::{
-    data::Data,
-    prelude::{ExtraInfo, Primitive},
-};
+use logix_sim::primitives::prelude::{ExtraInfo, Primitive};
 use serde::{Deserialize, Serialize};
 
 use crate::app_ui::{errors::BoardBuildError, id_map::IdMap};

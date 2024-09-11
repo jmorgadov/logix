@@ -3,11 +3,11 @@ use std::collections::HashMap;
 use crate::{
     errors::{DataRequestError, FlattenComponentError},
     primitives::{
-        data::Data,
         prelude::Primitive,
         primitive::{ExtraInfo, PrimitiveComponent},
     },
 };
+use asmhdl::Data;
 use log::*;
 use logix_core::prelude::*;
 

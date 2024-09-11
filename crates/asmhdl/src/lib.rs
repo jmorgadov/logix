@@ -13,10 +13,10 @@
 )]
 
 mod component;
+mod data;
 mod parser;
 mod program;
-mod value;
 
 pub use component::AsmComponent;
+pub use data::Data;
 pub use program::{AsmCommand, AsmExpr, AsmProgramState, AsmProgramUpdateType};
-pub use value::AsmValue;

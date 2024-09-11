@@ -3,32 +3,26 @@ use std::ops as std_ops;
 
 /// A value with a fixed size in bits.
 #[derive(Debug, Clone, Copy, PartialEq, Default, Serialize, Deserialize)]
-pub struct AsmValue {
+pub struct Data {
     /// Value of the data
     pub value: usize,
     /// Size of the data in bits
     pub size: usize,
 }
 
-impl AsmValue {
+impl Data {
     /// Creates a new value with the given value and size
     pub fn new(value: usize, size: usize) -> Self {
         Self { value, size }
     }
 
-    /// Returns a value representing true
-    ///
-    /// Value: 1
-    /// Size: 1
-    pub fn true_val() -> Self {
+    /// Single bit data with value 1
+    pub fn high() -> Self {
         Self::new(1, 1)
     }
 
-    /// Returns a value representing false
-    ///
-    /// Value: 0
-    /// Size: 1
-    pub fn false_val() -> Self {
+    /// Single bit data with value 0
+    pub fn low() -> Self {
         Self::new(0, 1)
     }
 
@@ -40,25 +34,53 @@ impl AsmValue {
         self.value = (self.value & !(1 << bit)) | ((value as usize) << bit);
     }
 
+    /// Gets the value of a bit
+    pub fn get_bit(&self, bit: usize) -> bool {
+        if bit >= self.size {
+            panic!("Bit index out of range");
+        }
+        (self.value & (1 << bit)) != 0
+    }
+
+    /// Sets the value according to a boolean
+    pub fn set_from_bool(&mut self, value: bool) {
+        self.value = match value {
+            true => 1,
+            false => 0,
+        };
+    }
+
+    /// Sets the value according to a number
+    pub fn set_value(&mut self, value: usize) {
+        assert!(value < (1 << self.size));
+        self.value = value & ((1 << self.size) - 1);
+    }
+
+    /// Sets the value from another data
+    pub fn clone_from(&mut self, value: &Data) {
+        assert!(self.size == value.size);
+        self.value = value.value;
+    }
+
     /// False if the value is 0, true otherwise
     pub fn as_bool(&self) -> bool {
         self.value != 0
     }
 }
 
-impl From<bool> for AsmValue {
+impl From<bool> for Data {
     fn from(value: bool) -> Self {
-        AsmValue::new(value as usize, 1)
+        Data::new(value as usize, 1)
     }
 }
 
-impl From<usize> for AsmValue {
+impl From<usize> for Data {
     fn from(value: usize) -> Self {
-        AsmValue::new(value, 64)
+        Data::new(value, 64)
     }
 }
 
-impl From<&str> for AsmValue {
+impl From<&str> for Data {
     fn from(value: &str) -> Self {
         let size = value.len();
         let value = value
@@ -73,52 +95,52 @@ impl From<&str> for AsmValue {
     }
 }
 
-impl std_ops::BitAnd for AsmValue {
+impl std_ops::BitAnd for Data {
     type Output = Self;
 
     fn bitand(self, rhs: Self) -> Self {
         if self.size != rhs.size {
             panic!("Bitwise and between different sizes");
         }
-        AsmValue::new(
+        Data::new(
             (self.value & rhs.value) & ((1 << self.size) - 1),
             self.size.max(rhs.size),
         )
     }
 }
 
-impl std_ops::BitOr for AsmValue {
+impl std_ops::BitOr for Data {
     type Output = Self;
 
     fn bitor(self, rhs: Self) -> Self {
         if self.size != rhs.size {
             panic!("Bitwise or between different sizes");
         }
-        AsmValue::new(
+        Data::new(
             (self.value | rhs.value) & ((1 << self.size) - 1),
             self.size.max(rhs.size),
         )
     }
 }
 
-impl std_ops::BitXor for AsmValue {
+impl std_ops::BitXor for Data {
     type Output = Self;
 
     fn bitxor(self, rhs: Self) -> Self {
         if self.size != rhs.size {
             panic!("Bitwise xor between different sizes");
         }
-        AsmValue::new(
+        Data::new(
             (self.value ^ rhs.value) & ((1 << self.size) - 1),
             self.size.max(rhs.size),
         )
     }
 }
 
-impl std_ops::Not for AsmValue {
+impl std_ops::Not for Data {
     type Output = Self;
 
     fn not(self) -> Self {
-        AsmValue::new((!self.value) & ((1 << self.size) - 1), self.size)
+        Data::new((!self.value) & ((1 << self.size) - 1), self.size)
     }
 }

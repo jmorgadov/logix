@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
-use crate::value::AsmValue;
+use crate::data::Data;
 
 const FLAG_EQUAL: usize = 0;
 const FLAG_LESS: usize = 1;
@@ -27,7 +27,7 @@ pub struct AsmProgramState {
     pub cmds: Vec<AsmCommand>,
 
     /// Declared variables
-    pub vars: HashMap<String, AsmValue>,
+    pub vars: HashMap<String, Data>,
 
     /// Program counter
     pub pc: usize,
@@ -67,7 +67,7 @@ pub enum AsmExpr {
     /// From the program state
     Var(String),
     /// Constant value
-    Const(AsmValue),
+    Const(Data),
 }
 
 /// AsmHDL command
@@ -248,10 +248,7 @@ impl AsmProgramState {
     }
 
     /// Sets the default variables of the program
-    pub fn with_default_vars(
-        mut self,
-        vars: HashMap<impl Into<String>, impl Into<AsmValue>>,
-    ) -> Self {
+    pub fn with_default_vars(mut self, vars: HashMap<impl Into<String>, impl Into<Data>>) -> Self {
         self.vars = vars
             .into_iter()
             .map(|(k, v)| (k.into(), v.into()))
@@ -271,21 +268,21 @@ impl AsmProgramState {
         (self.flags & (1 << bit)) != 0
     }
 
-    fn eval_expr(&mut self, expr: &AsmExpr) -> AsmValue {
+    fn eval_expr(&mut self, expr: &AsmExpr) -> Data {
         match expr {
             AsmExpr::Not(expr) => !self.eval_expr(expr),
             AsmExpr::And(exprs) => exprs
                 .iter()
-                .fold(AsmValue::true_val(), |acc, x| acc & self.eval_expr(x)),
+                .fold(Data::high(), |acc, x| acc & self.eval_expr(x)),
             AsmExpr::Or(exprs) => exprs
                 .iter()
-                .fold(AsmValue::false_val(), |acc, x| acc | self.eval_expr(x)),
+                .fold(Data::low(), |acc, x| acc | self.eval_expr(x)),
             AsmExpr::Nand(exprs) => !exprs
                 .iter()
-                .fold(AsmValue::true_val(), |acc, x| acc & self.eval_expr(x)),
+                .fold(Data::high(), |acc, x| acc & self.eval_expr(x)),
             AsmExpr::Nor(exprs) => !exprs
                 .iter()
-                .fold(AsmValue::false_val(), |acc, x| acc | self.eval_expr(x)),
+                .fold(Data::low(), |acc, x| acc | self.eval_expr(x)),
             AsmExpr::Xor(exprs) => exprs
                 .iter()
                 .skip(1)
@@ -293,7 +290,7 @@ impl AsmProgramState {
             AsmExpr::Var(name) => self.vars[name],
             AsmExpr::Const(value) => *value,
             AsmExpr::BitVec(exprs) => {
-                let mut data = AsmValue::new(0, exprs.len());
+                let mut data = Data::new(0, exprs.len());
                 for (i, expr) in exprs.iter().rev().enumerate() {
                     data.set_bit(i, self.eval_expr(expr).as_bool());
                 }

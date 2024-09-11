@@ -1,5 +1,5 @@
-use asmhdl::AsmComponent;
-use logix_sim::primitives::{data::Data, primitive::Primitive};
+use asmhdl::{AsmComponent, Data};
+use logix_sim::primitives::primitive::Primitive;
 use serde::{Deserialize, Serialize};
 
 use super::CompSource;
@@ -7,11 +7,11 @@ use super::CompSource;
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct IOInfo {
     pub name: String,
-    pub size: u8,
+    pub size: usize,
 }
 
 impl IOInfo {
-    pub fn new(name: impl Into<String>, bits: u8) -> Self {
+    pub fn new(name: impl Into<String>, bits: usize) -> Self {
         Self {
             name: name.into(),
             size: bits,
@@ -32,8 +32,8 @@ impl std::default::Default for IOInfo {
     }
 }
 
-impl From<(String, u8)> for IOInfo {
-    fn from((name, bits): (String, u8)) -> Self {
+impl From<(String, usize)> for IOInfo {
+    fn from((name, bits): (String, usize)) -> Self {
         Self { name, size: bits }
     }
 }
@@ -76,7 +76,7 @@ impl ComponentInfo {
         }
     }
 
-    pub fn and_gate(in_count: u8) -> Self {
+    pub fn and_gate(in_count: usize) -> Self {
         Self {
             name: "AND".to_string(),
             source: CompSource::Prim(Primitive::AndGate),
@@ -86,7 +86,7 @@ impl ComponentInfo {
         }
     }
 
-    pub fn nand_gate(in_count: u8) -> Self {
+    pub fn nand_gate(in_count: usize) -> Self {
         Self {
             name: "NAND".to_string(),
             source: CompSource::Prim(Primitive::NandGate),
@@ -96,7 +96,7 @@ impl ComponentInfo {
         }
     }
 
-    pub fn or_gate(in_count: u8) -> Self {
+    pub fn or_gate(in_count: usize) -> Self {
         Self {
             name: "OR".to_string(),
             source: CompSource::Prim(Primitive::OrGate),
@@ -106,7 +106,7 @@ impl ComponentInfo {
         }
     }
 
-    pub fn nor_gate(in_count: u8) -> Self {
+    pub fn nor_gate(in_count: usize) -> Self {
         Self {
             name: "NOR".to_string(),
             source: CompSource::Prim(Primitive::NorGate),
@@ -116,7 +116,7 @@ impl ComponentInfo {
         }
     }
 
-    pub fn xor_gate(in_count: u8) -> Self {
+    pub fn xor_gate(in_count: usize) -> Self {
         Self {
             name: "XOR".to_string(),
             source: CompSource::Prim(Primitive::XorGate),
@@ -170,7 +170,7 @@ impl ComponentInfo {
         }
     }
 
-    pub fn splitter(bits: u8) -> Self {
+    pub fn splitter(bits: usize) -> Self {
         Self {
             name: "SPLIT".to_string(),
             source: CompSource::Prim(Primitive::Splitter { bits }),
@@ -180,7 +180,7 @@ impl ComponentInfo {
         }
     }
 
-    pub fn joiner(bits: u8) -> Self {
+    pub fn joiner(bits: usize) -> Self {
         Self {
             name: "JOIN".to_string(),
             source: CompSource::Prim(Primitive::Joiner { bits }),
@@ -200,7 +200,7 @@ impl ComponentInfo {
         }
     }
 
-    pub fn input(bits: u8) -> Self {
+    pub fn input(bits: usize) -> Self {
         Self {
             name: "IN".to_string(),
             source: CompSource::Prim(Primitive::Input { bits }),
@@ -210,7 +210,7 @@ impl ComponentInfo {
         }
     }
 
-    pub fn output(bits: u8) -> Self {
+    pub fn output(bits: usize) -> Self {
         Self {
             name: "OUT".to_string(),
             source: CompSource::Prim(Primitive::Output { bits }),

@@ -121,7 +121,7 @@ impl BoardEditing {
 
             if self.sim.is_some() {
                 let data = self.current_sim_board().components[idx].outputs_data[from_port];
-                let val_in_bits = format!("{:0width$b}", data.value, width = data.size as usize);
+                let val_in_bits = format!("{:0width$b}", data.value, width = data.size);
                 resp.on_hover_text(format!("{} - {}", val_in_bits, data.value));
             }
 

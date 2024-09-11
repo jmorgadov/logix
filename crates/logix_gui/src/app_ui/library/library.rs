@@ -11,7 +11,7 @@ pub struct Library {
     pub sub_libs: IndexMap<String, Library>,
 }
 
-pub const BIT_RANGE: [u8; 11] = [1, 2, 3, 4, 5, 6, 7, 8, 16, 32, 64];
+pub const BIT_RANGE: [usize; 11] = [1, 2, 3, 4, 5, 6, 7, 8, 16, 32, 64];
 
 impl Library {
     pub fn new(

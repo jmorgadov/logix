@@ -1,9 +1,7 @@
 use std::fmt::{Display, Formatter};
 
-use asmhdl::{AsmComponent, AsmProgramState};
+use asmhdl::{AsmComponent, AsmProgramState, Data};
 use serde::{Deserialize, Serialize};
-
-use super::data::Data;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Primitive {
@@ -15,16 +13,16 @@ pub enum Primitive {
     XorGate,
     Switch,
     Input {
-        bits: u8,
+        bits: usize,
     },
     Output {
-        bits: u8,
+        bits: usize,
     },
     Splitter {
-        bits: u8,
+        bits: usize,
     },
     Joiner {
-        bits: u8,
+        bits: usize,
     },
     Clock {
         period: u128,
@@ -103,25 +101,26 @@ impl PrimitiveComponent {
     pub fn update(&mut self, time: u128) {
         match &mut self.prim_type {
             Primitive::AndGate => {
-                self.outputs[0].set_bit(self.inputs.iter().fold(true, |acc, &x| acc & x.as_bool()));
+                self.outputs[0]
+                    .set_from_bool(self.inputs.iter().fold(true, |acc, &x| acc & x.as_bool()));
             }
             Primitive::OrGate => {
                 self.outputs[0]
-                    .set_bit(self.inputs.iter().fold(false, |acc, &x| acc | x.as_bool()));
+                    .set_from_bool(self.inputs.iter().fold(false, |acc, &x| acc | x.as_bool()));
             }
             Primitive::NotGate => {
                 self.outputs[0] = !self.inputs[0];
             }
             Primitive::NandGate => {
                 self.outputs[0]
-                    .set_bit(!self.inputs.iter().fold(true, |acc, &x| acc & x.as_bool()));
+                    .set_from_bool(!self.inputs.iter().fold(true, |acc, &x| acc & x.as_bool()));
             }
             Primitive::NorGate => {
                 self.outputs[0]
-                    .set_bit(!self.inputs.iter().fold(false, |acc, &x| acc | x.as_bool()));
+                    .set_from_bool(!self.inputs.iter().fold(false, |acc, &x| acc | x.as_bool()));
             }
             Primitive::XorGate => {
-                self.outputs[0].set_bit(
+                self.outputs[0].set_from_bool(
                     self.inputs
                         .iter()
                         .skip(1)
@@ -129,18 +128,18 @@ impl PrimitiveComponent {
                 );
             }
             Primitive::Input { bits: _b } => {
-                self.outputs[0].set_from(self.inputs[0]);
+                self.outputs[0].clone_from(&self.inputs[0]);
             }
             Primitive::Output { bits: _b } => {
-                self.outputs[0].set_from(self.inputs[0]);
+                self.outputs[0].clone_from(&self.inputs[0]);
             }
             Primitive::Splitter { bits: b } => {
                 for bit_idx in (0..*b).rev() {
-                    self.outputs[bit_idx as usize].set_bit(self.inputs[0].get_bit_at(bit_idx));
+                    self.outputs[bit_idx].set_from_bool(self.inputs[0].get_bit(bit_idx));
                 }
             }
             Primitive::Joiner { bits: _b } => {
-                self.outputs[0].set_data(
+                self.outputs[0].set_value(
                     self.inputs
                         .iter()
                         .enumerate()
@@ -148,23 +147,19 @@ impl PrimitiveComponent {
                 );
             }
             Primitive::Clock { period } => {
-                self.outputs[0].set_bit((time % (*period * 2)) > *period);
+                self.outputs[0].set_from_bool((time % (*period * 2)) > *period);
             }
             Primitive::Const { value: _v } => (),
             Primitive::Custom { comp, state } => {
                 // Set inputs and outputs in program state for internal access
                 comp.inputs.iter().enumerate().for_each(|(idx, (name, _))| {
-                    state
-                        .vars
-                        .insert(name.clone(), self.inputs[idx].as_asm_val());
+                    state.vars.insert(name.clone(), self.inputs[idx]);
                 });
                 comp.outputs
                     .iter()
                     .enumerate()
                     .for_each(|(idx, (name, _))| {
-                        state
-                            .vars
-                            .insert(name.clone(), self.outputs[idx].as_asm_val());
+                        state.vars.insert(name.clone(), self.outputs[idx]);
                     });
 
                 state.run(time);
@@ -174,7 +169,7 @@ impl PrimitiveComponent {
                     .iter_mut()
                     .enumerate()
                     .for_each(|(idx, (name, _))| {
-                        self.outputs[idx] = state.vars[name].into();
+                        self.outputs[idx] = state.vars[name];
                     });
             }
             Primitive::Switch { .. } => {} // Switch only changes on user input
@@ -263,7 +258,7 @@ impl PrimitiveComponent {
         }
     }
 
-    pub fn input(id: usize, bits: u8) -> Self {
+    pub fn input(id: usize, bits: usize) -> Self {
         PrimitiveComponent {
             id,
             name: "Input".to_string(),
@@ -273,7 +268,7 @@ impl PrimitiveComponent {
         }
     }
 
-    pub fn output(id: usize, bits: u8) -> Self {
+    pub fn output(id: usize, bits: usize) -> Self {
         PrimitiveComponent {
             id,
             name: "Output".to_string(),
@@ -283,22 +278,22 @@ impl PrimitiveComponent {
         }
     }
 
-    pub fn splitter(id: usize, bits: u8) -> Self {
+    pub fn splitter(id: usize, bits: usize) -> Self {
         PrimitiveComponent {
             id,
             name: "Splitter".to_string(),
             prim_type: Primitive::Splitter { bits },
             inputs: vec![Data::new(0, bits)],
-            outputs: vec![Data::low(); bits as usize],
+            outputs: vec![Data::low(); bits],
         }
     }
 
-    pub fn joiner(id: usize, bits: u8) -> Self {
+    pub fn joiner(id: usize, bits: usize) -> Self {
         PrimitiveComponent {
             id,
             name: "Joiner".to_string(),
             prim_type: Primitive::Joiner { bits },
-            inputs: vec![Data::low(); bits as usize],
+            inputs: vec![Data::low(); bits],
             outputs: vec![Data::new(0, bits)],
         }
     }
@@ -316,7 +311,7 @@ impl PrimitiveComponent {
     pub fn const_gate(id: usize, value: Data) -> Self {
         PrimitiveComponent {
             id,
-            name: format!("Const({})", value),
+            name: format!("Const({})", value.value),
             prim_type: Primitive::Const { value },
             inputs: vec![],
             outputs: vec![value],

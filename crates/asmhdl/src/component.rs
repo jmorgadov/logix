@@ -1,6 +1,6 @@
 use crate::{
     program::{AsmCommand, AsmProgramState, AsmProgramUpdateType},
-    AsmValue,
+    Data,
 };
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
@@ -22,19 +22,19 @@ pub struct AsmComponent {
     ///
     /// Key: Port name
     /// Value: Port size in bits
-    pub inputs: IndexMap<String, u8>,
+    pub inputs: IndexMap<String, usize>,
 
     /// Output ports
     ///
     /// Key: Port name
     /// Value: Port size in bits
-    pub outputs: IndexMap<String, u8>,
+    pub outputs: IndexMap<String, usize>,
 
     /// Variables defined in by default in the component
     ///
     /// Key: Variable name
     /// Value: Variable value
-    pub defaults: HashMap<String, AsmValue>,
+    pub defaults: HashMap<String, Data>,
 
     /// Commands that define the component behavior
     pub cmds: Vec<AsmCommand>,
@@ -82,7 +82,7 @@ impl AsmComponent {
     /// Adds an input port to the component
     ///
     /// The order of the calls to this method will define the order of the input ports
-    pub fn with_input(mut self, name: &str, size: u8) -> Self {
+    pub fn with_input(mut self, name: &str, size: usize) -> Self {
         self.inputs.insert(name.to_string(), size);
         self
     }
@@ -90,13 +90,13 @@ impl AsmComponent {
     /// Adds an output port to the component
     ///
     /// The order of the calls to this method will define the order of the output ports
-    pub fn with_output(mut self, name: &str, size: u8) -> Self {
+    pub fn with_output(mut self, name: &str, size: usize) -> Self {
         self.outputs.insert(name.to_string(), size);
         self
     }
 
     /// Adds a default variable to the component
-    pub fn with_default(mut self, name: &str, value: AsmValue) -> Self {
+    pub fn with_default(mut self, name: &str, value: Data) -> Self {
         self.defaults.insert(name.to_string(), value);
         self
     }

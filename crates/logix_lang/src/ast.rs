@@ -14,10 +14,10 @@ pub enum Primitive {
     Clock(f64),
     HighConst,
     LowConst,
-    Input(u8),
-    Output(u8),
-    Splitter(u8),
-    Joiner(u8),
+    Input(usize),
+    Output(usize),
+    Splitter(usize),
+    Joiner(usize),
 }
 
 impl Display for Primitive {
@@ -44,10 +44,10 @@ impl Comp {
             "Clock" => Comp::Primitive(Primitive::Clock(clock_frec)),
             "High" => Comp::Primitive(Primitive::HighConst),
             "Low" => Comp::Primitive(Primitive::LowConst),
-            "In" => Comp::Primitive(Primitive::Input(ins_count as u8)),
-            "Out" => Comp::Primitive(Primitive::Output(ins_count as u8)),
-            "Splitter" => Comp::Primitive(Primitive::Splitter(ins_count as u8)),
-            "Joiner" => Comp::Primitive(Primitive::Joiner(ins_count as u8)),
+            "In" => Comp::Primitive(Primitive::Input(ins_count)),
+            "Out" => Comp::Primitive(Primitive::Output(ins_count)),
+            "Splitter" => Comp::Primitive(Primitive::Splitter(ins_count)),
+            "Joiner" => Comp::Primitive(Primitive::Joiner(ins_count)),
             _ => Comp::Composite(name.to_string()),
         }
     }
