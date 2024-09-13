@@ -55,9 +55,33 @@ impl LogixApp {
         &mut self.board_editing_mut().board
     }
 
+    /// Gets a name that is not already in the project folder
+    fn get_board_default_name(&self) -> String {
+        let mut i = 0;
+        let project_folder = self.folder.current_path.clone();
+        let tabs_files: Vec<String> = self
+            .board_tabs
+            .iter()
+            .map(|board_edit| {
+                board_edit
+                    .file
+                    .file_name()
+                    .unwrap()
+                    .to_string_lossy()
+                    .to_string()
+            })
+            .collect();
+        let mut name = format!("untitled_{i}.lgxb");
+        while project_folder.join(&name).exists() || tabs_files.contains(&name) {
+            i += 1;
+            name = format!("untitled_{i}.lgxb");
+        }
+        name
+    }
+
     pub fn new_board(&mut self) {
         let board = BoardEditing {
-            file: self.folder.current_path.join("untitled.json"),
+            file: self.folder.current_path.join(self.get_board_default_name()),
             project_folder: self.folder.current_path.clone(),
             ..Default::default()
         };
@@ -116,6 +140,13 @@ impl LogixApp {
     pub fn save_current_board_as(&mut self) {
         let file = FileDialog::new()
             .set_directory(self.folder.current_path.clone())
+            .set_file_name(
+                self.board_editing()
+                    .file
+                    .file_name()
+                    .unwrap()
+                    .to_string_lossy(),
+            )
             .add_filter("Logix Board", &["lgxb"]);
         if let Some(mut new_file) = file.save_file() {
             if new_file.extension().is_none() || new_file.extension().unwrap() != "lgxb" {
