@@ -181,7 +181,7 @@ impl IdMap {
 impl Folder {
     fn ui_impl(&mut self, ui: &mut Ui, selected_file: Option<&PathBuf>) -> Option<PathBuf> {
         let mut new_file = selected_file.cloned();
-        for folder in &mut self.folders {
+        for folder in self.folders() {
             let name = folder.current_path.file_name().unwrap().to_str().unwrap();
             CollapsingHeader::new(name).show(ui, |ui| {
                 new_file = folder.ui_impl(ui, selected_file);
@@ -189,7 +189,7 @@ impl Folder {
         }
 
         for file in self
-            .files
+            .files()
             .iter()
             .filter(|file| file.extension().is_some_and(|ext| ext == "lgxb"))
         {
