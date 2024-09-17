@@ -11,6 +11,11 @@ use crate::app_ui::{
 
 use super::canvas_payload::CanvasPayload;
 
+pub enum FolderPanelAction {
+    Select(PathBuf),
+    None,
+}
+
 impl LogixApp {
     pub fn show_folders(&mut self, ui: &mut Ui) {
         ui.heading(
@@ -24,14 +29,14 @@ impl LogixApp {
         egui::ScrollArea::vertical()
             .max_width(180.0)
             .show(ui, |ui| {
-                let new_file = self.folder.ui_impl(ui, self.selected_file.as_ref());
-                if new_file != self.selected_file {
-                    if let Some(file) = new_file.clone() {
+                match self.folder.ui_impl(ui, self.selected_file.as_ref()) {
+                    FolderPanelAction::Select(file) => {
                         if self.load_board(&file).is_ok() {
-                            self.selected_file = new_file;
+                            self.selected_file = Some(file);
                         }
                     }
-                }
+                    FolderPanelAction::None => {}
+                };
             });
     }
 
@@ -179,12 +184,12 @@ impl IdMap {
 }
 
 impl Folder {
-    fn ui_impl(&mut self, ui: &mut Ui, selected_file: Option<&PathBuf>) -> Option<PathBuf> {
-        let mut new_file = selected_file.cloned();
+    fn ui_impl(&mut self, ui: &mut Ui, selected_file: Option<&PathBuf>) -> FolderPanelAction {
+        let mut action = FolderPanelAction::None;
         for folder in self.folders() {
             let name = folder.current_path.file_name().unwrap().to_str().unwrap();
             CollapsingHeader::new(name).show(ui, |ui| {
-                new_file = folder.ui_impl(ui, selected_file);
+                action = folder.ui_impl(ui, selected_file);
             });
         }
 
@@ -201,23 +206,35 @@ impl Folder {
                 }
             }
             egui::Frame::default().fill(color).show(ui, |ui| {
-                ui.allocate_space(Vec2::new(ui.available_width(), 0.0));
+                let mut alloc_rect = ui.allocate_space(Vec2::new(ui.available_width(), 0.0)).1;
                 let resp = ui.add(
                     egui::Label::new(name)
                         .selectable(false)
-                        .wrap_mode(egui::TextWrapMode::Truncate)
-                        .sense(Sense::click_and_drag()),
+                        .wrap_mode(egui::TextWrapMode::Truncate),
+                );
+                alloc_rect.set_height(resp.rect.height());
+                let resp = ui.interact(
+                    alloc_rect,
+                    resp.id.with("interact"),
+                    Sense::click_and_drag(),
                 );
                 if resp.hovered() {
                     ui.ctx().set_cursor_icon(egui::CursorIcon::PointingHand);
                 }
-                if resp.double_clicked() {
-                    new_file = Some(file.clone());
+                if resp.clicked() {
+                    action = FolderPanelAction::Select(file.clone());
                 }
+                resp.context_menu(|ui| {
+                    ui.set_width(150.0);
+                    if ui.button("Open").clicked() {
+                        action = FolderPanelAction::Select(file.clone());
+                        ui.close_menu();
+                    }
+                });
                 resp.dnd_set_drag_payload(CanvasPayload::Path(file.clone()));
             });
         }
 
-        new_file
+        action
     }
 }
