@@ -1,4 +1,4 @@
-use asmhdl::{AsmComponent, Data};
+use asmhdl::{pcmd, pexp, AsmComponent, Data};
 use logix_sim::primitives::primitive::Primitive;
 use serde::{Deserialize, Serialize};
 
@@ -218,5 +218,30 @@ impl ComponentInfo {
             outputs: vec![],
             description: None,
         }
+    }
+
+    pub fn multiplexer(in_size: usize, size: usize) -> Self {
+        let mut asm = AsmComponent::new("MUX").with_input("SEL", size);
+        let in_count = 1 << size;
+        for i in 0..in_count {
+            asm = asm.with_input(&format!("{i}"), in_size);
+        }
+        asm = asm.with_output("O", in_size);
+        for i in 0..in_count {
+            let in_name = format!("{i}");
+            asm = asm.with_cmds(vec![
+                pcmd!(label, format!("case_{}", i)),
+                pcmd!(cmp, pexp!(var, "SEL"), pexp!(val, (i, size))),
+                pcmd!(jne, format!("case_{}", i + 1)),
+                pcmd!(mov, "O", pexp!(var, in_name)),
+                pcmd!(goto, "end"),
+            ]);
+        }
+
+        asm = asm.with_cmds(vec![
+            pcmd!(label, format!("case_{}", in_count)),
+            pcmd!(label, "end"),
+        ]);
+        Self::custom(asm)
     }
 }

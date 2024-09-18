@@ -3,7 +3,7 @@ use indexmap::IndexMap;
 
 use crate::app_ui::board::ComponentInfo;
 
-use super::{flip_flops::flip_flops_lib, gates::gates_lib};
+use super::{flip_flops::flip_flops_lib, gates::gates_lib, plexers::plexers_lib};
 
 #[derive(Default)]
 pub struct Library {
@@ -32,6 +32,7 @@ impl Library {
             [
                 ("Gates".into(), gates_lib()),
                 ("Memory".into(), flip_flops_lib()),
+                ("Plexers".into(), plexers_lib()),
             ],
         )
     }

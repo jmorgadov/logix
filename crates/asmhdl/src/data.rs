@@ -80,6 +80,12 @@ impl From<usize> for Data {
     }
 }
 
+impl From<(usize, usize)> for Data {
+    fn from(value: (usize, usize)) -> Self {
+        Data::new(value.0, value.1)
+    }
+}
+
 impl From<&str> for Data {
     fn from(value: &str) -> Self {
         let size = value.len();
