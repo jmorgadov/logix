@@ -136,8 +136,35 @@ impl BoardEditing {
 
         resp = resp.interact(Sense::click_and_drag());
 
-        let len = self.current_sim_board().conns.len();
-        for i in 0..len {
+        // Remove invalid connections
+        let mut i = 0;
+        while i < self.current_sim_board().conns.len() {
+            let conn = self.current_sim_board().conns[i].conn;
+            // Check out of bound ports
+            if conn.from.1 >= self.current_sim_board().components[conn.from.0].output_count()
+                || conn.to.1 >= self.current_sim_board().components[conn.to.0].input_count()
+            {
+                self.current_sim_board().remove_conn(i);
+                continue;
+            }
+
+            // Check pin bit width
+            let from_bits = self.current_sim_board().components[conn.from.0]
+                .info
+                .outputs[conn.from.1]
+                .size;
+            let to_bits =
+                self.current_sim_board().components[conn.to.0].info.inputs[conn.to.1].size;
+            if from_bits != to_bits {
+                self.current_sim_board().remove_conn(i);
+                continue;
+            }
+            i += 1;
+        }
+
+        // Update connections according to the current position
+        let conns_len = self.current_sim_board().conns.len();
+        for i in 0..conns_len {
             let info = &mut self.current_sim_board().conns[i];
 
             // If it is an output connection
@@ -156,7 +183,6 @@ impl BoardEditing {
             }
         }
 
-        // Update connections according to the current position
         (resp, in_resps, out_resps)
     }
 

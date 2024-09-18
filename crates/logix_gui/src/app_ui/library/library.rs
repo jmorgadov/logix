@@ -11,8 +11,6 @@ pub struct Library {
     pub sub_libs: IndexMap<String, Library>,
 }
 
-pub const BIT_RANGE: [usize; 11] = [1, 2, 3, 4, 5, 6, 7, 8, 16, 32, 64];
-
 impl Library {
     pub fn new(
         components: IndexMap<String, ComponentInfo>,
@@ -33,7 +31,7 @@ impl Library {
             .into(),
             [
                 ("Gates".into(), gates_lib()),
-                ("Flip Flops".into(), flip_flops_lib()),
+                ("Memory".into(), flip_flops_lib()),
             ],
         )
     }

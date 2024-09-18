@@ -50,6 +50,16 @@ impl BoardComponent {
         self
     }
 
+    pub fn update_comp_info(&mut self, info: ComponentInfo) {
+        self.inputs_data = info.inputs.iter().map(|io| Data::new(0, io.size)).collect();
+        self.outputs_data = info
+            .outputs
+            .iter()
+            .map(|io| Data::new(0, io.size))
+            .collect();
+        self.info = info;
+    }
+
     pub fn from_comp_info(info: ComponentInfo) -> Self {
         let inputs_data = info.inputs.iter().map(|io| Data::new(0, io.size)).collect();
         let outputs_data = info
