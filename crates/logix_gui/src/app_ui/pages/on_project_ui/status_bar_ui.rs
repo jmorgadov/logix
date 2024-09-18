@@ -15,6 +15,10 @@ impl LogixApp {
                     if self.is_sim_running() {
                         ui.label(egui::RichText::new("Running").color(Color32::LIGHT_GREEN));
                     }
+
+                    if self.render_time > 0.0 {
+                        ui.label(format!("FPS: {:.2}", 1.0 / self.render_time));
+                    }
                 });
             });
     }

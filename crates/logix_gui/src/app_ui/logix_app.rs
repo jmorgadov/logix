@@ -1,6 +1,6 @@
 use crate::app_ui::folder_tree::Folder;
 use egui_notify::Toasts;
-use std::path::PathBuf;
+use std::{path::PathBuf, time::Instant};
 
 use super::{
     app_config::AppSettings,
@@ -11,7 +11,8 @@ use super::{
     shortcuts,
 };
 
-#[derive(Default)]
+const MAX_FPS: f32 = 60.0;
+
 pub struct LogixApp {
     pub folder: Folder,
     pub selected_file: Option<PathBuf>,
@@ -20,9 +21,29 @@ pub struct LogixApp {
     pub toasts: Toasts,
     pub state: AppState,
 
+    pub render_time: f64,
     pub library: Library,
     pub settings: AppSettings,
     pub data: AppData,
+}
+
+impl std::default::Default for LogixApp {
+    fn default() -> Self {
+        let mut app = Self {
+            folder: Folder::default(),
+            selected_file: Option::default(),
+            board_tabs: Vec::default(),
+            current_tab: 0,
+            render_time: 0.0,
+            toasts: Toasts::default(),
+            state: AppState::OnWelcome,
+            library: Library::default(),
+            settings: AppSettings::default(),
+            data: AppData::default(),
+        };
+        app.load_app();
+        app
+    }
 }
 
 impl LogixApp {
@@ -100,12 +121,18 @@ impl LogixApp {
 
 impl eframe::App for LogixApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        self.load_app();
+        let now = Instant::now();
         ctx.set_pixels_per_point(self.settings.zoom);
         ctx.style_mut(|style| {
             style.visuals.button_frame = false;
         });
 
         self.draw_app(ctx);
+        let elapsed = now.elapsed();
+        if elapsed.as_secs_f32() < 1.0 / MAX_FPS {
+            std::thread::sleep(std::time::Duration::from_secs_f32(1.0 / MAX_FPS) - elapsed);
+        }
+        let after = now.elapsed();
+        self.render_time = after.as_secs_f64();
     }
 }
