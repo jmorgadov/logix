@@ -46,6 +46,13 @@ impl BoardEditing {
                     if resp.lost_focus() {
                         ui.close_menu();
                     }
+                    ui.label(format!("Input order: {in_idx}"));
+                    if ui.button("Move up").clicked() && in_idx > 0 {
+                        self.board.inputs.swap(in_idx, in_idx - 1);
+                    }
+                    if ui.button("Move down").clicked() && in_idx < self.board.inputs.len() - 1 {
+                        self.board.inputs.swap(in_idx, in_idx + 1);
+                    }
                 }
                 Primitive::Output { bits: _ } => {
                     let out_idx = self
@@ -60,6 +67,13 @@ impl BoardEditing {
                     );
                     if resp.lost_focus() {
                         ui.close_menu();
+                    }
+                    ui.label(format!("Output order: {out_idx}"));
+                    if ui.button("Move up").clicked() && out_idx > 0 {
+                        self.board.outputs.swap(out_idx, out_idx - 1);
+                    }
+                    if ui.button("Move down").clicked() && out_idx < self.board.outputs.len() - 1 {
+                        self.board.outputs.swap(out_idx, out_idx + 1);
                     }
                 }
             }
