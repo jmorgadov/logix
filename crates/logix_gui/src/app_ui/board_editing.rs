@@ -39,6 +39,7 @@ impl BoardEditing {
         self.toasts.error(err).set_closable(true);
     }
 
+    #[allow(dead_code)]
     pub fn notify(&mut self, err: impl Into<String>, secs: u64) {
         self.toasts
             .info(err)
@@ -67,7 +68,6 @@ impl BoardEditing {
         self.sim = Some(Simulator::new(flatten));
         self.sim.as_mut().unwrap().start(true);
         self.sim_ids = sim_ids;
-        self.notify("Simulation started", 1);
         Ok(())
     }
 
@@ -83,7 +83,6 @@ impl BoardEditing {
         }
         self.sim = None;
         self.sim_at = None;
-        self.notify("Simulation ended", 1);
     }
 
     pub const fn current_sim_board_ref(&self) -> &Board {
