@@ -26,7 +26,7 @@ impl Library {
         Self::new(
             [
                 ("CLK".into(), ComponentInfo::clock_gate()),
-                ("Switch".into(), ComponentInfo::switch()),
+                ("SWITCH".into(), ComponentInfo::switch()),
             ]
             .into(),
             [

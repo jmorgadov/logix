@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::{
-    errors::{DataRequestError, FlattenComponentError},
+    errors::{ComponentRequestError, DataRequestError, FlattenComponentError},
     primitives::{
         prelude::Primitive,
         primitive::{ExtraInfo, PrimitiveComponent},
@@ -48,7 +48,7 @@ pub struct FlattenComponent {
 
     pub nested_config: NestedConfig,
 
-    id_to_idx: HashMap<usize, usize>,
+    pub id_to_idx: HashMap<usize, usize>,
 }
 
 impl FlattenComponent {
@@ -128,11 +128,46 @@ impl FlattenComponent {
             .unwrap_or_else(|| panic!("Component {} not found", id))]
     }
 
+    pub fn get_prim_comp(
+        &mut self,
+        comp_path: &[usize],
+        at: Option<usize>,
+    ) -> Result<&mut PrimitiveComponent, ComponentRequestError> {
+        let mut comp = &self.nested_config;
+        for id in comp_path {
+            match comp {
+                NestedConfig::Compose(_, _, subs, _, _) => {
+                    comp = subs
+                        .get(id)
+                        .ok_or(ComponentRequestError::InvalidComponentId(*id))?;
+                }
+                _ => panic!("Component not found"),
+            }
+        }
+
+        if let Some(at) = at {
+            match comp {
+                NestedConfig::Compose(_, _, subs, _, _) => {
+                    comp = subs
+                        .get(&at)
+                        .ok_or(ComponentRequestError::InvalidComponentId(at))?;
+                }
+                _ => panic!("Component not found"),
+            }
+        }
+
+        let NestedConfig::Single(_, id, _, _) = comp else {
+            return Err(ComponentRequestError::NonPrimitive);
+        };
+
+        Ok(self.comp_by_id_mut(*id))
+    }
+
     pub fn get_input_status_at(&self, id: usize, idx: usize) -> Result<Data, DataRequestError> {
         let c_idx = *self
             .id_to_idx
             .get(&id)
-            .ok_or(DataRequestError::InvalidComponentId(id))?;
+            .ok_or(ComponentRequestError::InvalidComponentId(id))?;
         self.components[c_idx]
             .inputs
             .get(idx)
@@ -144,7 +179,7 @@ impl FlattenComponent {
         let c_idx = *self
             .id_to_idx
             .get(&id)
-            .ok_or(DataRequestError::InvalidComponentId(id))?;
+            .ok_or(ComponentRequestError::InvalidComponentId(id))?;
         self.components[c_idx]
             .outputs
             .get(idx)
@@ -168,7 +203,7 @@ impl FlattenComponent {
                 NestedConfig::Compose(_, _, subs, _, _) => {
                     comp = subs
                         .get(id)
-                        .ok_or(DataRequestError::InvalidComponentId(*id))?;
+                        .ok_or(ComponentRequestError::InvalidComponentId(*id))?;
                 }
                 _ => panic!("Component not found"),
             }
@@ -179,7 +214,7 @@ impl FlattenComponent {
                 NestedConfig::Compose(_, _, subs, _, _) => {
                     comp = subs
                         .get(&at)
-                        .ok_or(DataRequestError::InvalidComponentId(at))?;
+                        .ok_or(ComponentRequestError::InvalidComponentId(at))?;
                 }
                 _ => panic!("Component not found"),
             }

@@ -1,5 +1,5 @@
 use super::{
-    board::{Board, CompSource},
+    board::{Board, CompSource, UserInteraction},
     errors::SimulationError,
     id_map::IdMap,
 };
@@ -7,7 +7,7 @@ use egui::{emath::TSTransform, Pos2};
 use egui_notify::Toasts;
 use log::error;
 use logix_core::component::PortAddr;
-use logix_sim::{flatten::FlattenComponent, primitives::prelude::Primitive, Simulator};
+use logix_sim::{flatten::FlattenComponent, Simulator};
 use std::{path::PathBuf, time::Duration};
 
 #[derive(Default)]
@@ -171,10 +171,36 @@ impl BoardEditing {
                 None => (None, &mut self.board),
             };
             board.components.iter_mut().try_for_each(|board_comp| {
-                if matches!(board_comp.info.source, CompSource::Prim(Primitive::Switch)) {
-                    let c = state.comp.comp_by_id_mut(board_comp.id);
-                    c.outputs[0] = board_comp.outputs_data[0];
-                    state.to_upd.push(board_comp.id);
+                if let Some(interactions) = board_comp.user_interaction.as_mut() {
+                    let prim_comp = state
+                        .comp
+                        .get_prim_comp(
+                            ids.as_ref().map_or(&[], |ids| ids.as_slice()),
+                            Some(board_comp.id),
+                        )
+                        .map_err(|e| SimulationError::RequestComponentData {
+                            comp_name: board_comp.info.name.clone(),
+                            comp_id: board_comp.id,
+                            err: logix_sim::errors::DataRequestError::InvalidComponentId(e),
+                        })?;
+                    for interaction in interactions.iter_mut() {
+                        match interaction {
+                            UserInteraction::ChangeInput(port, data) => {
+                                prim_comp.inputs[*port] = *data;
+                            }
+                            UserInteraction::ChangeOutput(port, data) => {
+                                prim_comp.outputs[*port] = *data;
+                            }
+                        }
+                    }
+                    let id = prim_comp.id;
+                    {
+                        // Dropping the reference to prim_comp
+                        let _ = prim_comp;
+                    }
+                    let comp_idx = state.comp.id_to_idx[&id];
+                    state.to_upd.push(comp_idx);
+                    board_comp.user_interaction = None;
                     return Ok(());
                 }
 

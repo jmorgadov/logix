@@ -8,6 +8,13 @@ use crate::app_ui::{errors::BoardBuildError, id_map::IdMap};
 
 use super::{comp_info::ComponentInfo, Board, CompSource};
 
+#[derive(Debug, Clone)]
+pub enum UserInteraction {
+    #[allow(dead_code)]
+    ChangeInput(usize, Data),
+    ChangeOutput(usize, Data),
+}
+
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
 pub struct BoardComponent {
     pub pos: Pos2,
@@ -15,6 +22,9 @@ pub struct BoardComponent {
     pub info: ComponentInfo,
     pub inputs_data: Vec<Data>,
     pub outputs_data: Vec<Data>,
+
+    #[serde(skip)]
+    pub user_interaction: Option<Vec<UserInteraction>>,
 }
 
 impl BoardComponent {
@@ -38,6 +48,13 @@ impl BoardComponent {
             .source
             .primitive()
             .is_some_and(Primitive::is_output)
+    }
+
+    pub fn add_interaction(&mut self, interaction: UserInteraction) {
+        if self.user_interaction.is_none() {
+            self.user_interaction = Some(Vec::new());
+        }
+        self.user_interaction.as_mut().unwrap().push(interaction);
     }
 
     pub const fn with_pos(mut self, pos: Pos2) -> Self {
@@ -74,6 +91,7 @@ impl BoardComponent {
             info,
             inputs_data,
             outputs_data,
+            user_interaction: None,
         }
     }
 

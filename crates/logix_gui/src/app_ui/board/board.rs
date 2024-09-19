@@ -148,6 +148,7 @@ impl Board {
                     self.components[output.idx].inputs_data[0]
                 })
                 .collect(),
+            user_interaction: None,
         }
     }
 

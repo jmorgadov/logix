@@ -2,7 +2,7 @@ use egui::{emath::TSTransform, Color32, Pos2, Rect, Response, Sense, Ui, Vec2};
 use logix_sim::primitives::primitive::Primitive;
 
 use crate::app_ui::{
-    board::{BoardAction, CompSource},
+    board::{BoardAction, CompSource, UserInteraction},
     board_editing::BoardEditing,
     pages::on_project_ui::{
         constants::{COMP_FONT_SIZE, PIN_SIZE},
@@ -186,6 +186,16 @@ impl BoardEditing {
         (resp, in_resps, out_resps)
     }
 
+    pub fn handle_comp_click_on_sim(&mut self, idx: usize) {
+        let comp = &mut self.current_sim_board().components[idx];
+        let outputs = &comp.outputs_data;
+
+        // Handle the switch component
+        if matches!(comp.info.source, CompSource::Prim(Primitive::Switch)) {
+            comp.add_interaction(UserInteraction::ChangeOutput(0, !outputs[0]));
+        }
+    }
+
     pub fn draw_comp(
         &mut self,
         ui: &mut Ui,
@@ -213,15 +223,8 @@ impl BoardEditing {
         // Handle clciking on the component
         // -----------------------------------------------------------------------------
         let inside_sim = self.sim.is_some();
-        if resp.clicked()
-            && inside_sim
-            && matches!(
-                self.current_sim_board().components[idx].info.source,
-                CompSource::Prim(Primitive::Switch)
-            )
-        {
-            self.current_sim_board().components[idx].outputs_data[0] =
-                !self.current_sim_board().components[idx].outputs_data[0];
+        if resp.clicked() && inside_sim {
+            self.handle_comp_click_on_sim(idx);
         }
 
         // -----------------------------------------------------------------------------
