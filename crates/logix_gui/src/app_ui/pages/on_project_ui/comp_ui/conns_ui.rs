@@ -61,7 +61,12 @@ impl BoardEditing {
 
             if self.sim.is_none() && is_midd_wire {
                 if resp.drag_started() {
-                    self.dragging_conn_seg = Some((i, j, p1, p2));
+                    self.board
+                        .register_action(BoardAction::StartMovingConnSegment {
+                            conn_idx: i,
+                            seg_idx: j,
+                            pos: (p1, p2),
+                        });
                 }
                 if resp.dragged() {
                     let delta = resp.drag_delta();
@@ -77,16 +82,15 @@ impl BoardEditing {
                     }
                 }
                 if resp.drag_stopped() {
-                    let (i, j, p1, p2) = self.dragging_conn_seg.expect("No dragging segment");
-                    self.board.add_action(BoardAction::move_conn_segment(
-                        i,
-                        j,
-                        (p1, p2),
-                        (
-                            self.board.conns[i].points[j],
-                            self.board.conns[i].points[j + 1],
-                        ),
-                    ));
+                    self.board
+                        .register_action(BoardAction::EndMovingConnSegment {
+                            conn_idx: i,
+                            seg_idx: j,
+                            pos: (
+                                self.board.conns[i].points[j],
+                                self.board.conns[i].points[j + 1],
+                            ),
+                        });
                 }
             }
 

@@ -232,20 +232,20 @@ impl BoardEditing {
         // -----------------------------------------------------------------------------
         if self.sim.is_none() {
             if resp.drag_started() {
-                self.dragging_comp = Some((idx, self.board.components[idx].pos));
+                self.board
+                    .register_action(BoardAction::StartMovingComponent {
+                        idx,
+                        pos: self.board.components[idx].pos,
+                    });
             }
             if resp.dragged() && self.new_conn.is_none() {
                 self.update_comp_pos(idx, self.board.components[idx].pos + resp.drag_delta());
             }
             if resp.drag_stopped() {
-                if let Some((idx, pos)) = self.dragging_comp {
-                    self.board.add_action(BoardAction::move_component(
-                        idx,
-                        pos,
-                        self.board.components[idx].pos,
-                    ));
-                }
-                self.dragging_comp = None;
+                self.board.register_action(BoardAction::EndMovingComponent {
+                    idx,
+                    pos: self.board.components[idx].pos,
+                });
             }
         }
 

@@ -33,9 +33,67 @@ pub enum BoardAction {
         from: (Pos2, Pos2),
         to: (Pos2, Pos2),
     },
+
+    // Mergable actions
+    StartMovingComponent {
+        idx: usize,
+        pos: Pos2,
+    },
+    EndMovingComponent {
+        idx: usize,
+        pos: Pos2,
+    },
+
+    StartMovingConnSegment {
+        conn_idx: usize,
+        seg_idx: usize,
+        pos: (Pos2, Pos2),
+    },
+    EndMovingConnSegment {
+        conn_idx: usize,
+        seg_idx: usize,
+        pos: (Pos2, Pos2),
+    },
 }
 
 impl BoardAction {
+    pub fn should_merge_with(&self, other: &Self) -> Option<Self> {
+        match (self, other) {
+            (
+                Self::StartMovingComponent {
+                    idx: idx1,
+                    pos: pos1,
+                },
+                Self::EndMovingComponent {
+                    idx: idx2,
+                    pos: pos2,
+                },
+            ) if idx1 == idx2 => Some(Self::MoveComponent {
+                idx: *idx1,
+                from: *pos1,
+                to: *pos2,
+            }),
+            (
+                Self::StartMovingConnSegment {
+                    conn_idx: conn_idx1,
+                    seg_idx: seg_idx1,
+                    pos: pos1,
+                },
+                Self::EndMovingConnSegment {
+                    conn_idx: conn_idx2,
+                    seg_idx: seg_idx2,
+                    pos: pos2,
+                },
+            ) if conn_idx1 == conn_idx2 && seg_idx1 == seg_idx2 => Some(Self::MoveConnSegment {
+                conn_idx: *conn_idx1,
+                seg_idx: *seg_idx1,
+                from: *pos1,
+                to: *pos2,
+            }),
+            _ => None,
+        }
+    }
+
     pub const fn add_component(comp: BoardComponent) -> Self {
         Self::AddComponent { comp }
     }
@@ -54,22 +112,6 @@ impl BoardAction {
     pub const fn remove_connection(conn: BoardConnection, at: usize) -> Self {
         Self::RemoveConnection { conn, at }
     }
-    pub const fn move_component(idx: usize, from: Pos2, to: Pos2) -> Self {
-        Self::MoveComponent { idx, from, to }
-    }
-    pub const fn move_conn_segment(
-        conn_idx: usize,
-        seg_idx: usize,
-        from: (Pos2, Pos2),
-        to: (Pos2, Pos2),
-    ) -> Self {
-        Self::MoveConnSegment {
-            conn_idx,
-            seg_idx,
-            from,
-            to,
-        }
-    }
 }
 
 impl Board {
@@ -77,16 +119,25 @@ impl Board {
         self.hist_idx != self.saved_idx
     }
 
-    pub fn add_action(&mut self, action: BoardAction) -> usize {
+    pub fn register_action(&mut self, action: BoardAction) -> usize {
         self.hist.truncate(self.hist_idx.unwrap_or(0) + 1);
-        self.hist.push(action);
+
+        let mut next_action = action;
+        if let Some(last) = self.hist.last() {
+            if let Some(merged) = last.should_merge_with(&next_action) {
+                self.hist.pop();
+                next_action = merged;
+            }
+        }
+
+        self.hist.push(next_action);
         let next_idx = self.hist.len() - 1;
         self.hist_idx = Some(next_idx);
         next_idx
     }
 
     pub fn execute(&mut self, action: BoardAction) {
-        let idx = self.add_action(action.clone());
+        let idx = self.register_action(action.clone());
         self.hist[idx] = self._do_action(action);
     }
 
@@ -119,6 +170,10 @@ impl Board {
 
     fn _do_action(&mut self, mut action: BoardAction) -> BoardAction {
         match &mut action {
+            BoardAction::StartMovingComponent { .. }
+            | BoardAction::EndMovingComponent { .. }
+            | BoardAction::StartMovingConnSegment { .. }
+            | BoardAction::EndMovingConnSegment { .. } => {}
             BoardAction::AddComponent { comp } => {
                 self.components.push(comp.clone());
                 let idx = self.components.len() - 1;
@@ -224,6 +279,10 @@ impl Board {
 
     fn _undo_action(&mut self, action: BoardAction) {
         match action {
+            BoardAction::StartMovingComponent { .. }
+            | BoardAction::EndMovingComponent { .. }
+            | BoardAction::StartMovingConnSegment { .. }
+            | BoardAction::EndMovingConnSegment { .. } => {}
             BoardAction::AddComponent { .. } => {
                 self.components.pop();
                 let idx = self.components.len();
